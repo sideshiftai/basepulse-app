@@ -29,7 +29,7 @@ const stats = [
 export function StatsSection() {
   return (
     <section className="py-24 bg-muted/30">
-      <div className="container px-4 md:px-6">
+      <div className="container mx-auto px-4 md:px-6">
         <ScrollReveal>
           <div className="text-center space-y-4 mb-16">
             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">

@@ -23,31 +23,16 @@ import { useAccount } from "wagmi"
 import { MIN_POLL_DURATION, MAX_POLL_DURATION } from "@/lib/contracts/polls-contract"
 
 const pollSchema = z.object({
-  title: z.string().max(200, "Title too long"),
-  description: z.string().max(1000, "Description too long"),
-  category: z.string().min(1, "Please select a category"),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  category: z.string().optional(),
   options: z
     .array(z.string().min(1, "Option cannot be empty"))
     .min(2, "At least 2 options required")
     .max(10, "Maximum 10 options allowed"),
-  endDate: z.date({
-    required_error: "End date is required",
-    invalid_type_error: "Please select a valid date",
-  }).refine((date) => date > new Date(), {
-    message: "End date must be in the future",
-  }),
+  endDate: z.date().optional(),
   fundingType: z.enum(["none", "self", "community"]),
-  rewardAmount: z.number().min(0).optional(),
-  requireWalletConnection: z.literal(true),
-}).refine((data) => {
-  const now = new Date()
-  const diffInHours = (data.endDate.getTime() - now.getTime()) / (1000 * 60 * 60)
-  const minHours = Number(MIN_POLL_DURATION) / 3600
-  const maxHours = Number(MAX_POLL_DURATION) / 3600
-  return diffInHours >= minHours && diffInHours <= maxHours
-}, {
-  message: `Poll duration must be between ${Number(MIN_POLL_DURATION) / 3600} hours and ${Number(MAX_POLL_DURATION) / 3600 / 24} days`,
-  path: ["endDate"]
+  rewardAmount: z.coerce.number().min(0).optional(),
 })
 
 type PollFormData = z.infer<typeof pollSchema>
@@ -56,6 +41,7 @@ const categories = ["Governance", "Community", "Product", "Events", "General", "
 
 export function PollCreationForm() {
   const [options, setOptions] = useState<string[]>(["", ""])
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false)
 
   const { isConnected } = useAccount()
   const contractAddress = usePollsContractAddress()
@@ -67,6 +53,7 @@ export function PollCreationForm() {
     watch,
     setValue,
     reset,
+    getValues,
     formState: { errors },
   } = useForm<PollFormData>({
     resolver: zodResolver(pollSchema),
@@ -77,7 +64,6 @@ export function PollCreationForm() {
       description: "",
       category: "",
       fundingType: "none",
-      requireWalletConnection: true,
       options: ["", ""],
       rewardAmount: 0,
     },
@@ -85,6 +71,7 @@ export function PollCreationForm() {
 
   const fundingType = watch("fundingType")
   const endDate = watch("endDate")
+  const category = watch("category")
 
   const isSubmitting = isPending || isConfirming
 
@@ -114,6 +101,7 @@ export function PollCreationForm() {
   const onSubmit = async (data: PollFormData) => {
     console.log("Form submitted with data:", data)
     console.log("Form errors:", errors)
+    console.log("Current options state:", options)
 
     if (!isConnected) {
       toast.error("Please connect your wallet to create a poll")
@@ -151,7 +139,6 @@ export function PollCreationForm() {
       description: "",
       category: "",
       fundingType: "none",
-      requireWalletConnection: true,
       options: ["", ""],
     })
   }
@@ -171,7 +158,21 @@ export function PollCreationForm() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit, (errors) => {
+        console.log("=== VALIDATION ERRORS ===")
         console.log("Form validation errors:", errors)
+        console.log("Current form values:", watch())
+        console.log("Current options state:", options)
+        console.log("Form getValues():", getValues())
+        
+        // Check what fields are being validated
+        console.log("Schema fields being validated:", Object.keys(pollSchema.shape))
+        
+        // Log each field error specifically
+        Object.entries(errors).forEach(([field, error]) => {
+          console.log(`Field "${field}" error:`, error?.message)
+          console.log(`Field "${field}" current value:`, watch(field as keyof PollFormData))
+        })
+        
         toast.error("Please fix the validation errors before submitting")
       })} className="space-y-8">
         {/* Basic Information */}
@@ -207,7 +208,10 @@ export function PollCreationForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="category">Category *</Label>
-                <Select onValueChange={(value) => setValue("category", value, { shouldValidate: true })}>
+                <Select 
+                  value={category} 
+                  onValueChange={(value) => setValue("category", value, { shouldValidate: true })}
+                >
                   <SelectTrigger className={errors.category ? "border-destructive" : ""}>
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
@@ -224,15 +228,20 @@ export function PollCreationForm() {
 
               <div className="space-y-2">
                 <Label>End Date *</Label>
-                <Popover>
+                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                   <PopoverTrigger asChild>
                     <Button
+                      type="button"
                       variant="outline"
                       className={cn(
                         "w-full justify-start text-left font-normal",
                         !endDate && "text-muted-foreground",
                         errors.endDate && "border-destructive",
                       )}
+                      onClick={() => {
+                        console.log("Calendar button clicked")
+                        setIsCalendarOpen(!isCalendarOpen)
+                      }}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {endDate ? format(endDate, "PPP") : "Pick an end date"}
@@ -242,7 +251,13 @@ export function PollCreationForm() {
                     <Calendar
                       mode="single"
                       selected={endDate}
-                      onSelect={(date) => date && setValue("endDate", date, { shouldValidate: true })}
+                      onSelect={(date) => {
+                        console.log("Date selected:", date)
+                        if (date) {
+                          setValue("endDate", date, { shouldValidate: true })
+                          setIsCalendarOpen(false)
+                        }
+                      }}
                       disabled={(date) => date < new Date()}
                     />
                   </PopoverContent>

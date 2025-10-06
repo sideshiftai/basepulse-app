@@ -9,7 +9,7 @@ import { ArrowRight, Github, Twitter } from "lucide-react"
 export function CTASection() {
   return (
     <section className="py-24 gradient-bg">
-      <div className="container px-4 md:px-6">
+      <div className="container mx-auto px-4 md:px-6">
         <ScrollReveal>
           <Card className="p-12 gradient-card border-border/50 text-center">
             <div className="space-y-8">

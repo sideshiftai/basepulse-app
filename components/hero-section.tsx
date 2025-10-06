@@ -10,7 +10,7 @@ export function HeroSection() {
   return (
     <section className="relative min-h-screen flex items-center justify-center gradient-bg">
       <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:50px_50px]" />
-      <div className="container px-4 md:px-6 relative z-10">
+      <div className="container mx-auto px-4 md:px-6 relative z-10">
         <div className="flex flex-col items-center space-y-8 text-center">
           <ScrollReveal>
             <div className="space-y-4">
