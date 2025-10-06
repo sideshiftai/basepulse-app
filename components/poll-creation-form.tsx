@@ -218,7 +218,7 @@ export function PollCreationForm() {
                     <Calendar
                       mode="single"
                       selected={endDate}
-                      onSelect={(date) => setValue("endDate", date)}
+                      onSelect={(date) => date && setValue("endDate", date)}
                       disabled={(date) => date < new Date()}
                       initialFocus
                     />
