@@ -23,17 +23,22 @@ import { useAccount } from "wagmi"
 import { MIN_POLL_DURATION, MAX_POLL_DURATION } from "@/lib/contracts/polls-contract"
 
 const pollSchema = z.object({
-  title: z.string().min(10, "Title must be at least 10 characters").max(200, "Title too long"),
-  description: z.string().min(20, "Description must be at least 20 characters").max(1000, "Description too long"),
+  title: z.string().max(200, "Title too long"),
+  description: z.string().max(1000, "Description too long"),
   category: z.string().min(1, "Please select a category"),
   options: z
     .array(z.string().min(1, "Option cannot be empty"))
     .min(2, "At least 2 options required")
     .max(10, "Maximum 10 options allowed"),
-  endDate: z.date().min(new Date(), "End date must be in the future"),
+  endDate: z.date({
+    required_error: "End date is required",
+    invalid_type_error: "Please select a valid date",
+  }).refine((date) => date > new Date(), {
+    message: "End date must be in the future",
+  }),
   fundingType: z.enum(["none", "self", "community"]),
   rewardAmount: z.number().min(0).optional(),
-  requireWalletConnection: z.boolean().default(true),
+  requireWalletConnection: z.literal(true),
 }).refine((data) => {
   const now = new Date()
   const diffInHours = (data.endDate.getTime() - now.getTime()) / (1000 * 60 * 60)
@@ -65,10 +70,16 @@ export function PollCreationForm() {
     formState: { errors },
   } = useForm<PollFormData>({
     resolver: zodResolver(pollSchema),
+    mode: "onTouched",
+    reValidateMode: "onChange",
     defaultValues: {
+      title: "",
+      description: "",
+      category: "",
       fundingType: "none",
       requireWalletConnection: true,
       options: ["", ""],
+      rewardAmount: 0,
     },
   })
 
@@ -81,7 +92,7 @@ export function PollCreationForm() {
     if (options.length < 10) {
       const newOptions = [...options, ""]
       setOptions(newOptions)
-      setValue("options", newOptions)
+      setValue("options", newOptions, { shouldValidate: true })
     }
   }
 
@@ -89,7 +100,7 @@ export function PollCreationForm() {
     if (options.length > 2) {
       const newOptions = options.filter((_, i) => i !== index)
       setOptions(newOptions)
-      setValue("options", newOptions)
+      setValue("options", newOptions, { shouldValidate: true })
     }
   }
 
@@ -97,10 +108,13 @@ export function PollCreationForm() {
     const newOptions = [...options]
     newOptions[index] = value
     setOptions(newOptions)
-    setValue("options", newOptions)
+    setValue("options", newOptions, { shouldValidate: true })
   }
 
   const onSubmit = async (data: PollFormData) => {
+    console.log("Form submitted with data:", data)
+    console.log("Form errors:", errors)
+
     if (!isConnected) {
       toast.error("Please connect your wallet to create a poll")
       return
@@ -132,7 +146,14 @@ export function PollCreationForm() {
     toast.success("Poll created successfully!")
     // Reset form
     setOptions(["", ""])
-    reset()
+    reset({
+      title: "",
+      description: "",
+      category: "",
+      fundingType: "none",
+      requireWalletConnection: true,
+      options: ["", ""],
+    })
   }
 
   // Handle error
@@ -149,7 +170,10 @@ export function PollCreationForm() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={handleSubmit(onSubmit, (errors) => {
+        console.log("Form validation errors:", errors)
+        toast.error("Please fix the validation errors before submitting")
+      })} className="space-y-8">
         {/* Basic Information */}
         <Card>
           <CardHeader>
@@ -183,7 +207,7 @@ export function PollCreationForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="category">Category *</Label>
-                <Select onValueChange={(value) => setValue("category", value)}>
+                <Select onValueChange={(value) => setValue("category", value, { shouldValidate: true })}>
                   <SelectTrigger className={errors.category ? "border-destructive" : ""}>
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
@@ -218,9 +242,8 @@ export function PollCreationForm() {
                     <Calendar
                       mode="single"
                       selected={endDate}
-                      onSelect={(date) => date && setValue("endDate", date)}
+                      onSelect={(date) => date && setValue("endDate", date, { shouldValidate: true })}
                       disabled={(date) => date < new Date()}
-                      initialFocus
                     />
                   </PopoverContent>
                 </Popover>
@@ -278,7 +301,7 @@ export function PollCreationForm() {
           <CardContent className="space-y-6">
             <RadioGroup
               value={fundingType}
-              onValueChange={(value) => setValue("fundingType", value as "none" | "self" | "community")}
+              onValueChange={(value) => setValue("fundingType", value as "none" | "self" | "community", { shouldValidate: true })}
               className="space-y-4"
             >
               <div className="flex items-start space-x-3 p-4 border rounded-lg">
