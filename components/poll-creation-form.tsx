@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -19,11 +19,12 @@ import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { useCreatePoll, usePollsContractAddress } from "@/lib/contracts/polls-contract-utils"
-import { useAccount } from "wagmi"
+import { useAccount, useChainId } from "wagmi"
 import { MIN_POLL_DURATION, MAX_POLL_DURATION } from "@/lib/contracts/polls-contract"
+import { useRouter } from "next/navigation"
 
 const pollSchema = z.object({
-  title: z.string().optional(),
+  title: z.string(),
   description: z.string().optional(),
   category: z.string().optional(),
   options: z
@@ -46,6 +47,7 @@ export function PollCreationForm() {
   const { isConnected } = useAccount()
   const contractAddress = usePollsContractAddress()
   const { createPoll, isPending, isConfirming, isSuccess, error } = useCreatePoll()
+  const router = useRouter()
 
   const {
     register,
@@ -56,7 +58,7 @@ export function PollCreationForm() {
     getValues,
     formState: { errors },
   } = useForm<PollFormData>({
-    resolver: zodResolver(pollSchema),
+    // resolver: zodResolver(pollSchema),
     mode: "onTouched",
     reValidateMode: "onChange",
     defaultValues: {
@@ -99,7 +101,10 @@ export function PollCreationForm() {
   }
 
   const onSubmit = async (data: PollFormData) => {
+    console.log("=== FORM DEBUG ===")
     console.log("Form submitted with data:", data)
+    console.log("Watch title:", watch("title"))
+    console.log("GetValues:", getValues())
     console.log("Form errors:", errors)
     console.log("Current options state:", options)
 
@@ -113,6 +118,28 @@ export function PollCreationForm() {
       return
     }
 
+    // Validate required fields since we made them optional
+    if (!data.title?.trim()) {
+      toast.error("Poll title is required")
+      return
+    }
+
+    if (!options || options.length < 2) {
+      toast.error("At least 2 poll options are required")
+      return
+    }
+
+    const validOptions = options.filter(opt => opt && opt.trim() !== "")
+    if (validOptions.length < 2) {
+      toast.error("At least 2 non-empty poll options are required")
+      return
+    }
+
+    if (!data.endDate) {
+      toast.error("End date is required")
+      return
+    }
+
     try {
       console.log("Creating poll:", data)
 
@@ -120,31 +147,71 @@ export function PollCreationForm() {
       const now = new Date()
       const durationInHours = Math.ceil((data.endDate.getTime() - now.getTime()) / (1000 * 60 * 60))
 
+      console.log("Duration in hours:", durationInHours)
+      console.log("Contract address:", contractAddress)
+      console.log("Poll title:", data.title)
+      console.log("Valid options:", validOptions)
+
+      // Validate duration
+      if (durationInHours <= 0) {
+        toast.error("End date must be in the future")
+        return
+      }
+
+      if (durationInHours < 1) {
+        toast.error("Poll must run for at least 1 hour")
+        return
+      }
+
+      if (durationInHours > 24 * 30) { // 30 days
+        toast.error("Poll duration cannot exceed 30 days")
+        return
+      }
+
       // Create poll on contract
-      await createPoll(data.title, data.options, durationInHours)
+      await createPoll(data.title, validOptions, durationInHours)
 
     } catch (error) {
       console.error("Error creating poll:", error)
-      toast.error("Failed to create poll. Please try again.")
+      
+      // More specific error handling
+      if (error instanceof Error) {
+        if (error.message.includes("User rejected")) {
+          toast.error("Transaction was rejected by user")
+        } else if (error.message.includes("insufficient funds")) {
+          toast.error("Insufficient funds for transaction")
+        } else if (error.message.includes("gas")) {
+          toast.error("Gas estimation failed. Check network connection.")
+        } else {
+          toast.error(`Transaction failed: ${error.message}`)
+        }
+      } else {
+        toast.error("Failed to create poll. Please try again.")
+      }
     }
   }
 
-  // Handle success
-  if (isSuccess) {
-    toast.success("Poll created successfully!")
-    // Reset form
-    setOptions(["", ""])
-    reset({
-      title: "",
-      description: "",
-      category: "",
-      fundingType: "none",
-      options: ["", ""],
-    })
-  }
+  // Handle success with useEffect
+  useEffect(() => {
+    if (isSuccess) {
+      toast.success("Poll created successfully!")
+      // Reset form
+      setOptions(["", ""])
+      reset({
+        title: "",
+        description: "",
+        category: "",
+        fundingType: "none",
+        options: ["", ""],
+      })
+      // Redirect to dapp page
+      router.push("/dapp")
+    }
+  }, [isSuccess, reset, router])
 
   // Handle error
   if (error) {
+    console.error("Contract error:", error)
     toast.error(`Failed to create poll: ${error.message}`)
   }
 
@@ -157,24 +224,7 @@ export function PollCreationForm() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit, (errors) => {
-        console.log("=== VALIDATION ERRORS ===")
-        console.log("Form validation errors:", errors)
-        console.log("Current form values:", watch())
-        console.log("Current options state:", options)
-        console.log("Form getValues():", getValues())
-        
-        // Check what fields are being validated
-        console.log("Schema fields being validated:", Object.keys(pollSchema.shape))
-        
-        // Log each field error specifically
-        Object.entries(errors).forEach(([field, error]) => {
-          console.log(`Field "${field}" error:`, error?.message)
-          console.log(`Field "${field}" current value:`, watch(field as keyof PollFormData))
-        })
-        
-        toast.error("Please fix the validation errors before submitting")
-      })} className="space-y-8">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         {/* Basic Information */}
         <Card>
           <CardHeader>
@@ -184,23 +234,23 @@ export function PollCreationForm() {
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="title">Poll Title *</Label>
-              <Input
+              <input
                 id="title"
                 placeholder="What should we decide on?"
                 {...register("title")}
-                className={errors.title ? "border-destructive" : ""}
+                className={`w-full px-3 py-2 border rounded-md ${errors.title ? "border-red-500" : "border-gray-300"}`}
               />
               {errors.title && <p className="text-sm text-destructive">{errors.title.message}</p>}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="description">Description *</Label>
-              <Textarea
+              <textarea
                 id="description"
                 placeholder="Provide more context about what this poll is about and why it matters..."
                 rows={4}
                 {...register("description")}
-                className={errors.description ? "border-destructive" : ""}
+                className={`w-full px-3 py-2 border rounded-md ${errors.description ? "border-red-500" : "border-gray-300"}`}
               />
               {errors.description && <p className="text-sm text-destructive">{errors.description.message}</p>}
             </div>
@@ -410,6 +460,23 @@ export function PollCreationForm() {
               <span className="font-medium text-red-800">Contract not available</span>
             </div>
             <p className="text-red-700 mt-1">The polls contract is not deployed on this network</p>
+          </div>
+        )}
+
+        {/* Debug Info */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Info className="h-4 w-4 text-gray-600" />
+              <span className="font-medium text-gray-800">Debug Info</span>
+            </div>
+            <div className="text-sm text-gray-600 space-y-1">
+              <p>Connected: {isConnected ? 'Yes' : 'No'}</p>
+              <p>Contract Address: {contractAddress || 'Not available'}</p>
+              <p>Chain ID: {useChainId()}</p>
+              <p>Transaction Status: {isPending ? 'Pending' : isConfirming ? 'Confirming' : 'Ready'}</p>
+              {error && <p className="text-red-600">Error: {error.message}</p>}
+            </div>
           </div>
         )}
 
