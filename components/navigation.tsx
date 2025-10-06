@@ -5,9 +5,23 @@ import { usePathname } from "next/navigation"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { ConnectWalletButton } from "@/components/connect-wallet-button"
 import { cn } from "@/lib/utils"
+import { useAccount, useReadContract } from "wagmi"
+import { usePollsContractAddress } from "@/lib/contracts/polls-contract-utils"
+import { POLLS_CONTRACT_ABI } from "@/lib/contracts/polls-contract"
 
 export function Navigation() {
   const pathname = usePathname()
+  const { address, isConnected } = useAccount()
+  const contractAddress = usePollsContractAddress()
+  
+  // Check if current user is owner
+  const { data: owner } = useReadContract({
+    address: contractAddress,
+    abi: POLLS_CONTRACT_ABI,
+    functionName: 'owner',
+  })
+
+  const isOwner = isConnected && address && owner && address.toLowerCase() === owner.toLowerCase()
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -38,15 +52,28 @@ export function Navigation() {
             >
               Dapp
             </Link>
-            <Link
-              href="/admin"
-              className={cn(
-                "transition-colors hover:text-foreground/80",
-                pathname === "/admin" ? "text-foreground" : "text-foreground/60",
-              )}
-            >
-              Admin
-            </Link>
+            {isConnected && (
+              <Link
+                href="/creator"
+                className={cn(
+                  "transition-colors hover:text-foreground/80",
+                  pathname === "/creator" ? "text-foreground" : "text-foreground/60",
+                )}
+              >
+                Creator
+              </Link>
+            )}
+            {isOwner && (
+              <Link
+                href="/admin"
+                className={cn(
+                  "transition-colors hover:text-foreground/80",
+                  pathname === "/admin" ? "text-foreground" : "text-foreground/60",
+                )}
+              >
+                Admin
+              </Link>
+            )}
           </nav>
         </div>
 
