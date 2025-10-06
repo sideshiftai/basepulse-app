@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -7,6 +8,7 @@ import { Progress } from "@/components/ui/progress"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Clock, Users, Coins, Vote } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { VoteDialog } from "./vote-dialog"
 
 interface PollOption {
   id: string
@@ -37,6 +39,8 @@ interface PollCardProps {
 }
 
 export function PollCard({ poll, onVote, onViewDetails }: PollCardProps) {
+  const [isVoteDialogOpen, setIsVoteDialogOpen] = useState(false)
+  
   const timeRemaining = new Date(poll.endsAt).getTime() - new Date().getTime()
   const daysRemaining = Math.max(0, Math.ceil(timeRemaining / (1000 * 60 * 60 * 24)))
 
@@ -126,12 +130,19 @@ export function PollCard({ poll, onVote, onViewDetails }: PollCardProps) {
           View Details
         </Button>
         {poll.status === "active" && (
-          <Button size="sm" className="flex-1" onClick={() => onVote?.(poll.id, poll.options[0].id)}>
+          <Button size="sm" className="flex-1" onClick={() => setIsVoteDialogOpen(true)}>
             <Vote className="h-4 w-4 mr-2" />
             Vote
           </Button>
         )}
       </CardFooter>
+
+      <VoteDialog
+        poll={poll}
+        open={isVoteDialogOpen}
+        onOpenChange={setIsVoteDialogOpen}
+        onVote={onVote || (() => {})}
+      />
     </Card>
   )
 }

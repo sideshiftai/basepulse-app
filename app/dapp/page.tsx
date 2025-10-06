@@ -6,7 +6,7 @@ import { PollCard } from "@/components/poll-card"
 import { PollFilters } from "@/components/poll-filters"
 import { Plus, TrendingUp, Clock, Users, AlertCircle } from "lucide-react"
 import Link from "next/link"
-import { useActivePolls, useNextPollId, usePoll } from "@/lib/contracts/polls-contract-utils"
+import { useActivePolls, useNextPollId, usePoll, useVote, useHasUserVoted } from "@/lib/contracts/polls-contract-utils"
 import { useAccount } from "wagmi"
 
 export default function DappPage() {
@@ -18,9 +18,10 @@ export default function DappPage() {
     sortBy: "Latest",
   })
 
-  const { isConnected } = useAccount()
+  const { isConnected, address } = useAccount()
   const { data: activePollIds, isLoading: pollsLoading, error: pollsError } = useActivePolls()
   const { data: nextPollId, isLoading: nextIdLoading } = useNextPollId()
+  const { vote, isPending: isVoting } = useVote()
 
   // Get poll data for each active poll ID (hooks must be called unconditionally)
   const pollQueries = [
@@ -29,6 +30,15 @@ export default function DappPage() {
     usePoll(activePollIds?.[2] ? Number(activePollIds[2]) : 0),
     usePoll(activePollIds?.[3] ? Number(activePollIds[3]) : 0),
     usePoll(activePollIds?.[4] ? Number(activePollIds[4]) : 0),
+  ]
+
+  // Check voting status for each poll
+  const votingStatusQueries = [
+    useHasUserVoted(activePollIds?.[0] ? Number(activePollIds[0]) : 0, address),
+    useHasUserVoted(activePollIds?.[1] ? Number(activePollIds[1]) : 0, address),
+    useHasUserVoted(activePollIds?.[2] ? Number(activePollIds[2]) : 0, address),
+    useHasUserVoted(activePollIds?.[3] ? Number(activePollIds[3]) : 0, address),
+    useHasUserVoted(activePollIds?.[4] ? Number(activePollIds[4]) : 0, address),
   ]
 
   // Parse contract polls
@@ -61,6 +71,48 @@ export default function DappPage() {
 
   const polls = isConnected && !pollsError ? contractPolls : []
   const isLoading = pollsLoading
+
+  const handleVote = async (pollId: string, optionId: string) => {
+    console.log("=== VOTE DEBUG ===")
+    console.log("Poll ID:", pollId)
+    console.log("Option ID:", optionId)
+    
+    if (!isConnected) {
+      alert("Please connect your wallet to vote")
+      return
+    }
+
+    try {
+      // Extract option index from optionId (format: "pollId-optionIndex")
+      const optionIndex = parseInt(optionId.split('-')[1])
+      console.log("Extracted option index:", optionIndex)
+      console.log("Parsed poll ID:", parseInt(pollId))
+      
+      if (isNaN(optionIndex) || isNaN(parseInt(pollId))) {
+        throw new Error("Invalid poll ID or option index")
+      }
+      
+      console.log("Calling vote with:", parseInt(pollId), optionIndex)
+      await vote(parseInt(pollId), optionIndex)
+      
+    } catch (error) {
+      console.error("Vote failed:", error)
+      
+      if (error instanceof Error) {
+        if (error.message.includes("User rejected")) {
+          alert("Transaction was rejected by user")
+        } else if (error.message.includes("insufficient funds")) {
+          alert("Insufficient funds for transaction")
+        } else if (error.message.includes("already voted")) {
+          alert("You have already voted on this poll")
+        } else {
+          alert(`Vote failed: ${error.message}`)
+        }
+      } else {
+        alert("Vote failed. Please try again.")
+      }
+    }
+  }
 
   const filteredPolls = polls.filter((poll) => {
     if (
@@ -178,10 +230,7 @@ export default function DappPage() {
             <PollCard
               key={poll.id}
               poll={poll}
-              onVote={(pollId, optionId) => {
-                console.log("Vote:", pollId, optionId)
-                // TODO: Implement voting logic with contract
-              }}
+              onVote={handleVote}
               onViewDetails={(pollId) => {
                 console.log("View details:", pollId)
                 // TODO: Navigate to poll details
