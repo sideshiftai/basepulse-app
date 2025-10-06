@@ -6,30 +6,8 @@ import { PollCard } from "@/components/poll-card"
 import { PollFilters } from "@/components/poll-filters"
 import { Plus, TrendingUp, Clock, Users, AlertCircle } from "lucide-react"
 import Link from "next/link"
-import { useActivePolls, useNextPollId } from "@/lib/contracts/polls-contract-utils"
+import { useActivePolls, useNextPollId, usePoll } from "@/lib/contracts/polls-contract-utils"
 import { useAccount } from "wagmi"
-
-// Mock data for demonstration (keeping as fallback)
-const mockPolls = [
-  {
-    id: "1",
-    title: "Should we implement a new governance token for the community?",
-    description:
-      "This poll will determine if we should create a new governance token to give community members voting power on future decisions.",
-    creator: "0x1234567890abcdef1234567890abcdef12345678",
-    createdAt: "2024-01-15T10:00:00Z",
-    endsAt: "2024-01-25T10:00:00Z",
-    totalVotes: 1247,
-    totalReward: 2.5,
-    status: "active" as const,
-    category: "Governance",
-    fundingType: "community" as const,
-    options: [
-      { id: "1a", text: "Yes, implement governance token", votes: 847, percentage: 68 },
-      { id: "1b", text: "No, keep current system", votes: 400, percentage: 32 },
-    ],
-  },
-]
 
 export default function DappPage() {
   const [filters, setFilters] = useState({
@@ -44,10 +22,45 @@ export default function DappPage() {
   const { data: activePollIds, isLoading: pollsLoading, error: pollsError } = useActivePolls()
   const { data: nextPollId, isLoading: nextIdLoading } = useNextPollId()
 
-  // Use contract data if available and wallet is connected, otherwise use mock data
-  const useContractData = isConnected && !pollsError
-  const polls = useContractData ? [] : mockPolls // TODO: Implement contract data parsing
-  const isLoading = useContractData ? pollsLoading : false
+  // Get poll data for each active poll ID (hooks must be called unconditionally)
+  const pollQueries = [
+    usePoll(activePollIds?.[0] ? Number(activePollIds[0]) : 0),
+    usePoll(activePollIds?.[1] ? Number(activePollIds[1]) : 0),
+    usePoll(activePollIds?.[2] ? Number(activePollIds[2]) : 0),
+    usePoll(activePollIds?.[3] ? Number(activePollIds[3]) : 0),
+    usePoll(activePollIds?.[4] ? Number(activePollIds[4]) : 0),
+  ]
+
+  // Parse contract polls
+  const contractPolls = activePollIds?.slice(0, 5).map((pollId: bigint, index: number) => {
+    const pollData = pollQueries[index]
+    if (!pollData.data) return null
+    
+    const [id, question, options, votes, endTime, isActive, creator, totalFunding] = pollData.data
+    
+    return {
+      id: id.toString(),
+      title: question,
+      description: `Poll created by ${creator}`,
+      creator: creator,
+      createdAt: new Date().toISOString(),
+      endsAt: new Date(Number(endTime) * 1000).toISOString(),
+      totalVotes: votes.reduce((sum: number, vote: bigint) => sum + Number(vote), 0),
+      totalReward: Number(totalFunding) / 1e18,
+      status: isActive ? "active" as const : "closed" as const,
+      category: "General",
+      fundingType: "none" as const,
+      options: options.map((option: string, index: number) => ({
+        id: `${id}-${index}`,
+        text: option,
+        votes: Number(votes[index]),
+        percentage: votes.length > 0 ? Math.round((Number(votes[index]) / votes.reduce((sum: number, vote: bigint) => sum + Number(vote), 0)) * 100) : 0
+      }))
+    }
+  }).filter(Boolean) || []
+
+  const polls = isConnected && !pollsError ? contractPolls : []
+  const isLoading = pollsLoading
 
   const filteredPolls = polls.filter((poll) => {
     if (
@@ -76,8 +89,8 @@ export default function DappPage() {
     return true
   })
 
-  const totalPolls = useContractData ? Number(nextPollId || 0n) : mockPolls.length
-  const activePolls = useContractData ? (activePollIds?.length || 0) : mockPolls.filter((p) => p.status === "active").length
+  const totalPolls = Number(nextPollId || 0n)
+  const activePolls = activePollIds?.length || 0
 
   const stats = {
     totalPolls,
@@ -181,14 +194,14 @@ export default function DappPage() {
       {!isLoading && filteredPolls.length === 0 && (
         <div className="text-center py-12">
           <p className="text-muted-foreground text-lg">
-            {useContractData && activePollIds?.length === 0
+            {isConnected && activePollIds?.length === 0
               ? "No active polls found on the contract."
               : "No polls found matching your criteria."
             }
           </p>
           <Button asChild className="mt-4">
             <Link href="/dapp/create">
-              {useContractData && activePollIds?.length === 0 ? "Create the first poll" : "Create a poll"}
+              {isConnected && activePollIds?.length === 0 ? "Create the first poll" : "Create a poll"}
             </Link>
           </Button>
         </div>
