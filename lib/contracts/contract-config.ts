@@ -1,15 +1,15 @@
 /**
  * Contract deployment addresses configuration
- * Update these addresses after deploying the PollsContract to each network
+ * Update these addresses via environment variables after deploying the PollsContract to each network
  */
 export const CONTRACT_ADDRESSES = {
   // Base Mainnet (chainId: 8453)
   8453: {
-    POLLS_CONTRACT: '0x0000000000000000000000000000000000000000', // TODO: Replace with actual deployed address
+    POLLS_CONTRACT: (process.env.NEXT_PUBLIC_POLLS_CONTRACT_BASE || '0x0000000000000000000000000000000000000000') as `0x${string}`,
   },
   // Base Sepolia Testnet (chainId: 84532)
   84532: {
-    POLLS_CONTRACT: '0x0000000000000000000000000000000000000000', // TODO: Replace with actual deployed address
+    POLLS_CONTRACT: (process.env.NEXT_PUBLIC_POLLS_CONTRACT_BASE_SEPOLIA || '0x0000000000000000000000000000000000000000') as `0x${string}`,
   },
 } as const
 
