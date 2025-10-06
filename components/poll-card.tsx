@@ -30,6 +30,7 @@ interface Poll {
   category: string
   options: PollOption[]
   fundingType: "self" | "community" | "none"
+  hasVoted?: boolean
 }
 
 interface PollCardProps {
@@ -130,10 +131,16 @@ export function PollCard({ poll, onVote, onViewDetails }: PollCardProps) {
           View Details
         </Button>
         {poll.status === "active" && (
-          <Button size="sm" className="flex-1" onClick={() => setIsVoteDialogOpen(true)}>
-            <Vote className="h-4 w-4 mr-2" />
-            Vote
-          </Button>
+          poll.hasVoted ? (
+            <Button variant="outline" size="sm" className="flex-1" onClick={() => onViewDetails?.(poll.id)}>
+              View Results
+            </Button>
+          ) : (
+            <Button size="sm" className="flex-1" onClick={() => setIsVoteDialogOpen(true)}>
+              <Vote className="h-4 w-4 mr-2" />
+              Vote
+            </Button>
+          )
         )}
       </CardFooter>
 

@@ -44,6 +44,7 @@ export default function DappPage() {
   // Parse contract polls
   const contractPolls = activePollIds?.slice(0, 5).map((pollId: bigint, index: number) => {
     const pollData = pollQueries[index]
+    const votingStatus = votingStatusQueries[index]
     if (!pollData.data) return null
     
     const [id, question, options, votes, endTime, isActive, creator, totalFunding] = pollData.data
@@ -60,6 +61,7 @@ export default function DappPage() {
       status: isActive ? "active" as const : "closed" as const,
       category: "General",
       fundingType: "none" as const,
+      hasVoted: votingStatus.data || false,
       options: options.map((option: string, index: number) => ({
         id: `${id}-${index}`,
         text: option,
