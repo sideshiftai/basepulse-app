@@ -5,15 +5,38 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { AlertCircle, User, Clock, Users, Coins, X } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { AlertCircle, User, Clock, Users, Coins, X, DollarSign } from "lucide-react"
 import { useAccount } from "wagmi"
-import { useActivePolls, usePoll, useClosePoll } from "@/lib/contracts/polls-contract-utils"
+import { useActivePolls, usePoll, useClosePoll, useFundPollWithETH } from "@/lib/contracts/polls-contract-utils"
 import { toast } from "sonner"
 
 export default function CreatorPage() {
+  const [fundAmount, setFundAmount] = useState("")
+  const [selectedPollId, setSelectedPollId] = useState("")
+  const [selectedCoin, setSelectedCoin] = useState("ETH")
+  const [selectedNetwork, setSelectedNetwork] = useState("ethereum")
+  const [showSideShift, setShowSideShift] = useState(false)
+  
   const { address, isConnected } = useAccount()
   const { data: activePollIds, isLoading: pollsLoading, error: pollsError } = useActivePolls()
   const { closePoll, isPending: isClosing } = useClosePoll()
+  const { fundPoll, isPending: isFunding } = useFundPollWithETH()
+
+  const supportedAssets = [
+    { coin: "BTC", network: "bitcoin", name: "Bitcoin" },
+    { coin: "ETH", network: "ethereum", name: "Ethereum" },
+    { coin: "USDT", network: "ethereum", name: "USDT (Ethereum)" },
+    { coin: "USDT", network: "polygon", name: "USDT (Polygon)" },
+    { coin: "USDC", network: "ethereum", name: "USDC (Ethereum)" },
+    { coin: "USDC", network: "polygon", name: "USDC (Polygon)" },
+    { coin: "LTC", network: "litecoin", name: "Litecoin" },
+    { coin: "DOGE", network: "dogecoin", name: "Dogecoin" },
+    { coin: "ADA", network: "cardano", name: "Cardano" },
+    { coin: "DOT", network: "polkadot", name: "Polkadot" },
+  ]
 
   // Get poll data for each active poll ID
   const pollQueries = [
@@ -59,6 +82,63 @@ export default function CreatorPage() {
     } catch (error) {
       console.error("Close poll failed:", error)
       toast.error("Failed to close poll")
+    }
+  }
+
+  const handleFundPoll = async () => {
+    if (!fundAmount || !selectedPollId) return
+    
+    try {
+      if (selectedCoin === "ETH" && selectedNetwork === "ethereum") {
+        // Direct ETH funding
+        await fundPoll(parseInt(selectedPollId), fundAmount)
+        toast.success("Poll funding transaction submitted")
+      } else {
+        // SideShift conversion + funding
+        await handleSideShiftConversion()
+      }
+      
+      setFundAmount("")
+      setSelectedPollId("")
+      setSelectedCoin("ETH")
+      setSelectedNetwork("ethereum")
+    } catch (error) {
+      console.error("Fund poll failed:", error)
+      toast.error("Failed to fund poll")
+    }
+  }
+
+  const handleSideShiftConversion = async () => {
+    try {
+      // Create SideShift shift directly - they handle the swap
+      const shiftResponse = await fetch('https://sideshift.ai/api/v1/shifts/fixed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          depositCoin: selectedCoin.toLowerCase(),
+          settleCoin: 'eth',
+          depositAmount: fundAmount,
+          settleAddress: address,
+          affiliateId: 'basepulse'
+        })
+      })
+
+      const shift = await shiftResponse.json()
+      
+      if (!shiftResponse.ok) {
+        throw new Error(shift.error?.message || 'Failed to create shift')
+      }
+
+      // Show user the deposit address
+      toast.success(`Send ${fundAmount} ${selectedCoin} to: ${shift.depositAddress}`)
+      
+      // Copy deposit address to clipboard
+      navigator.clipboard.writeText(shift.depositAddress)
+      toast.info("Deposit address copied to clipboard!")
+
+    } catch (error) {
+      console.error("SideShift conversion failed:", error)
+      toast.error(`Conversion failed: ${error.message}`)
     }
   }
 
@@ -206,16 +286,93 @@ export default function CreatorPage() {
                     </div>
 
                     {poll.status === "active" && (
-                      <Button 
-                        variant="destructive" 
-                        size="sm" 
-                        className="w-full"
-                        onClick={() => handleClosePoll(poll.id)}
-                        disabled={isClosing}
-                      >
-                        <X className="h-4 w-4 mr-2" />
-                        {isClosing ? "Closing..." : "Close Poll"}
-                      </Button>
+                      <div className="flex gap-2">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="flex-1"
+                              onClick={() => setSelectedPollId(poll.id)}
+                            >
+                              <DollarSign className="h-4 w-4 mr-2" />
+                              Fund
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-md">
+                            <DialogHeader>
+                              <DialogTitle>Convert & Fund Poll</DialogTitle>
+                              <DialogDescription>
+                                Convert your tokens to ETH and fund your poll in one transaction.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="asset">Convert From</Label>
+                                <select
+                                  className="w-full px-3 py-2 border rounded-md"
+                                  value={selectedCoin}
+                                  onChange={(e) => setSelectedCoin(e.target.value)}
+                                >
+                                  <option value="USDC">USDC (Base)</option>
+                                  <option value="USDT">USDT (Base)</option>
+                                  <option value="ETH">ETH (Base)</option>
+                                </select>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <Label htmlFor="amount">Amount ({selectedCoin})</Label>
+                                <Input
+                                  id="amount"
+                                  type="number"
+                                  step="0.001"
+                                  min="0"
+                                  placeholder="1.0"
+                                  value={fundAmount}
+                                  onChange={(e) => setFundAmount(e.target.value)}
+                                />
+                              </div>
+                              
+                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                <h4 className="font-medium text-blue-800 mb-2">SideShift Direct Swap:</h4>
+                                <div className="text-sm text-blue-700 space-y-1">
+                                  <p>• Send {selectedCoin} to SideShift deposit address</p>
+                                  <p>• SideShift converts to ETH automatically</p>
+                                  <p>• ETH arrives in your wallet</p>
+                                  <p>• Then fund your poll with received ETH</p>
+                                </div>
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button variant="outline" onClick={() => {
+                                setFundAmount("")
+                                setSelectedCoin("ETH")
+                                setSelectedNetwork("ethereum")
+                              }}>
+                                Cancel
+                              </Button>
+                              <Button 
+                                onClick={handleFundPoll}
+                                disabled={!fundAmount || isFunding}
+                              >
+                                {isFunding ? "Processing..." : 
+                                 selectedCoin === "ETH" && selectedNetwork === "ethereum" ? "Fund Poll" : "Convert & Fund"}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                        
+                        <Button 
+                          variant="destructive" 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={() => handleClosePoll(poll.id)}
+                          disabled={isClosing}
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          {isClosing ? "Closing..." : "Close"}
+                        </Button>
+                      </div>
                     )}
                   </CardContent>
                 </Card>
