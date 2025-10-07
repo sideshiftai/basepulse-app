@@ -7,7 +7,8 @@ import { PollFilters } from "@/components/poll-filters"
 import { Plus, TrendingUp, Clock, Users, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { useActivePolls, useNextPollId, usePoll, useVote, useHasUserVoted, usePollsContractAddress } from "@/lib/contracts/polls-contract-utils"
-import { useAccount, useChainId } from "wagmi"
+import { useAccount, useChainId, useSwitchChain } from "wagmi"
+import { baseSepolia } from "wagmi/chains"
 
 export default function DappPage() {
   const [filters, setFilters] = useState({
@@ -21,6 +22,7 @@ export default function DappPage() {
   const { isConnected, address } = useAccount()
   const chainId = useChainId()
   const contractAddress = usePollsContractAddress()
+  const { switchChain } = useSwitchChain()
   const { data: activePollIds, isLoading: pollsLoading, error: pollsError } = useActivePolls()
   const { data: nextPollId, isLoading: nextIdLoading } = useNextPollId()
   const { vote, isPending: isVoting } = useVote()
@@ -182,11 +184,21 @@ export default function DappPage() {
             {!isConnected && " • Connect wallet to vote on polls"}
           </p>
           {!hasContractOnNetwork && isConnected && (
-            <div className="flex items-center gap-2 text-amber-600 mt-2">
-              <AlertCircle className="h-4 w-4" />
-              <span className="text-sm">
-                Contract not deployed on {networkName}. Please switch to Base Sepolia network.
-              </span>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 text-amber-600 mt-2 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-lg border border-amber-200 dark:border-amber-900">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <span className="text-sm">
+                  Contract not deployed on {networkName}. Please switch to Base Sepolia.
+                </span>
+              </div>
+              <Button 
+                size="sm" 
+                variant="outline"
+                className="border-amber-600 text-amber-600 hover:bg-amber-100 dark:hover:bg-amber-900/30"
+                onClick={() => switchChain({ chainId: baseSepolia.id })}
+              >
+                Switch to Base Sepolia
+              </Button>
             </div>
           )}
           {pollsError && (

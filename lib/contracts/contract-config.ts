@@ -2,6 +2,15 @@
  * Contract deployment addresses configuration
  * Update these addresses via environment variables after deploying the PollsContract to each network
  */
+
+// Debug: Log environment variables
+console.log('=== CONTRACT CONFIG DEBUG ===')
+console.log('NEXT_PUBLIC_POLLS_CONTRACT_BASE:', process.env.NEXT_PUBLIC_POLLS_CONTRACT_BASE)
+console.log('NEXT_PUBLIC_POLLS_CONTRACT_BASE_SEPOLIA:', process.env.NEXT_PUBLIC_POLLS_CONTRACT_BASE_SEPOLIA)
+
+// Hardcoded fallback addresses (update these when deploying to production)
+const BASE_SEPOLIA_CONTRACT = '0xa3713739c39419aA1c6daf349dB4342Be59b9142' as const
+
 export const CONTRACT_ADDRESSES = {
   // Base Mainnet (chainId: 8453)
   8453: {
@@ -9,9 +18,11 @@ export const CONTRACT_ADDRESSES = {
   },
   // Base Sepolia Testnet (chainId: 84532)
   84532: {
-    POLLS_CONTRACT: (process.env.NEXT_PUBLIC_POLLS_CONTRACT_BASE_SEPOLIA || '0x0000000000000000000000000000000000000000') as `0x${string}`,
+    POLLS_CONTRACT: (process.env.NEXT_PUBLIC_POLLS_CONTRACT_BASE_SEPOLIA || BASE_SEPOLIA_CONTRACT) as `0x${string}`,
   },
 } as const
+
+console.log('CONTRACT_ADDRESSES:', CONTRACT_ADDRESSES)
 
 export type SupportedChainId = keyof typeof CONTRACT_ADDRESSES
 

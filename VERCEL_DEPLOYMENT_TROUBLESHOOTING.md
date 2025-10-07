@@ -18,9 +18,18 @@
 
 ### Solutions
 
-#### 1. Set Environment Variables in Vercel
+#### 1. **IMMEDIATE FIX: Hardcoded Fallback (Already Applied)**
 
-Go to your Vercel project settings and add these environment variables:
+I've added a hardcoded fallback address for Base Sepolia in `lib/contracts/contract-config.ts`:
+```typescript
+const BASE_SEPOLIA_CONTRACT = '0xa3713739c39419aA1c6daf349dB4342Be59b9142'
+```
+
+This means the app will work even if environment variables aren't set. **Just redeploy and it should work!**
+
+#### 2. Set Environment Variables in Vercel (Recommended for Production)
+
+For proper production setup, add these environment variables in Vercel:
 
 ```bash
 NEXT_PUBLIC_REOWN_PROJECT_ID=f9e8d0be09239678eb32ad9dcdcc47aa
@@ -35,19 +44,19 @@ NEXT_PUBLIC_POLLS_CONTRACT_BASE=0x0000000000000000000000000000000000000000
 4. Add each variable above
 5. Redeploy your application
 
-#### 2. Change Default Network to Base Sepolia
+#### 3. Change Default Network to Base Sepolia (Already Applied)
 
-Update `lib/wagmi.ts`:
+Updated `lib/wagmi.ts` to default to Base Sepolia:
 
 ```typescript
-// Change this line:
-defaultNetwork: base,
-
-// To this:
-defaultNetwork: baseSepolia,
+defaultNetwork: baseSepolia, // Changed from base
 ```
 
 This ensures users connect to the testnet where your contract is deployed.
+
+#### 4. Network Switcher Button (Already Applied)
+
+Added a "Switch to Base Sepolia" button that appears when users are on the wrong network. This makes it easy for users to switch to the correct network with one click.
 
 #### 3. Verify Contract Has Polls
 
