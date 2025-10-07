@@ -32,7 +32,7 @@ export const wagmiAdapter = new WagmiAdapter({
 createAppKit({
   adapters: [wagmiAdapter],
   networks: [base, baseSepolia],
-  defaultNetwork: base,
+  defaultNetwork: baseSepolia, // Changed to baseSepolia since contract is deployed there
   projectId,
   metadata,
   features: {

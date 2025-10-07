@@ -6,8 +6,8 @@ import { PollCard } from "@/components/poll-card"
 import { PollFilters } from "@/components/poll-filters"
 import { Plus, TrendingUp, Clock, Users, AlertCircle } from "lucide-react"
 import Link from "next/link"
-import { useActivePolls, useNextPollId, usePoll, useVote, useHasUserVoted } from "@/lib/contracts/polls-contract-utils"
-import { useAccount } from "wagmi"
+import { useActivePolls, useNextPollId, usePoll, useVote, useHasUserVoted, usePollsContractAddress } from "@/lib/contracts/polls-contract-utils"
+import { useAccount, useChainId } from "wagmi"
 
 export default function DappPage() {
   const [filters, setFilters] = useState({
@@ -19,6 +19,8 @@ export default function DappPage() {
   })
 
   const { isConnected, address } = useAccount()
+  const chainId = useChainId()
+  const contractAddress = usePollsContractAddress()
   const { data: activePollIds, isLoading: pollsLoading, error: pollsError } = useActivePolls()
   const { data: nextPollId, isLoading: nextIdLoading } = useNextPollId()
   const { vote, isPending: isVoting } = useVote()
@@ -71,8 +73,24 @@ export default function DappPage() {
     }
   }).filter(Boolean) || []
 
-  const polls = isConnected && !pollsError ? contractPolls : []
+  // Show polls even when not connected, but disable voting
+  const polls = !pollsError ? contractPolls : []
   const isLoading = pollsLoading
+  
+  // Debug logging
+  console.log("=== DAPP PAGE DEBUG ===")
+  console.log("Chain ID:", chainId)
+  console.log("Contract Address:", contractAddress)
+  console.log("Is Connected:", isConnected)
+  console.log("Active Poll IDs:", activePollIds)
+  console.log("Polls Loading:", pollsLoading)
+  console.log("Polls Error:", pollsError)
+  console.log("Contract Polls:", contractPolls)
+  console.log("Filtered Polls:", polls)
+  
+  // Network info for users
+  const networkName = chainId === 8453 ? "Base Mainnet" : chainId === 84532 ? "Base Sepolia" : "Unknown Network"
+  const hasContractOnNetwork = contractAddress && contractAddress !== "0x0000000000000000000000000000000000000000"
 
   const handleVote = async (pollId: string, optionId: string) => {
     console.log("=== VOTE DEBUG ===")
@@ -161,12 +179,20 @@ export default function DappPage() {
           <h1 className="text-3xl font-bold">Explore Polls</h1>
           <p className="text-muted-foreground">
             Discover and participate in community-driven decisions
-            {!isConnected && " • Connect wallet to interact with live polls"}
+            {!isConnected && " • Connect wallet to vote on polls"}
           </p>
-          {pollsError && (
+          {!hasContractOnNetwork && isConnected && (
             <div className="flex items-center gap-2 text-amber-600 mt-2">
               <AlertCircle className="h-4 w-4" />
-              <span className="text-sm">Contract not deployed on this network - showing demo data</span>
+              <span className="text-sm">
+                Contract not deployed on {networkName}. Please switch to Base Sepolia network.
+              </span>
+            </div>
+          )}
+          {pollsError && (
+            <div className="flex items-center gap-2 text-red-600 mt-2">
+              <AlertCircle className="h-4 w-4" />
+              <span className="text-sm">Error loading polls: {pollsError.message}</span>
             </div>
           )}
         </div>
@@ -244,17 +270,29 @@ export default function DappPage() {
 
       {!isLoading && filteredPolls.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-muted-foreground text-lg">
-            {isConnected && activePollIds?.length === 0
+          <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <p className="text-muted-foreground text-lg mb-2">
+            {!isConnected
+              ? "Connect your wallet to view polls"
+              : !hasContractOnNetwork
+              ? `Contract not available on ${networkName}`
+              : activePollIds?.length === 0
               ? "No active polls found on the contract."
               : "No polls found matching your criteria."
             }
           </p>
-          <Button asChild className="mt-4">
-            <Link href="/dapp/create">
-              {isConnected && activePollIds?.length === 0 ? "Create the first poll" : "Create a poll"}
-            </Link>
-          </Button>
+          {!isConnected && (
+            <p className="text-sm text-muted-foreground mb-4">
+              Please connect your wallet to interact with the dapp
+            </p>
+          )}
+          {isConnected && hasContractOnNetwork && (
+            <Button asChild className="mt-4">
+              <Link href="/dapp/create">
+                {activePollIds?.length === 0 ? "Create the first poll" : "Create a poll"}
+              </Link>
+            </Button>
+          )}
         </div>
       )}
     </div>
