@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Wallet, LogOut, User, Copy, ExternalLink, Network, CheckCircle2 } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { base, baseSepolia } from "wagmi/chains"
 import { usePollsContractAddress } from "@/lib/contracts/polls-contract-utils"
@@ -26,6 +26,12 @@ export function ConnectWalletButton() {
   const chainId = useChainId()
   const contractAddress = usePollsContractAddress()
   const [isLoading, setIsLoading] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  // Prevent hydration mismatch by only showing connected state after mount
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   
   // Check if contract is deployed on current network
   const hasContractOnNetwork = contractAddress && contractAddress !== "0x0000000000000000000000000000000000000000"
@@ -79,9 +85,10 @@ export function ConnectWalletButton() {
     }
   }
 
-  if (!isConnected || !address) {
+  // Show placeholder during SSR and initial mount to prevent hydration mismatch
+  if (!mounted || !isConnected || !address) {
     return (
-      <Button onClick={handleConnect} disabled={isLoading} className="bg-primary hover:bg-primary/90">
+      <Button onClick={handleConnect} disabled={isLoading || !mounted} className="bg-primary hover:bg-primary/90">
         <Wallet className="h-4 w-4 mr-2" />
         {isLoading ? "Connecting..." : "Connect Wallet"}
       </Button>

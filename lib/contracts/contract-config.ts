@@ -9,12 +9,13 @@ console.log('NEXT_PUBLIC_POLLS_CONTRACT_BASE:', process.env.NEXT_PUBLIC_POLLS_CO
 console.log('NEXT_PUBLIC_POLLS_CONTRACT_BASE_SEPOLIA:', process.env.NEXT_PUBLIC_POLLS_CONTRACT_BASE_SEPOLIA)
 
 // Hardcoded fallback addresses (update these when deploying to production)
+const BASE_MAINNET_CONTRACT = '0xfc0323F3c5eD271564Ca8F3d4C5FfAD32D553893' as const
 const BASE_SEPOLIA_CONTRACT = '0xa3713739c39419aA1c6daf349dB4342Be59b9142' as const
 
 export const CONTRACT_ADDRESSES = {
   // Base Mainnet (chainId: 8453)
   8453: {
-    POLLS_CONTRACT: (process.env.NEXT_PUBLIC_POLLS_CONTRACT_BASE || '0x0000000000000000000000000000000000000000') as `0x${string}`,
+    POLLS_CONTRACT: (process.env.NEXT_PUBLIC_POLLS_CONTRACT_BASE || BASE_MAINNET_CONTRACT) as `0x${string}`,
   },
   // Base Sepolia Testnet (chainId: 84532)
   84532: {

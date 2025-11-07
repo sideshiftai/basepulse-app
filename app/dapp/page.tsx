@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { PollCard } from "@/components/poll-card"
 import { PollFilters } from "@/components/poll-filters"
@@ -18,6 +18,12 @@ export default function DappPage() {
     fundingType: "All Funding",
     sortBy: "Latest",
   })
+  const [mounted, setMounted] = useState(false)
+
+  // Prevent hydration mismatch by only showing connected state after mount
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const { isConnected, address } = useAccount()
   const chainId = useChainId()
@@ -284,7 +290,7 @@ export default function DappPage() {
         <div className="text-center py-12">
           <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
           <p className="text-muted-foreground text-lg mb-2">
-            {!isConnected
+            {!mounted || !isConnected
               ? "Connect your wallet to view polls"
               : !hasContractOnNetwork
               ? `Contract not available on ${networkName}`
@@ -293,12 +299,12 @@ export default function DappPage() {
               : "No polls found matching your criteria."
             }
           </p>
-          {!isConnected && (
+          {(!mounted || !isConnected) && (
             <p className="text-sm text-muted-foreground mb-4">
               Please connect your wallet to interact with the dapp
             </p>
           )}
-          {isConnected && hasContractOnNetwork && (
+          {mounted && isConnected && hasContractOnNetwork && (
             <Button asChild className="mt-4">
               <Link href="/dapp/create">
                 {activePollIds?.length === 0 ? "Create the first poll" : "Create a poll"}

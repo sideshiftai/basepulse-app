@@ -9,7 +9,7 @@ import { useAccount, useReadContract } from "wagmi"
 import { usePollsContractAddress } from "@/lib/contracts/polls-contract-utils"
 import { POLLS_CONTRACT_ABI } from "@/lib/contracts/polls-contract"
 import { Menu } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Sheet,
   SheetContent,
@@ -24,6 +24,12 @@ export function Navigation() {
   const { address, isConnected } = useAccount()
   const contractAddress = usePollsContractAddress()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  // Prevent hydration mismatch by only showing connected state after mount
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   
   // Check if current user is owner
   const { data: owner } = useReadContract({
@@ -80,7 +86,7 @@ export function Navigation() {
               >
                 Dapp
               </Link>
-              {isConnected && (
+              {mounted && isConnected && (
                 <Link
                   href="/creator"
                   onClick={() => setMobileMenuOpen(false)}
@@ -92,7 +98,7 @@ export function Navigation() {
                   Creator
                 </Link>
               )}
-              {isOwner && (
+              {mounted && isOwner && (
                 <Link
                   href="/admin"
                   onClick={() => setMobileMenuOpen(false)}
@@ -139,7 +145,7 @@ export function Navigation() {
             >
               Dapp
             </Link>
-            {isConnected && (
+            {mounted && isConnected && (
               <Link
                 href="/creator"
                 className={cn(
@@ -150,7 +156,7 @@ export function Navigation() {
                 Creator
               </Link>
             )}
-            {isOwner && (
+            {mounted && isOwner && (
               <Link
                 href="/admin"
                 className={cn(
