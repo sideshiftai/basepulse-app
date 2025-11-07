@@ -86,6 +86,26 @@ export function Navigation() {
               >
                 Dapp
               </Link>
+              <Link
+                href="/buy-pulse"
+                onClick={() => setMobileMenuOpen(false)}
+                className={cn(
+                  "text-lg transition-colors hover:text-foreground/80",
+                  pathname === "/buy-pulse" ? "text-foreground font-semibold" : "text-foreground/60",
+                )}
+              >
+                Buy PULSE
+              </Link>
+              <Link
+                href="/wallet"
+                onClick={() => setMobileMenuOpen(false)}
+                className={cn(
+                  "text-lg transition-colors hover:text-foreground/80",
+                  pathname === "/wallet" ? "text-foreground font-semibold" : "text-foreground/60",
+                )}
+              >
+                Wallet
+              </Link>
               {mounted && isConnected && (
                 <Link
                   href="/creator"
@@ -144,6 +164,24 @@ export function Navigation() {
               )}
             >
               Dapp
+            </Link>
+            <Link
+              href="/buy-pulse"
+              className={cn(
+                "transition-colors hover:text-foreground/80",
+                pathname === "/buy-pulse" ? "text-foreground" : "text-foreground/60",
+              )}
+            >
+              Buy PULSE
+            </Link>
+            <Link
+              href="/wallet"
+              className={cn(
+                "transition-colors hover:text-foreground/80",
+                pathname === "/wallet" ? "text-foreground" : "text-foreground/60",
+              )}
+            >
+              Wallet
             </Link>
             {mounted && isConnected && (
               <Link
