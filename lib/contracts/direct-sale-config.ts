@@ -6,8 +6,8 @@
  */
 
 export const DIRECT_SALE_ADDRESSES = {
-  // Base Sepolia (testnet)
-  84532: "0x434d0fDd72AA670a229294E93D0933Ea685802fd",
+  // Base Sepolia (testnet) - Upgradeable proxy
+  84532: "0xde45219792494a130c707B426508Af4DAb4B93C8",
   // Base Mainnet
   8453: "0x0000000000000000000000000000000000000000", // Update after deployment
 } as const;
@@ -28,6 +28,18 @@ export function getDirectSaleAddress(chainId: number): string {
 
 export function getUSDCAddress(chainId: number): string {
   const address = USDC_ADDRESSES[chainId as SupportedChainId];
+  return address || "0x0000000000000000000000000000000000000000";
+}
+
+export const PULSE_TOKEN_ADDRESSES = {
+  // Base Sepolia (testnet)
+  84532: "0x19821658D5798976152146d1c1882047670B898c",
+  // Base Mainnet
+  8453: "0x0000000000000000000000000000000000000000",
+} as const;
+
+export function getPulseTokenAddress(chainId: number): string {
+  const address = PULSE_TOKEN_ADDRESSES[chainId as SupportedChainId];
   return address || "0x0000000000000000000000000000000000000000";
 }
 

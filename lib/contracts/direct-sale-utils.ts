@@ -7,7 +7,7 @@
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseEther, parseUnits, formatUnits } from "viem";
 import DirectTokenSaleABI from "./DirectTokenSale.abi.json";
-import { getDirectSaleAddress, getUSDCAddress } from "./direct-sale-config";
+import { getDirectSaleAddress, getUSDCAddress, getPulseTokenAddress } from "./direct-sale-config";
 
 // ============ Read Hooks ============
 
@@ -328,6 +328,152 @@ export function useApproveUSDC() {
     isSuccess,
     error,
   };
+}
+
+/**
+ * Hook to approve PULSE token spending (for sell operations)
+ */
+export function useApprovePULSE() {
+  const contractAddress = useDirectSaleAddress();
+  const chainId = useChainId();
+  const pulseAddress = getPulseTokenAddress(chainId);
+  const { data: hash, writeContract, isPending, error } = useWriteContract();
+
+  // Standard ERC20 ABI for approve function
+  const ERC20_ABI = [
+    {
+      name: "approve",
+      type: "function",
+      stateMutability: "nonpayable",
+      inputs: [
+        { name: "spender", type: "address" },
+        { name: "amount", type: "uint256" },
+      ],
+      outputs: [{ name: "", type: "bool" }],
+    },
+  ] as const;
+
+  const approvePULSE = async (tokenAmount: string) => {
+    const amount = parseEther(tokenAmount);
+
+    return writeContract({
+      address: pulseAddress as `0x${string}`,
+      abi: ERC20_ABI,
+      functionName: "approve",
+      args: [contractAddress as `0x${string}`, amount],
+    });
+  };
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  });
+
+  return {
+    approvePULSE,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+  };
+}
+
+/**
+ * Hook to sell PULSE tokens for ETH
+ */
+export function useSellForETH() {
+  const contractAddress = useDirectSaleAddress();
+  const { data: hash, writeContract, isPending, error } = useWriteContract();
+
+  const sellForETH = async (tokenAmount: string) => {
+    const amount = parseEther(tokenAmount);
+
+    return writeContract({
+      address: contractAddress as `0x${string}`,
+      abi: DirectTokenSaleABI,
+      functionName: "sellForETH",
+      args: [amount],
+    });
+  };
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  });
+
+  return {
+    sellForETH,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+  };
+}
+
+/**
+ * Hook to sell PULSE tokens for USDC
+ */
+export function useSellForUSDC() {
+  const contractAddress = useDirectSaleAddress();
+  const { data: hash, writeContract, isPending, error } = useWriteContract();
+
+  const sellForUSDC = async (tokenAmount: string) => {
+    const amount = parseEther(tokenAmount);
+
+    return writeContract({
+      address: contractAddress as `0x${string}`,
+      abi: DirectTokenSaleABI,
+      functionName: "sellForUSDC",
+      args: [amount],
+    });
+  };
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  });
+
+  return {
+    sellForUSDC,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+  };
+}
+
+/**
+ * Calculate USDC received when selling PULSE tokens (with spread)
+ */
+export function useCalculateUSDCForTokens(tokenAmount: string) {
+  const contractAddress = useDirectSaleAddress();
+  const chainId = useChainId();
+  const tokenAmountWei = parseEther(tokenAmount || "0");
+
+  return useReadContract({
+    address: contractAddress as `0x${string}`,
+    abi: DirectTokenSaleABI,
+    functionName: "calculateUSDCForTokens",
+    args: [tokenAmountWei],
+    chainId,
+  });
+}
+
+/**
+ * Calculate ETH received when selling PULSE tokens (with spread)
+ */
+export function useCalculateETHForTokens(tokenAmount: string) {
+  const contractAddress = useDirectSaleAddress();
+  const chainId = useChainId();
+  const tokenAmountWei = parseEther(tokenAmount || "0");
+
+  return useReadContract({
+    address: contractAddress as `0x${string}`,
+    abi: DirectTokenSaleABI,
+    functionName: "calculateETHForTokens",
+    args: [tokenAmountWei],
+    chainId,
+  });
 }
 
 // ============ Utility Functions ============
