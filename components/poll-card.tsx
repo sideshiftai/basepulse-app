@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Clock, Users, Coins, Vote } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { VoteDialog } from "./vote-dialog"
+import { FundWithTokenDialog } from "./fund-with-token-dialog"
 
 interface PollOption {
   id: string
@@ -41,6 +42,7 @@ interface PollCardProps {
 
 export function PollCard({ poll, onVote, onViewDetails }: PollCardProps) {
   const [isVoteDialogOpen, setIsVoteDialogOpen] = useState(false)
+  const [isFundDialogOpen, setIsFundDialogOpen] = useState(false)
   
   const timeRemaining = new Date(poll.endsAt).getTime() - new Date().getTime()
   const daysRemaining = Math.max(0, Math.ceil(timeRemaining / (1000 * 60 * 60 * 24)))
@@ -131,16 +133,27 @@ export function PollCard({ poll, onVote, onViewDetails }: PollCardProps) {
           View Details
         </Button>
         {poll.status === "active" && (
-          poll.hasVoted ? (
-            <Button variant="outline" size="sm" className="flex-1" onClick={() => onViewDetails?.(poll.id)}>
-              View Results
+          <>
+            {poll.hasVoted ? (
+              <Button variant="outline" size="sm" className="flex-1" onClick={() => onViewDetails?.(poll.id)}>
+                View Results
+              </Button>
+            ) : (
+              <Button size="sm" className="flex-1" onClick={() => setIsVoteDialogOpen(true)}>
+                <Vote className="h-4 w-4 mr-2" />
+                Vote
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 bg-transparent"
+              onClick={() => setIsFundDialogOpen(true)}
+            >
+              <Coins className="h-4 w-4 mr-2" />
+              Fund
             </Button>
-          ) : (
-            <Button size="sm" className="flex-1" onClick={() => setIsVoteDialogOpen(true)}>
-              <Vote className="h-4 w-4 mr-2" />
-              Vote
-            </Button>
-          )
+          </>
         )}
       </CardFooter>
 
@@ -149,6 +162,13 @@ export function PollCard({ poll, onVote, onViewDetails }: PollCardProps) {
         open={isVoteDialogOpen}
         onOpenChange={setIsVoteDialogOpen}
         onVote={onVote || (() => {})}
+      />
+
+      <FundWithTokenDialog
+        open={isFundDialogOpen}
+        onOpenChange={setIsFundDialogOpen}
+        pollId={parseInt(poll.id)}
+        pollTitle={poll.title}
       />
     </Card>
   )

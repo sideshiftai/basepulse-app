@@ -1,6 +1,6 @@
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { useChainId } from 'wagmi'
-import { parseEther, formatEther, Address } from 'viem'
+import { parseEther, formatEther, Address, parseUnits } from 'viem'
 import {
   POLLS_CONTRACT_ABI,
   POLLS_CONTRACT_ADDRESSES,
@@ -9,6 +9,7 @@ import {
   Funding,
   SupportedChainId,
 } from './polls-contract'
+import { ERC20_ABI } from './token-config'
 
 // Custom hook to get contract address for current chain
 export const usePollsContractAddress = (): Address | undefined => {
@@ -210,6 +211,108 @@ export const useFundPollWithETH = () => {
     isSuccess,
     error,
   }
+}
+
+// Hook to fund poll with ERC20 token
+export const useFundPollWithToken = () => {
+  const contractAddress = usePollsContractAddress()
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const fundPoll = async (pollId: number, tokenAddress: Address, amount: string, decimals: number) => {
+    if (!contractAddress) return
+
+    const parsedAmount = parseUnits(amount, decimals)
+
+    return writeContract({
+      address: contractAddress,
+      abi: POLLS_CONTRACT_ABI,
+      functionName: CONTRACT_FUNCTIONS.FUND_POLL_WITH_TOKEN,
+      args: [BigInt(pollId), tokenAddress, parsedAmount],
+    })
+  }
+
+  return {
+    fundPoll,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+  }
+}
+
+// Hook to approve ERC20 token spending
+export const useTokenApproval = () => {
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const approve = async (tokenAddress: Address, spenderAddress: Address, amount: string, decimals: number) => {
+    const parsedAmount = parseUnits(amount, decimals)
+
+    return writeContract({
+      address: tokenAddress,
+      abi: ERC20_ABI,
+      functionName: 'approve',
+      args: [spenderAddress, parsedAmount],
+    })
+  }
+
+  return {
+    approve,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+  }
+}
+
+// Hook to check ERC20 token balance
+export const useTokenBalance = (tokenAddress?: Address, userAddress?: Address) => {
+  return useReadContract({
+    address: tokenAddress,
+    abi: ERC20_ABI,
+    functionName: 'balanceOf',
+    args: userAddress ? [userAddress] : undefined,
+    query: {
+      enabled: !!tokenAddress && !!userAddress,
+    },
+  })
+}
+
+// Hook to check ERC20 token allowance
+export const useTokenAllowance = (tokenAddress?: Address, ownerAddress?: Address, spenderAddress?: Address) => {
+  return useReadContract({
+    address: tokenAddress,
+    abi: ERC20_ABI,
+    functionName: 'allowance',
+    args: ownerAddress && spenderAddress ? [ownerAddress, spenderAddress] : undefined,
+    query: {
+      enabled: !!tokenAddress && !!ownerAddress && !!spenderAddress,
+    },
+  })
+}
+
+// Hook to check if token is whitelisted
+export const useIsTokenWhitelisted = (tokenAddress?: Address) => {
+  const contractAddress = usePollsContractAddress()
+
+  return useReadContract({
+    address: contractAddress,
+    abi: POLLS_CONTRACT_ABI,
+    functionName: 'whitelistedTokens',
+    args: tokenAddress ? [tokenAddress] : undefined,
+    query: {
+      enabled: !!contractAddress && !!tokenAddress,
+    },
+  })
 }
 
 // Hook to close a poll (only creator or owner)
