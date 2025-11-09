@@ -61,17 +61,18 @@ export default function BuyPulsePage() {
   }, [])
 
   // Parse sale stats
-  const tokensSold = saleStats ? formatTokenAmount(saleStats[0]) : "0"
-  const remainingSupply = saleStats ? formatTokenAmount(saleStats[1]) : "0"
-  const totalBuyers = saleStats ? Number(saleStats[2]) : 0
-  const totalRaisedETH = saleStats ? formatETHAmount(saleStats[3]) : "0"
-  const totalRaisedUSDC = saleStats ? formatUSDCAmount(saleStats[4]) : "0"
+  const stats = saleStats as readonly [bigint, bigint, bigint, bigint, bigint] | undefined
+  const tokensSold = stats ? formatTokenAmount(stats[0]) : "0"
+  const remainingSupply = stats ? formatTokenAmount(stats[1]) : "0"
+  const totalBuyers = stats ? Number(stats[2]) : 0
+  const totalRaisedETH = stats ? formatETHAmount(stats[3]) : "0"
+  const totalRaisedUSDC = stats ? formatUSDCAmount(stats[4]) : "0"
 
-  const userPurchased = formatTokenAmount(purchasedAmount)
-  const userRemaining = formatTokenAmount(remainingAllowance)
+  const userPurchased = formatTokenAmount(purchasedAmount as bigint | undefined)
+  const userRemaining = formatTokenAmount(remainingAllowance as bigint | undefined)
 
-  const progressPercent = saleStats
-    ? Math.round((Number(formatTokenAmount(saleStats[0])) / 1_000_000) * 100)
+  const progressPercent = stats
+    ? Math.round((Number(formatTokenAmount(stats[0])) / 1_000_000) * 100)
     : 0
 
   const handleBuy = async () => {
