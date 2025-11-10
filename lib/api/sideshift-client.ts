@@ -18,6 +18,7 @@ export interface CreateShiftParams {
   destNetwork?: string;
   sourceAmount?: string;
   refundAddress?: Address;
+  chainId?: number;
 }
 
 export interface SupportedAsset {

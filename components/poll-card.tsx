@@ -185,7 +185,7 @@ export function PollCard({ poll, onVote, onViewDetails }: PollCardProps) {
       <FundPollDialog
         open={isCryptoFundDialogOpen}
         onOpenChange={setIsCryptoFundDialogOpen}
-        pollId={parseInt(poll.id)}
+        pollId={poll.id}
         pollTitle={poll.title}
       />
     </Card>

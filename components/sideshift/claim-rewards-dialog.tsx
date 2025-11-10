@@ -6,7 +6,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount, useChainId } from 'wagmi';
 import { useSideshift, useShiftMonitor } from '@/hooks/use-sideshift';
 import { CurrencySelector } from './currency-selector';
 import { NetworkSelector } from './network-selector';
@@ -41,6 +41,7 @@ export function ClaimRewardsDialog({
   onSuccess,
 }: ClaimRewardsDialogProps) {
   const { address } = useAccount();
+  const chainId = useChainId();
   const { toast } = useToast();
   const { createShift, loading } = useSideshift();
 
@@ -81,6 +82,8 @@ export function ClaimRewardsDialog({
       purpose: 'claim_reward',
       destCoin: currency,
       destNetwork: destNetwork || undefined,
+      // Only pass chainId if it's a valid chain (not 0 or undefined)
+      ...(chainId && chainId > 0 ? { chainId } : {}),
       // sourceCoin and sourceNetwork are auto-determined by backend from poll
     });
 

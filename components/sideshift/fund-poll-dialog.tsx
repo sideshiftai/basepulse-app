@@ -6,7 +6,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount, useChainId } from 'wagmi';
 import { useSideshift, useShiftMonitor } from '@/hooks/use-sideshift';
 import { CurrencySelector } from './currency-selector';
 import { NetworkSelector } from './network-selector';
@@ -40,6 +40,7 @@ export function FundPollDialog({
   onSuccess,
 }: FundPollDialogProps) {
   const { address } = useAccount();
+  const chainId = useChainId();
   const { toast } = useToast();
   const { createShift, loading } = useSideshift();
 
@@ -85,16 +86,19 @@ export function FundPollDialog({
       return;
     }
 
-    // Backend will automatically determine destCoin and destNetwork based on poll chain
+    // Backend will automatically determine destNetwork based on poll chain
+    // We determine destCoin here: USDC for stablecoins, ETH for others
     const result = await createShift({
       pollId,
       userAddress: address,
       purpose: 'fund_poll',
       sourceCoin: currency,
+      destCoin: getDefaultDestinationCoin(currency),
       sourceNetwork: sourceNetwork || undefined,
       sourceAmount: amount,
-      // destCoin will be auto-determined: USDC for stablecoins, ETH for others
-      // destNetwork will be auto-determined from poll's chain
+      // Only pass chainId if it's a valid chain (not 0 or undefined)
+      ...(chainId && chainId > 0 ? { chainId } : {}),
+      // destNetwork will be auto-determined from poll's chain by backend
     });
 
     if (result) {
