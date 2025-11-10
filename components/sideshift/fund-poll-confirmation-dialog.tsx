@@ -232,9 +232,9 @@ export function FundPollConfirmationDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Confirm Poll Funding</DialogTitle>
+          <DialogTitle>Step 2: Fund Poll</DialogTitle>
           <DialogDescription>
-            Review the details and confirm the transaction
+            Review the gas fees and transaction details, then confirm to fund the poll
           </DialogDescription>
         </DialogHeader>
 

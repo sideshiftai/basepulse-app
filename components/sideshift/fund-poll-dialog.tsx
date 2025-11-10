@@ -163,9 +163,9 @@ export function FundPollDialog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Fund Poll with Crypto</DialogTitle>
+          <DialogTitle>Step 1: Convert Your Crypto</DialogTitle>
           <DialogDescription>
-            Fund this poll using any cryptocurrency from any supported network.
+            Convert any cryptocurrency to Base network tokens. After conversion completes, you'll fund the poll in Step 2.
           </DialogDescription>
         </DialogHeader>
 

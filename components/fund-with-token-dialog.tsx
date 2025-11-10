@@ -106,7 +106,13 @@ export function FundWithTokenDialog({
 
     try {
       setStep("approve")
-      await approve(selectedTokenAddress, pollsContractAddress, amount, tokenInfo.decimals)
+      const result = await approve(selectedTokenAddress, pollsContractAddress, amount, tokenInfo.decimals)
+      console.log("Approval result:", result)
+      if (result.error) {
+        toast.error(result.error.message || "Failed to approve token")
+        setStep("input")
+        return
+      }
       toast.success("Token approval successful!")
     } catch (error: any) {
       console.error("Approval error:", error)

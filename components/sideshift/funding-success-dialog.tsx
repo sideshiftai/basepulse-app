@@ -78,7 +78,7 @@ export function FundingSuccessDialog({
 
           <div className="flex flex-col gap-2">
             <Button onClick={onFundPoll} className="w-full" size="lg">
-              <span>Fund Poll Now</span>
+              <span>Continue to Step 2: Fund Poll</span>
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
             <Button

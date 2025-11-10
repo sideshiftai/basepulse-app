@@ -1,6 +1,6 @@
 "use client"
 
-import { use, useState } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,13 +15,12 @@ import { FundingHistory } from "@/components/poll/funding-history"
 import { formatEther } from "viem"
 
 interface PageProps {
-  params: Promise<{ id: string }>
+  params: { id: string }
 }
 
 export default function PollDetailPage({ params }: PageProps) {
   const router = useRouter()
-  const resolvedParams = use(params)
-  const pollId = parseInt(resolvedParams.id)
+  const pollId = parseInt(params.id)
   const { address, isConnected } = useAccount()
   const chainId = useChainId()
   const [claimDialogOpen, setClaimDialogOpen] = useState(false)
