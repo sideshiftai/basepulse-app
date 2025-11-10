@@ -138,6 +138,16 @@ export const sideshiftAPI = {
     const { data } = await axios.get(`${API_URL}/health`);
     return data;
   },
+
+  /**
+   * Link a funding transaction to a shift
+   */
+  async linkFundingTransaction(shiftId: string, fundingTxHash: string): Promise<{ success: boolean; shift: any }> {
+    const { data } = await axios.post(`${API_URL}/api/sideshift/shift/${shiftId}/link-funding`, {
+      fundingTxHash,
+    });
+    return data;
+  },
 };
 
 /**

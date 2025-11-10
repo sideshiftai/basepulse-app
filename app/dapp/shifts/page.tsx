@@ -16,7 +16,9 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  Coins,
+  AlertTriangle
 } from "lucide-react"
 import Link from "next/link"
 
@@ -69,6 +71,30 @@ export default function ShiftsPage() {
     return (
       <Badge variant="outline">
         {purpose === "fund_poll" ? "Poll Funding" : "Reward Claim"}
+      </Badge>
+    )
+  }
+
+  // Funding status helper
+  const getFundingStatus = (shift: any) => {
+    // Only applicable for fund_poll purpose and settled shifts
+    if (shift.purpose !== "fund_poll" || shift.status !== "settled") {
+      return null
+    }
+
+    if (shift.fundingTxHash) {
+      return (
+        <Badge variant="default" className="flex items-center gap-1">
+          <Coins className="h-3 w-3" />
+          Poll Funded
+        </Badge>
+      )
+    }
+
+    return (
+      <Badge variant="secondary" className="flex items-center gap-1">
+        <AlertTriangle className="h-3 w-3" />
+        Pending Funding
       </Badge>
     )
   }
@@ -197,12 +223,13 @@ export default function ShiftsPage() {
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <CardTitle className="text-lg">
                         {shift.sourceAsset.toUpperCase()} → {shift.destAsset.toUpperCase()}
                       </CardTitle>
                       {getStatusBadge(shift.status)}
                       {getPurposeBadge(shift.purpose)}
+                      {getFundingStatus(shift)}
                     </div>
                     <CardDescription>
                       Created {formatDate(shift.createdAt)}
@@ -260,6 +287,20 @@ export default function ShiftsPage() {
                       {shift.settleAddress}
                     </p>
                   </div>
+                  {shift.fundingTxHash && (
+                    <div>
+                      <p className="text-muted-foreground mb-1">Funding Tx</p>
+                      <a
+                        href={`https://basescan.org/tx/${shift.fundingTxHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono text-xs text-primary hover:underline flex items-center gap-1"
+                      >
+                        {shift.fundingTxHash.slice(0, 10)}...
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                  )}
                 </div>
 
                 {/* Actions */}

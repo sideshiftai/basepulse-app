@@ -5,11 +5,13 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAccount, useChainId } from 'wagmi';
 import { useSideshift, useShiftMonitor } from '@/hooks/use-sideshift';
 import { CurrencySelector } from './currency-selector';
 import { NetworkSelector } from './network-selector';
+import { FundingSuccessDialog } from './funding-success-dialog';
+import { FundPollConfirmationDialog } from './fund-poll-confirmation-dialog';
 import {
   Dialog,
   DialogContent,
@@ -51,8 +53,30 @@ export function FundPollDialog({
   const [depositAddress, setDepositAddress] = useState('');
   const [depositCoin, setDepositCoin] = useState('');
   const [depositNetwork, setDepositNetwork] = useState('');
+  const [settledAmount, setSettledAmount] = useState('');
+  const [settledToken, setSettledToken] = useState('');
+  const [settledNetwork, setSettledNetwork] = useState('');
 
-  const { status } = useShiftMonitor(shiftId);
+  // Dialog states
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [showFundingDialog, setShowFundingDialog] = useState(false);
+
+  const { status, shiftData } = useShiftMonitor(shiftId);
+
+  // Show success dialog when shift settles
+  useEffect(() => {
+    if (status === 'settled' && shiftData && !showSuccessDialog) {
+      // Extract settled amount and details
+      const settleAmount = shiftData.sideshiftData?.settleAmount || amount;
+      const settleCoin = shiftData.sideshiftData?.settleCoin || getDefaultDestinationCoin(currency);
+      const settleNet = shiftData.sideshiftData?.settleNetwork || 'base';
+
+      setSettledAmount(settleAmount);
+      setSettledToken(settleCoin);
+      setSettledNetwork(settleNet);
+      setShowSuccessDialog(true);
+    }
+  }, [status, shiftData]);
 
   const handleReset = () => {
     setShiftId(null);
@@ -260,6 +284,43 @@ export function FundPollDialog({
           </div>
         )}
       </DialogContent>
+
+      {/* Success Dialog - shown after shift settles */}
+      {address && shiftId && (
+        <FundingSuccessDialog
+          open={showSuccessDialog}
+          onOpenChange={setShowSuccessDialog}
+          amount={settledAmount}
+          token={settledToken}
+          network={settledNetwork}
+          walletAddress={address}
+          onFundPoll={() => {
+            setShowSuccessDialog(false);
+            setShowFundingDialog(true);
+          }}
+        />
+      )}
+
+      {/* Funding Confirmation Dialog - shown when user clicks Fund Poll */}
+      {address && shiftId && (
+        <FundPollConfirmationDialog
+          open={showFundingDialog}
+          onOpenChange={setShowFundingDialog}
+          pollId={pollId}
+          amount={settledAmount}
+          token={settledToken}
+          shiftId={shiftId}
+          onSuccess={() => {
+            toast({
+              title: 'Success!',
+              description: 'Poll funded successfully',
+            });
+            if (onSuccess) {
+              onSuccess();
+            }
+          }}
+        />
+      )}
     </Dialog>
   );
 }

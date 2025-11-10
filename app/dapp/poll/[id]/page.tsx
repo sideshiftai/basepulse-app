@@ -9,8 +9,9 @@ import { Progress } from "@/components/ui/progress"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ArrowLeft, Clock, Users, Coins, TrendingUp, Award } from "lucide-react"
 import { usePoll, useHasUserVoted, usePollsContractAddress } from "@/lib/contracts/polls-contract-utils"
-import { useAccount } from "wagmi"
+import { useAccount, useChainId } from "wagmi"
 import { ClaimRewardsDialog } from "@/components/sideshift/claim-rewards-dialog"
+import { FundingHistory } from "@/components/poll/funding-history"
 import { formatEther } from "viem"
 
 interface PageProps {
@@ -22,6 +23,7 @@ export default function PollDetailPage({ params }: PageProps) {
   const resolvedParams = use(params)
   const pollId = parseInt(resolvedParams.id)
   const { address, isConnected } = useAccount()
+  const chainId = useChainId()
   const [claimDialogOpen, setClaimDialogOpen] = useState(false)
 
   const contractAddress = usePollsContractAddress()
@@ -191,6 +193,11 @@ export default function PollDetailPage({ params }: PageProps) {
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {/* Funding History */}
+          {chainId && (
+            <FundingHistory chainId={chainId} pollId={pollId.toString()} />
           )}
         </div>
 
