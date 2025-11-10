@@ -22,18 +22,21 @@ export const CONTRACT_FUNCTIONS = {
   // Read functions
   GET_POLL: 'getPoll',
   GET_ACTIVE_POLLS: 'getActivePolls',
-  GET_POLL_FUNDINGS: 'getPollFundings',
+  GET_POLL_TOKEN_BALANCE: 'getPollTokenBalance', // UPDATED: replaces getPollFundings
   HAS_USER_VOTED: 'hasUserVoted',
   GET_USER_FUNDING: 'getUserFunding',
   IS_POLL_ACTIVE: 'isPollActive',
   NEXT_POLL_ID: 'nextPollId',
+  GET_DISTRIBUTION_MODE: 'getDistributionMode', // NEW
 
   // Write functions
   CREATE_POLL: 'createPoll',
   VOTE: 'vote',
   FUND_POLL_WITH_ETH: 'fundPollWithETH',
   FUND_POLL_WITH_TOKEN: 'fundPollWithToken',
-  WITHDRAW_FUNDS: 'withdrawFunds',
+  WITHDRAW_FUNDS: 'withdrawFunds', // UPDATED: now requires tokens[] parameter
+  DISTRIBUTE_REWARDS: 'distributeRewards', // NEW: now requires token parameter
+  SET_DISTRIBUTION_MODE: 'setDistributionMode', // NEW
   CLOSE_POLL: 'closePoll',
   WHITELIST_TOKEN: 'whitelistToken',
 } as const
@@ -47,6 +50,13 @@ export const CONTRACT_EVENTS = {
   FUNDS_WITHDRAWN: 'FundsWithdrawn',
 } as const
 
+// Distribution modes from contract
+export enum DistributionMode {
+  MANUAL_PULL = 0,    // Creator manually withdraws to single address (default)
+  MANUAL_PUSH = 1,    // Creator manually distributes to multiple recipients
+  AUTOMATED = 2       // System automatically distributes when poll ends
+}
+
 // Types based on the smart contract
 export interface Poll {
   id: bigint
@@ -57,6 +67,7 @@ export interface Poll {
   isActive: boolean
   creator: Address
   totalFunding: bigint
+  distributionMode: DistributionMode // NEW: added distribution mode
 }
 
 export interface Funding {

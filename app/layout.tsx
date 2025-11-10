@@ -5,6 +5,7 @@ import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { WalletProvider } from "@/components/wallet-provider"
+import { DataSourceProvider } from "@/lib/data/data-source-context"
 import { Navigation } from "@/components/navigation"
 import { Toaster } from "sonner"
 import { Suspense } from "react"
@@ -26,11 +27,13 @@ export default function RootLayout({
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <WalletProvider>
-            <Suspense fallback={<div>Loading...</div>}>
-              <Navigation />
-              <main className="min-h-screen">{children}</main>
-            </Suspense>
-            <Toaster />
+            <DataSourceProvider>
+              <Suspense fallback={<div>Loading...</div>}>
+                <Navigation />
+                <main className="min-h-screen">{children}</main>
+              </Suspense>
+              <Toaster />
+            </DataSourceProvider>
           </WalletProvider>
         </ThemeProvider>
         <Analytics />

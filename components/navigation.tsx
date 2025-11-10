@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { ConnectWalletButton } from "@/components/connect-wallet-button"
+import { DataSourceToggle } from "@/components/data-source-toggle"
 import { cn } from "@/lib/utils"
 import { useAccount, useReadContract } from "wagmi"
 import { usePollsContractAddress } from "@/lib/contracts/polls-contract-utils"
@@ -170,7 +171,11 @@ export function Navigation() {
                   Announcements
                 </Link>
               )}
-              <div className="pt-4 border-t">
+              <div className="pt-4 border-t space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Data Source</span>
+                  <DataSourceToggle />
+                </div>
                 <ConnectWalletButton />
               </div>
             </nav>
@@ -280,6 +285,7 @@ export function Navigation() {
         </div>
 
         <div className="hidden md:flex flex-1 items-center justify-end space-x-2">
+          <DataSourceToggle />
           <ConnectWalletButton />
           <ThemeToggle />
         </div>

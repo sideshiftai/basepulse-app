@@ -8,11 +8,13 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ArrowLeft, Clock, Users, Coins, TrendingUp, Award } from "lucide-react"
-import { usePoll, useHasUserVoted, usePollsContractAddress } from "@/lib/contracts/polls-contract-utils"
+import { usePollData } from "@/hooks/use-poll-data"
+import { usePollFundingsData } from "@/hooks/use-poll-fundings-data"
+import { useDataSource } from "@/hooks/use-data-source"
+import { useHasUserVoted, usePollsContractAddress } from "@/lib/contracts/polls-contract-utils"
 import { useAccount, useChainId } from "wagmi"
 import { ClaimRewardsDialog } from "@/components/sideshift/claim-rewards-dialog"
 import { FundingHistory } from "@/components/poll/funding-history"
-import { formatEther } from "viem"
 
 interface PageProps {
   params: { id: string }
@@ -25,9 +27,15 @@ export default function PollDetailPage({ params }: PageProps) {
   const chainId = useChainId()
   const [claimDialogOpen, setClaimDialogOpen] = useState(false)
 
+  // Use unified data hooks
+  const { dataSource, isSubgraph } = useDataSource()
+  const { poll, loading: pollLoading, error: pollError } = usePollData(pollId)
+  const { fundings, totalFunding, loading: fundingsLoading } = usePollFundingsData(pollId)
   const contractAddress = usePollsContractAddress()
-  const { data: pollData, isLoading, error } = usePoll(pollId)
   const { data: hasVoted } = useHasUserVoted(pollId, address)
+
+  const isLoading = pollLoading
+  const error = pollError
 
   if (isLoading) {
     return (
@@ -42,42 +50,38 @@ export default function PollDetailPage({ params }: PageProps) {
     )
   }
 
-  if (error || !pollData) {
+  if (error || !poll) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold mb-2">Poll Not Found</h2>
-          <p className="text-muted-foreground mb-4">This poll doesn't exist or failed to load.</p>
+          <p className="text-muted-foreground mb-4">
+            {error?.message || "This poll doesn't exist or failed to load."}
+          </p>
           <Button onClick={() => router.push('/dapp')}>Back to Polls</Button>
         </div>
       </div>
     )
   }
 
-  const [id, question, options, votes, endTime, isActive, creator, totalFunding] = pollData
-
-  // Calculate poll stats
-  const totalVotes = votes.reduce((sum: number, vote: bigint) => sum + Number(vote), 0)
-  const timeRemaining = new Date(Number(endTime) * 1000).getTime() - new Date().getTime()
-  const hasEnded = timeRemaining <= 0
+  // Calculate poll stats from formatted poll
+  const totalVotes = poll.totalVotes
+  const timeRemaining = new Date(poll.endsAt).getTime() - new Date().getTime()
+  const hasEnded = timeRemaining <= 0 || poll.status === 'ended'
   const daysRemaining = Math.max(0, Math.ceil(timeRemaining / (1000 * 60 * 60 * 24)))
-  const totalReward = Number(totalFunding) / 1e18
+  const totalReward = poll.totalReward
 
   // Calculate user's potential reward (simplified - winner takes all for now)
   const userReward = hasEnded && hasVoted && totalReward > 0 ? totalReward / totalVotes : 0
 
-  // Format options with stats
-  const formattedOptions = options.map((option: string, index: number) => {
-    const voteCount = Number(votes[index])
-    const percentage = totalVotes > 0 ? Math.round((voteCount / totalVotes) * 100) : 0
-    const isWinning = voteCount === Math.max(...votes.map((v: bigint) => Number(v)))
+  // Format options with winning status
+  const formattedOptions = poll.options.map((option) => {
+    const maxVotes = Math.max(...poll.options.map(o => o.votes))
+    const isWinning = option.votes === maxVotes && option.votes > 0
 
     return {
-      id: `${id}-${index}`,
-      text: option,
-      votes: voteCount,
-      percentage,
-      isWinning: voteCount > 0 && isWinning,
+      ...option,
+      isWinning,
     }
   })
 
@@ -96,18 +100,19 @@ export default function PollDetailPage({ params }: PageProps) {
 
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
-            <h1 className="text-3xl font-bold mb-2">{question}</h1>
+            <h1 className="text-3xl font-bold mb-2">{poll.title}</h1>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Avatar className="h-6 w-6">
-                  <AvatarFallback className="text-xs">{creator.slice(0, 2).toUpperCase()}</AvatarFallback>
+                  <AvatarFallback className="text-xs">{poll.creator.slice(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
-                <span>{creator.slice(0, 8)}...{creator.slice(-6)}</span>
+                <span>{poll.creator.slice(0, 8)}...{poll.creator.slice(-6)}</span>
               </div>
               <Badge variant={hasEnded ? "destructive" : "default"}>
                 {hasEnded ? "Ended" : "Active"}
               </Badge>
               {hasVoted && <Badge variant="secondary">You Voted</Badge>}
+              <Badge variant="outline">{isSubgraph ? "Subgraph" : "Contract"}</Badge>
             </div>
           </div>
         </div>
@@ -242,16 +247,22 @@ export default function PollDetailPage({ params }: PageProps) {
             <CardContent className="space-y-2">
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Poll ID</p>
-                <p className="text-sm font-mono">#{id.toString()}</p>
+                <p className="text-sm font-mono">#{poll.id}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Contract</p>
-                <p className="text-sm font-mono break-all">{contractAddress}</p>
+                <p className="text-xs text-muted-foreground mb-1">Data Source</p>
+                <p className="text-sm">{isSubgraph ? 'The Graph Subgraph' : 'Smart Contract'}</p>
               </div>
+              {!isSubgraph && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Contract</p>
+                  <p className="text-sm font-mono break-all">{contractAddress}</p>
+                </div>
+              )}
               <div>
                 <p className="text-xs text-muted-foreground mb-1">End Time</p>
                 <p className="text-sm">
-                  {new Date(Number(endTime) * 1000).toLocaleString()}
+                  {new Date(poll.endsAt).toLocaleString()}
                 </p>
               </div>
             </CardContent>
