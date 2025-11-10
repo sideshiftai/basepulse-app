@@ -40,6 +40,12 @@ export function Navigation() {
 
   const isOwner = isConnected && address && owner && address.toLowerCase() === owner.toLowerCase()
 
+  // Check if user is announcement admin
+  const isAnnouncementAdmin = mounted && isConnected && address &&
+    process.env.NEXT_PUBLIC_ADMIN_ADDRESSES?.split(',')
+      .map(a => a.toLowerCase())
+      .includes(address.toLowerCase())
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4">
@@ -142,6 +148,18 @@ export function Navigation() {
                   Admin
                 </Link>
               )}
+              {isAnnouncementAdmin && (
+                <Link
+                  href="/admin/announcements"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={cn(
+                    "text-lg transition-colors hover:text-foreground/80",
+                    pathname === "/admin/announcements" ? "text-foreground font-semibold" : "text-foreground/60",
+                  )}
+                >
+                  Announcements
+                </Link>
+              )}
               <div className="pt-4 border-t">
                 <ConnectWalletButton />
               </div>
@@ -226,6 +244,17 @@ export function Navigation() {
                 )}
               >
                 Admin
+              </Link>
+            )}
+            {isAnnouncementAdmin && (
+              <Link
+                href="/admin/announcements"
+                className={cn(
+                  "transition-colors hover:text-foreground/80",
+                  pathname === "/admin/announcements" ? "text-foreground" : "text-foreground/60",
+                )}
+              >
+                Announcements
               </Link>
             )}
           </nav>
