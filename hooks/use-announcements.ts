@@ -2,11 +2,6 @@
  * Announcements Hooks
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tantml:parameter>
-<parameter name="content">/**
- * Announcements Hooks
- */
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAccount } from 'wagmi';
 import {
