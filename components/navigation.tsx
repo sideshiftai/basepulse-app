@@ -107,16 +107,28 @@ export function Navigation() {
                 Wallet
               </Link>
               {mounted && isConnected && (
-                <Link
-                  href="/creator"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={cn(
-                    "text-lg transition-colors hover:text-foreground/80",
-                    pathname === "/creator" ? "text-foreground font-semibold" : "text-foreground/60",
-                  )}
-                >
-                  Creator
-                </Link>
+                <>
+                  <Link
+                    href="/creator"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      "text-lg transition-colors hover:text-foreground/80",
+                      pathname === "/creator" ? "text-foreground font-semibold" : "text-foreground/60",
+                    )}
+                  >
+                    Creator
+                  </Link>
+                  <Link
+                    href="/settings"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      "text-lg transition-colors hover:text-foreground/80",
+                      pathname === "/settings" ? "text-foreground font-semibold" : "text-foreground/60",
+                    )}
+                  >
+                    Settings
+                  </Link>
+                </>
               )}
               {mounted && isOwner && (
                 <Link
@@ -184,15 +196,26 @@ export function Navigation() {
               Wallet
             </Link>
             {mounted && isConnected && (
-              <Link
-                href="/creator"
-                className={cn(
-                  "transition-colors hover:text-foreground/80",
-                  pathname === "/creator" ? "text-foreground" : "text-foreground/60",
-                )}
-              >
-                Creator
-              </Link>
+              <>
+                <Link
+                  href="/creator"
+                  className={cn(
+                    "transition-colors hover:text-foreground/80",
+                    pathname === "/creator" ? "text-foreground" : "text-foreground/60",
+                  )}
+                >
+                  Creator
+                </Link>
+                <Link
+                  href="/settings"
+                  className={cn(
+                    "transition-colors hover:text-foreground/80",
+                    pathname === "/settings" ? "text-foreground" : "text-foreground/60",
+                  )}
+                >
+                  Settings
+                </Link>
+              </>
             )}
             {mounted && isOwner && (
               <Link
