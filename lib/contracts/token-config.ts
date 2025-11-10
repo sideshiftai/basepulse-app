@@ -2,7 +2,7 @@
  * ERC20 Token Configuration for BasePulse
  *
  * Supports:
- * - PULSE (Custom PulsePoll Token)
+ * - PULSE (Custom SideShift Pulse Token)
  * - USDC (Stablecoin)
  *
  * Display Modes:
@@ -54,7 +54,7 @@ export const TOKEN_INFO: Record<string, TokenInfo> = {
   },
   PULSE: {
     symbol: 'PULSE',
-    name: 'PulsePoll Token',
+    name: 'SideShift Pulse Token',
     decimals: 18,
     icon: '/tokens/pulse.svg',
     color: '#00D4FF',

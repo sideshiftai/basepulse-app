@@ -52,9 +52,9 @@ export function Navigation() {
         {/* Mobile Logo */}
         <Link className="flex md:hidden items-center space-x-2" href="/">
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-lg">P</span>
+            <span className="text-primary-foreground font-bold text-sm">SS</span>
           </div>
-          <span className="font-bold text-xl">PulsePoll</span>
+          <span className="font-bold text-xl">SideShift Pulse</span>
         </Link>
 
         {/* Mobile Menu - Right Side */}
@@ -172,9 +172,9 @@ export function Navigation() {
         <div className="mr-4 hidden md:flex">
           <Link className="mr-6 flex items-center space-x-2" href="/">
             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">P</span>
+              <span className="text-primary-foreground font-bold text-sm">SS</span>
             </div>
-            <span className="hidden font-bold sm:inline-block text-xl">PulsePoll</span>
+            <span className="hidden font-bold sm:inline-block text-xl">SideShift Pulse</span>
           </Link>
           <nav className="flex items-center gap-6 text-sm">
             <Link

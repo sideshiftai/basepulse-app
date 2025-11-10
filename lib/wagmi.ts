@@ -12,9 +12,9 @@ if (!projectId) {
 
 // Create a metadata object
 const metadata = {
-  name: "PulsePoll",
+  name: "SideShift Pulse",
   description: "Decentralized Incentivized Polls on Base",
-  url: "https://pulsepoll.app", // origin must match your domain & subdomain
+  url: "https://sspulse.vercel.app", // origin must match your domain & subdomain
   icons: ["https://avatars.githubusercontent.com/u/179229932"],
 }
 

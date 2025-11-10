@@ -17,7 +17,7 @@ const stats = [
   {
     value: "500+",
     label: "Communities",
-    description: "Using PulsePoll",
+    description: "Using SideShift Pulse",
   },
   {
     value: "24/7",

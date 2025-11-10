@@ -11,7 +11,7 @@ import { Suspense } from "react"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "PulsePoll - Decentralized Incentivized Polls on Base",
+  title: "SideShift Pulse - Decentralized Incentivized Polls on Base",
   description: "Create and participate in decentralized polls with community funding and rewards on Base blockchain",
   generator: "v0.app",
 }
