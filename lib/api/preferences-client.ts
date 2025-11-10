@@ -23,7 +23,7 @@ export interface UpdatePreferencesData {
  * Get user preferences by address
  */
 export async function getUserPreferences(address: string): Promise<UserPreferences> {
-  const response = await apiClient.get(`/preferences/${address}`);
+  const response = await apiClient.get(`/api/preferences/${address}`);
   return response.data.preferences;
 }
 
@@ -34,7 +34,7 @@ export async function updatePreferences(
   address: string,
   data: UpdatePreferencesData
 ): Promise<UserPreferences> {
-  const response = await apiClient.put(`/preferences/${address}`, data);
+  const response = await apiClient.put(`/api/preferences/${address}`, data);
   return response.data.preferences;
 }
 
@@ -45,7 +45,7 @@ export async function updatePreferredToken(
   address: string,
   token: string
 ): Promise<UserPreferences> {
-  const response = await apiClient.patch(`/preferences/${address}/token`, { token });
+  const response = await apiClient.patch(`/api/preferences/${address}/token`, { token });
   return response.data.preferences;
 }
 
@@ -56,7 +56,7 @@ export async function updateAutoClaim(
   address: string,
   enabled: boolean
 ): Promise<UserPreferences> {
-  const response = await apiClient.patch(`/preferences/${address}/auto-claim`, { enabled });
+  const response = await apiClient.patch(`/api/preferences/${address}/auto-claim`, { enabled });
   return response.data.preferences;
 }
 
@@ -64,7 +64,7 @@ export async function updateAutoClaim(
  * Delete user preferences
  */
 export async function deletePreferences(address: string): Promise<void> {
-  await apiClient.delete(`/preferences/${address}`);
+  await apiClient.delete(`/api/preferences/${address}`);
 }
 
 /**

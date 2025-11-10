@@ -10,6 +10,7 @@ import { Clock, Users, Coins, Vote } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { VoteDialog } from "./vote-dialog"
 import { FundWithTokenDialog } from "./fund-with-token-dialog"
+import { FundPollDialog } from "./sideshift/fund-poll-dialog"
 
 interface PollOption {
   id: string
@@ -43,6 +44,7 @@ interface PollCardProps {
 export function PollCard({ poll, onVote, onViewDetails }: PollCardProps) {
   const [isVoteDialogOpen, setIsVoteDialogOpen] = useState(false)
   const [isFundDialogOpen, setIsFundDialogOpen] = useState(false)
+  const [isCryptoFundDialogOpen, setIsCryptoFundDialogOpen] = useState(false)
   
   const timeRemaining = new Date(poll.endsAt).getTime() - new Date().getTime()
   const daysRemaining = Math.max(0, Math.ceil(timeRemaining / (1000 * 60 * 60 * 24)))
@@ -147,11 +149,20 @@ export function PollCard({ poll, onVote, onViewDetails }: PollCardProps) {
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 bg-transparent"
+              className="flex-[0.7] bg-transparent"
               onClick={() => setIsFundDialogOpen(true)}
             >
-              <Coins className="h-4 w-4 mr-2" />
+              <Coins className="h-4 w-4 mr-1" />
               Fund
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-[0.3] bg-transparent"
+              onClick={() => setIsCryptoFundDialogOpen(true)}
+              title="Fund with any cryptocurrency via SideShift.ai"
+            >
+              💱
             </Button>
           </>
         )}
@@ -167,6 +178,13 @@ export function PollCard({ poll, onVote, onViewDetails }: PollCardProps) {
       <FundWithTokenDialog
         open={isFundDialogOpen}
         onOpenChange={setIsFundDialogOpen}
+        pollId={parseInt(poll.id)}
+        pollTitle={poll.title}
+      />
+
+      <FundPollDialog
+        open={isCryptoFundDialogOpen}
+        onOpenChange={setIsCryptoFundDialogOpen}
         pollId={parseInt(poll.id)}
         pollTitle={poll.title}
       />

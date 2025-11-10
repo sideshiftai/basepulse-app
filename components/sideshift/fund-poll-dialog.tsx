@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { useAccount } from 'wagmi';
 import { useSideshift, useShiftMonitor } from '@/hooks/use-sideshift';
 import { CurrencySelector } from './currency-selector';
+import { NetworkSelector } from './network-selector';
 import {
   Dialog,
   DialogContent,
@@ -21,8 +22,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Copy, ExternalLink, Loader2 } from 'lucide-react';
+import { Copy, ExternalLink, Loader2, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getDefaultDestinationCoin, formatNetworkName } from '@/lib/utils/currency';
 
 interface FundPollDialogProps {
   pollId: string;
@@ -41,11 +43,13 @@ export function FundPollDialog({
   const { toast } = useToast();
   const { createShift, loading } = useSideshift();
 
-  const [currency, setCurrency] = useState('BTC');
+  const [currency, setCurrency] = useState('USDC');
+  const [sourceNetwork, setSourceNetwork] = useState<string>('');
   const [amount, setAmount] = useState('');
   const [shiftId, setShiftId] = useState<string | null>(null);
   const [depositAddress, setDepositAddress] = useState('');
   const [depositCoin, setDepositCoin] = useState('');
+  const [depositNetwork, setDepositNetwork] = useState('');
 
   const { status } = useShiftMonitor(shiftId);
 
@@ -54,6 +58,7 @@ export function FundPollDialog({
     setDepositAddress('');
     setAmount('');
     setDepositCoin('');
+    setDepositNetwork('');
   };
 
   const handleClose = () => {
@@ -80,19 +85,23 @@ export function FundPollDialog({
       return;
     }
 
+    // Backend will automatically determine destCoin and destNetwork based on poll chain
     const result = await createShift({
       pollId,
       userAddress: address,
       purpose: 'fund_poll',
       sourceCoin: currency,
-      destCoin: 'ETH', // Target chain's native token
+      sourceNetwork: sourceNetwork || undefined,
       sourceAmount: amount,
+      // destCoin will be auto-determined: USDC for stablecoins, ETH for others
+      // destNetwork will be auto-determined from poll's chain
     });
 
     if (result) {
       setShiftId(result.shift.id);
       setDepositAddress(result.sideshift.depositAddress);
       setDepositCoin(result.sideshift.depositCoin);
+      setDepositNetwork(result.sideshift.depositNetwork);
     }
   };
 
@@ -128,19 +137,34 @@ export function FundPollDialog({
         <DialogHeader>
           <DialogTitle>Fund Poll with Crypto</DialogTitle>
           <DialogDescription>
-            Fund this poll using any cryptocurrency. Funds will be converted to ETH.
+            Fund this poll using any cryptocurrency from any supported network.
           </DialogDescription>
         </DialogHeader>
 
         {!depositAddress ? (
-          // Step 1: Select currency and amount
+          // Step 1: Select currency, network, and amount
           <div className="space-y-4 py-4">
-            <CurrencySelector
-              label="Select Currency"
-              value={currency}
-              onChange={setCurrency}
-              disabled={loading}
-            />
+            <div className="space-y-2">
+              <Label>Select Currency</Label>
+              <CurrencySelector
+                value={currency}
+                onChange={setCurrency}
+                disabled={loading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Deposit Network</Label>
+              <NetworkSelector
+                coin={currency}
+                value={sourceNetwork}
+                onValueChange={setSourceNetwork}
+                disabled={loading}
+              />
+              <p className="text-xs text-muted-foreground">
+                Select which network you'll send {currency} from
+              </p>
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="amount">Amount</Label>
@@ -149,13 +173,20 @@ export function FundPollDialog({
                 type="text"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.001"
+                placeholder="100"
                 disabled={loading}
               />
               <p className="text-xs text-muted-foreground">
                 Enter the amount of {currency} you want to send
               </p>
             </div>
+
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                Funds will be automatically converted to {getDefaultDestinationCoin(currency)} on Base network for the poll.
+              </AlertDescription>
+            </Alert>
 
             <Button onClick={handleFund} disabled={loading || !amount} className="w-full">
               {loading ? (
@@ -182,7 +213,7 @@ export function FundPollDialog({
               <AlertDescription>
                 <div className="space-y-2">
                   <p className="text-sm font-medium">
-                    Send exactly {amount} {depositCoin} to:
+                    Send exactly {amount} {depositCoin} on {formatNetworkName(depositNetwork)} to:
                   </p>
                   <div className="flex items-center gap-2 bg-muted p-3 rounded-lg">
                     <code className="flex-1 text-xs break-all">{depositAddress}</code>
@@ -200,9 +231,9 @@ export function FundPollDialog({
             </Alert>
 
             <div className="space-y-2 text-xs text-muted-foreground">
-              <p>• Send the exact amount from your wallet</p>
-              <p>• Funds will be converted to ETH automatically</p>
-              <p>• Once confirmed, ETH will be sent to the poll contract</p>
+              <p>• Send from {formatNetworkName(depositNetwork)} network</p>
+              <p>• Funds will be converted to {getDefaultDestinationCoin(currency)} on Base</p>
+              <p>• Once confirmed, funds will arrive in your wallet on Base</p>
               <p>• This may take a few minutes depending on network congestion</p>
             </div>
 

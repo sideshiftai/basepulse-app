@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { useAccount } from 'wagmi';
 import { useSideshift, useShiftMonitor } from '@/hooks/use-sideshift';
 import { CurrencySelector } from './currency-selector';
+import { NetworkSelector } from './network-selector';
 import {
   Dialog,
   DialogContent,
@@ -17,10 +18,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, TrendingUp } from 'lucide-react';
+import { Loader2, TrendingUp, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { formatNetworkName } from '@/lib/utils/currency';
 
 interface ClaimRewardsDialogProps {
   pollId: string;
@@ -41,7 +44,8 @@ export function ClaimRewardsDialog({
   const { toast } = useToast();
   const { createShift, loading } = useSideshift();
 
-  const [currency, setCurrency] = useState('USDT');
+  const [currency, setCurrency] = useState('USDC');
+  const [destNetwork, setDestNetwork] = useState<string>('');
   const [shiftId, setShiftId] = useState<string | null>(null);
   const [estimatedAmount, setEstimatedAmount] = useState<string | null>(null);
 
@@ -70,12 +74,14 @@ export function ClaimRewardsDialog({
       return;
     }
 
+    // Backend will automatically set sourceCoin=ETH and sourceNetwork from poll chain
     const result = await createShift({
       pollId,
       userAddress: address,
       purpose: 'claim_reward',
-      sourceCoin: 'ETH',
       destCoin: currency,
+      destNetwork: destNetwork || undefined,
+      // sourceCoin and sourceNetwork are auto-determined by backend from poll
     });
 
     if (result) {
@@ -134,7 +140,7 @@ export function ClaimRewardsDialog({
         </DialogHeader>
 
         {!shiftId ? (
-          // Step 1: Select currency
+          // Step 1: Select currency and network
           <div className="space-y-4 py-4">
             <div className="bg-muted p-4 rounded-lg space-y-2">
               <div className="flex items-center justify-between">
@@ -146,18 +152,33 @@ export function ClaimRewardsDialog({
               </div>
             </div>
 
-            <CurrencySelector
-              label="Receive rewards in"
-              value={currency}
-              onChange={setCurrency}
-              disabled={loading}
-            />
+            <div className="space-y-2">
+              <Label>Receive Currency</Label>
+              <CurrencySelector
+                value={currency}
+                onChange={setCurrency}
+                disabled={loading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Receive Network</Label>
+              <NetworkSelector
+                coin={currency}
+                value={destNetwork}
+                onValueChange={setDestNetwork}
+                disabled={loading}
+              />
+              <p className="text-xs text-muted-foreground">
+                Select which network to receive {currency} on
+              </p>
+            </div>
 
             <Alert>
+              <Info className="h-4 w-4" />
               <AlertDescription className="text-xs">
-                Your {rewardAmount} ETH will be automatically converted to {currency} and
-                sent to your wallet address: {address?.slice(0, 6)}...
-                {address?.slice(-4)}
+                Your {rewardAmount} ETH from Base will be converted to {currency} on {destNetwork ? formatNetworkName(destNetwork) : 'your selected network'} and
+                sent to: {address?.slice(0, 6)}...{address?.slice(-4)}
               </AlertDescription>
             </Alert>
 
@@ -168,7 +189,7 @@ export function ClaimRewardsDialog({
                   Processing...
                 </>
               ) : (
-                `Claim in ${currency}`
+                `Claim as ${currency}`
               )}
             </Button>
           </div>

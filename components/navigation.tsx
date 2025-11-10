@@ -125,6 +125,16 @@ export function Navigation() {
                     Creator
                   </Link>
                   <Link
+                    href="/dapp/shifts"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      "text-lg transition-colors hover:text-foreground/80",
+                      pathname === "/dapp/shifts" ? "text-foreground font-semibold" : "text-foreground/60",
+                    )}
+                  >
+                    My Shifts
+                  </Link>
+                  <Link
                     href="/settings"
                     onClick={() => setMobileMenuOpen(false)}
                     className={cn(
@@ -223,6 +233,15 @@ export function Navigation() {
                   )}
                 >
                   Creator
+                </Link>
+                <Link
+                  href="/dapp/shifts"
+                  className={cn(
+                    "transition-colors hover:text-foreground/80",
+                    pathname === "/dapp/shifts" ? "text-foreground" : "text-foreground/60",
+                  )}
+                >
+                  My Shifts
                 </Link>
                 <Link
                   href="/settings"

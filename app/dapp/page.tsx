@@ -6,11 +6,13 @@ import { PollCard } from "@/components/poll-card"
 import { PollFilters } from "@/components/poll-filters"
 import { Plus, TrendingUp, Clock, Users, AlertCircle } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useActivePolls, useNextPollId, usePoll, useVote, useHasUserVoted, usePollsContractAddress } from "@/lib/contracts/polls-contract-utils"
 import { useAccount, useChainId, useSwitchChain } from "wagmi"
 import { baseSepolia } from "wagmi/chains"
 
 export default function DappPage() {
+  const router = useRouter()
   const [filters, setFilters] = useState({
     search: "",
     status: "All Status",
@@ -278,8 +280,7 @@ export default function DappPage() {
               poll={poll}
               onVote={handleVote}
               onViewDetails={(pollId) => {
-                console.log("View details:", pollId)
-                // TODO: Navigate to poll details
+                router.push(`/dapp/poll/${pollId}`)
               }}
             />
           ))}
