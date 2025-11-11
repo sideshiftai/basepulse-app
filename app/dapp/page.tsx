@@ -73,6 +73,7 @@ export default function DappPage() {
       status: isActive ? "active" as const : "closed" as const,
       category: "General",
       fundingType: "none" as const,
+      chainId,
       hasVoted: votingStatus.data || false,
       options: options.map((option: string, index: number) => ({
         id: `${id}-${index}`,
