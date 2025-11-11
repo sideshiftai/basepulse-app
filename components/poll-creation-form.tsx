@@ -22,6 +22,7 @@ import { useCreatePoll, usePollsContractAddress } from "@/lib/contracts/polls-co
 import { useAccount, useChainId } from "wagmi"
 import { MIN_POLL_DURATION, MAX_POLL_DURATION } from "@/lib/contracts/polls-contract"
 import { useRouter } from "next/navigation"
+import { TOKEN_INFO, getSupportedTokens } from "@/lib/contracts/token-config"
 
 const pollSchema = z.object({
   title: z.string(),
@@ -33,6 +34,7 @@ const pollSchema = z.object({
     .max(10, "Maximum 10 options allowed"),
   endDate: z.date().optional(),
   fundingType: z.enum(["none", "self", "community"]),
+  fundingToken: z.string().optional(),
   rewardAmount: z.coerce.number().min(0).optional(),
 })
 
@@ -46,8 +48,12 @@ export function PollCreationForm() {
 
   const { isConnected } = useAccount()
   const contractAddress = usePollsContractAddress()
+  const chainId = useChainId()
   const { createPoll, isPending, isConfirming, isSuccess, error } = useCreatePoll()
   const router = useRouter()
+
+  // Get supported tokens for the current chain
+  const supportedTokens = getSupportedTokens(chainId)
 
   const {
     register,
@@ -66,12 +72,14 @@ export function PollCreationForm() {
       description: "",
       category: "",
       fundingType: "none",
+      fundingToken: "ETH",
       options: ["", ""],
       rewardAmount: 0,
     },
   })
 
   const fundingType = watch("fundingType")
+  const fundingToken = watch("fundingToken")
   const endDate = watch("endDate")
   const category = watch("category")
 
@@ -151,6 +159,7 @@ export function PollCreationForm() {
       console.log("Contract address:", contractAddress)
       console.log("Poll title:", data.title)
       console.log("Valid options:", validOptions)
+      console.log("Funding token:", data.fundingToken)
 
       // Validate duration
       if (durationInHours <= 0) {
@@ -168,8 +177,15 @@ export function PollCreationForm() {
         return
       }
 
+      // Encode token preference in the poll title if it's a funded poll
+      // Format: "TITLE|TOKEN:SYMBOL" - we'll parse this when displaying
+      const titleWithMetadata =
+        data.fundingType === "self" && data.fundingToken
+          ? `${data.title}|TOKEN:${data.fundingToken}`
+          : data.title
+
       // Create poll on contract
-      await createPoll(data.title, validOptions, durationInHours)
+      await createPoll(titleWithMetadata, validOptions, durationInHours)
 
     } catch (error) {
       console.error("Error creating poll:", error)
@@ -418,9 +434,38 @@ export function PollCreationForm() {
               </div>
             </RadioGroup>
 
+            {fundingType === "self" && (
+              <div className="space-y-2">
+                <Label htmlFor="fundingToken">Funding Token</Label>
+                <Select
+                  value={fundingToken}
+                  onValueChange={(value) => setValue("fundingToken", value, { shouldValidate: true })}
+                >
+                  <SelectTrigger id="fundingToken">
+                    <SelectValue placeholder="Select token" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(supportedTokens).map((symbol) => {
+                      const tokenInfo = TOKEN_INFO[symbol]
+                      return (
+                        <SelectItem key={symbol} value={symbol}>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{symbol}</span>
+                            <span className="text-muted-foreground text-sm">- {tokenInfo?.name || symbol}</span>
+                          </div>
+                        </SelectItem>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {(fundingType === "self" || fundingType === "community") && (
               <div className="space-y-2">
-                <Label htmlFor="rewardAmount">Reward Amount (ETH)</Label>
+                <Label htmlFor="rewardAmount">
+                  Reward Amount {fundingType === "self" && fundingToken ? `(${fundingToken})` : "(ETH)"}
+                </Label>
                 <Input
                   id="rewardAmount"
                   type="number"

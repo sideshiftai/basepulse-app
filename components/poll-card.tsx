@@ -41,6 +41,7 @@ interface Poll {
   category: string
   options: PollOption[]
   fundingType: "self" | "community" | "none"
+  fundingToken?: string // Token symbol (ETH, USDC, PULSE)
   hasVoted?: boolean
 }
 
@@ -90,11 +91,18 @@ export function PollCard({ poll, onVote, onViewDetails }: PollCardProps) {
               {poll.creator.slice(0, 6)}...{poll.creator.slice(-4)}
             </span>
           </div>
-          <Badge variant="outline" className={fundingColors[poll.fundingType]}>
-            {poll.fundingType === "self" && "Self-funded"}
-            {poll.fundingType === "community" && "Community"}
-            {poll.fundingType === "none" && "No rewards"}
-          </Badge>
+          <div className="flex items-center gap-1.5">
+            <Badge variant="outline" className={fundingColors[poll.fundingType]}>
+              {poll.fundingType === "self" && "Self-funded"}
+              {poll.fundingType === "community" && "Community"}
+              {poll.fundingType === "none" && "No rewards"}
+            </Badge>
+            {poll.fundingToken && poll.fundingType !== "none" && (
+              <Badge variant="secondary" className="font-mono text-xs">
+                {poll.fundingToken}
+              </Badge>
+            )}
+          </div>
         </div>
       </CardHeader>
 
@@ -125,7 +133,7 @@ export function PollCard({ poll, onVote, onViewDetails }: PollCardProps) {
           <div className="space-y-1">
             <div className="flex items-center justify-center gap-1">
               <Coins className="h-3 w-3 text-muted-foreground" />
-              <span className="text-sm font-medium">{poll.totalReward} ETH</span>
+              <span className="text-sm font-medium">{poll.totalReward} {poll.fundingToken || "ETH"}</span>
             </div>
             <p className="text-xs text-muted-foreground">Reward</p>
           </div>

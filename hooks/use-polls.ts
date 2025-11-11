@@ -14,12 +14,29 @@ export interface FormattedPoll {
   status: 'active' | 'ended'
   category: string
   fundingType: 'community' | 'self' | 'none'
+  fundingToken?: string // Token symbol (ETH, USDC, PULSE)
   options: Array<{
     id: string
     text: string
     votes: number
     percentage: number
   }>
+}
+
+/**
+ * Parse token metadata from poll title
+ * Format: "TITLE|TOKEN:SYMBOL"
+ * Returns { title: "clean title", token: "SYMBOL" }
+ */
+export const parsePollMetadata = (titleWithMetadata: string): { title: string; token?: string } => {
+  const parts = titleWithMetadata.split('|TOKEN:')
+  if (parts.length === 2) {
+    return {
+      title: parts[0],
+      token: parts[1],
+    }
+  }
+  return { title: titleWithMetadata }
 }
 
 // Hook to get and format all active polls
@@ -79,9 +96,12 @@ export const useFormattedPoll = (pollId: number) => {
         }
       })
 
+      // Parse metadata from question/title
+      const metadata = parsePollMetadata(formatted.question)
+
       const formattedPollData: FormattedPoll = {
         id: formatted.id.toString(),
-        title: formatted.question,
+        title: metadata.title,
         creator: formatted.creator,
         createdAt: new Date().toISOString(), // We don't have creation time in contract
         endsAt: formatTimestamp(formatted.endTime).toISOString(),
@@ -90,6 +110,7 @@ export const useFormattedPoll = (pollId: number) => {
         status: formatted.isActive && Date.now() < Number(formatted.endTime) * 1000 ? 'active' : 'ended',
         category: 'Governance', // Default category, could be enhanced
         fundingType: formatted.totalFunding > 0n ? 'community' : 'none',
+        fundingToken: metadata.token,
         options,
       }
 
