@@ -10,7 +10,7 @@ console.log('NEXT_PUBLIC_POLLS_CONTRACT_BASE_SEPOLIA:', process.env.NEXT_PUBLIC_
 
 // Hardcoded fallback addresses (update these when deploying to production)
 const BASE_MAINNET_CONTRACT = '0xfc0323F3c5eD271564Ca8F3d4C5FfAD32D553893' as const
-const BASE_SEPOLIA_CONTRACT = '0xa3713739c39419aA1c6daf349dB4342Be59b9142' as const
+const BASE_SEPOLIA_CONTRACT = '0xdfb6881ad34F26D57c3146d335848EDba21dFb6f' as const // Optimized contract deployed 2025-01-10
 
 export const CONTRACT_ADDRESSES = {
   // Base Mainnet (chainId: 8453)

@@ -19,6 +19,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { TokenSelector } from '@/components/preferences/token-selector';
 import { AutoClaimToggle } from '@/components/preferences/auto-claim-toggle';
+import { DataSourceSettings } from '@/components/settings/data-source-settings';
 import {
   useUserPreferences,
   useUpdatePreferences,
@@ -67,21 +68,10 @@ export default function SettingsPage() {
     }
   };
 
-  if (!isConnected) {
-    return (
-      <div className="container mx-auto py-8 px-4">
-        <div className="max-w-2xl mx-auto">
-          <Alert>
-            <AlertDescription>
-              Please connect your wallet to access settings.
-            </AlertDescription>
-          </Alert>
-        </div>
-      </div>
-    );
-  }
+  // Note: We allow access to settings even when not connected now
+  // because data source preference doesn't require wallet connection
 
-  if (isLoading) {
+  if (isLoading && isConnected) {
     return (
       <div className="container mx-auto py-8 px-4">
         <div className="max-w-2xl mx-auto flex items-center justify-center py-12">
@@ -91,13 +81,13 @@ export default function SettingsPage() {
     );
   }
 
-  if (error) {
+  if (error && isConnected) {
     return (
       <div className="container mx-auto py-8 px-4">
         <div className="max-w-2xl mx-auto">
           <Alert variant="destructive">
             <AlertDescription>
-              Failed to load preferences. Please try again later.
+              Failed to load user preferences. Please try again later.
             </AlertDescription>
           </Alert>
         </div>
@@ -112,30 +102,44 @@ export default function SettingsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
           <p className="text-muted-foreground mt-2">
-            Manage your preferences for poll rewards and notifications
+            Manage your preferences for data sources, poll rewards and notifications
           </p>
         </div>
 
-        {/* Success Message */}
-        {updatePreferences.isSuccess && !hasChanges && (
-          <Alert className="border-green-500 bg-green-50 dark:bg-green-950">
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-600 dark:text-green-400">
-              Your preferences have been saved successfully!
-            </AlertDescription>
-          </Alert>
-        )}
+        {/* Data Source Settings - Available for all users */}
+        <DataSourceSettings />
 
-        {/* Error Message */}
-        {updatePreferences.isError && (
-          <Alert variant="destructive">
+        <Separator />
+
+        {/* Wallet-connected settings section */}
+        {!isConnected ? (
+          <Alert>
             <AlertDescription>
-              Failed to save preferences. Please try again.
+              Connect your wallet to access reward preferences and account settings.
             </AlertDescription>
           </Alert>
-        )}
+        ) : (
+          <>
+            {/* Success Message */}
+            {updatePreferences.isSuccess && !hasChanges && (
+              <Alert className="border-green-500 bg-green-50 dark:bg-green-950">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-600 dark:text-green-400">
+                  Your preferences have been saved successfully!
+                </AlertDescription>
+              </Alert>
+            )}
 
-        {/* Preferred Token */}
+            {/* Error Message */}
+            {updatePreferences.isError && (
+              <Alert variant="destructive">
+                <AlertDescription>
+                  Failed to save preferences. Please try again.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Preferred Token */}
         <Card>
           <CardHeader>
             <CardTitle>Preferred Token</CardTitle>
@@ -167,44 +171,46 @@ export default function SettingsPage() {
           disabled={updatePreferences.isPending}
         />
 
-        <Separator />
+            <Separator />
 
-        {/* Account Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Account</CardTitle>
-            <CardDescription>Your connected wallet information</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <Label>Wallet Address</Label>
-              <div className="font-mono text-sm bg-muted p-3 rounded-md break-all">
-                {address}
-              </div>
+            {/* Account Info */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Account</CardTitle>
+                <CardDescription>Your connected wallet information</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <Label>Wallet Address</Label>
+                  <div className="font-mono text-sm bg-muted p-3 rounded-md break-all">
+                    {address}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Save Button */}
+            <div className="flex justify-end gap-2">
+              <Button
+                onClick={handleSave}
+                disabled={!hasChanges || updatePreferences.isPending}
+                size="lg"
+              >
+                {updatePreferences.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Changes
+                  </>
+                )}
+              </Button>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Save Button */}
-        <div className="flex justify-end gap-2">
-          <Button
-            onClick={handleSave}
-            disabled={!hasChanges || updatePreferences.isPending}
-            size="lg"
-          >
-            {updatePreferences.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Save Changes
-              </>
-            )}
-          </Button>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );

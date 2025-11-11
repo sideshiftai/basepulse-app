@@ -7,7 +7,10 @@ import { PollFilters } from "@/components/poll-filters"
 import { Plus, TrendingUp, Clock, Users, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useActivePolls, useNextPollId, usePoll, useVote, useHasUserVoted, usePollsContractAddress } from "@/lib/contracts/polls-contract-utils"
+import { usePollsData } from "@/hooks/use-polls-data"
+import { useGlobalStatsData } from "@/hooks/use-stats-data"
+import { useDataSource } from "@/hooks/use-data-source"
+import { useVote, useHasUserVoted, usePollsContractAddress } from "@/lib/contracts/polls-contract-utils"
 import { useAccount, useChainId, useSwitchChain } from "wagmi"
 import { baseSepolia } from "wagmi/chains"
 
@@ -31,72 +34,37 @@ export default function DappPage() {
   const chainId = useChainId()
   const contractAddress = usePollsContractAddress()
   const { switchChain } = useSwitchChain()
-  const { data: activePollIds, isLoading: pollsLoading, error: pollsError } = useActivePolls()
-  const { data: nextPollId, isLoading: nextIdLoading } = useNextPollId()
   const { vote, isPending: isVoting } = useVote()
 
-  // Get poll data for each active poll ID (hooks must be called unconditionally)
-  const pollQueries = [
-    usePoll(activePollIds?.[0] ? Number(activePollIds[0]) : 0),
-    usePoll(activePollIds?.[1] ? Number(activePollIds[1]) : 0),
-    usePoll(activePollIds?.[2] ? Number(activePollIds[2]) : 0),
-    usePoll(activePollIds?.[3] ? Number(activePollIds[3]) : 0),
-    usePoll(activePollIds?.[4] ? Number(activePollIds[4]) : 0),
-  ]
+  // Use unified data hooks - automatically routes to subgraph or contract
+  const { dataSource, isSubgraph } = useDataSource()
+  const { polls, loading: pollsLoading, error: pollsError, hasMore, loadMore } = usePollsData({ first: 50 })
+  const { stats: globalStats, loading: statsLoading } = useGlobalStatsData()
 
-  // Check voting status for each poll
-  const votingStatusQueries = [
-    useHasUserVoted(activePollIds?.[0] ? Number(activePollIds[0]) : 0, address),
-    useHasUserVoted(activePollIds?.[1] ? Number(activePollIds[1]) : 0, address),
-    useHasUserVoted(activePollIds?.[2] ? Number(activePollIds[2]) : 0, address),
-    useHasUserVoted(activePollIds?.[3] ? Number(activePollIds[3]) : 0, address),
-    useHasUserVoted(activePollIds?.[4] ? Number(activePollIds[4]) : 0, address),
-  ]
+  // Check voting status for displayed polls (only when using contract)
+  // For subgraph, this info could come from the subgraph itself in the future
+  const votingStatusQueries = polls.slice(0, 10).map(poll =>
+    useHasUserVoted(Number(poll.id), address)
+  )
 
-  // Parse contract polls
-  const contractPolls = activePollIds?.slice(0, 5).map((pollId: bigint, index: number) => {
-    const pollData = pollQueries[index]
-    const votingStatus = votingStatusQueries[index]
-    if (!pollData.data) return null
-    
-    const [id, question, options, votes, endTime, isActive, creator, totalFunding] = pollData.data
-    
-    return {
-      id: id.toString(),
-      title: question,
-      description: `Poll created by ${creator}`,
-      creator: creator,
-      createdAt: new Date().toISOString(),
-      endsAt: new Date(Number(endTime) * 1000).toISOString(),
-      totalVotes: votes.reduce((sum: number, vote: bigint) => sum + Number(vote), 0),
-      totalReward: Number(totalFunding) / 1e18,
-      status: isActive ? "active" as const : "closed" as const,
-      category: "General",
-      fundingType: "none" as const,
-      hasVoted: votingStatus.data || false,
-      options: options.map((option: string, index: number) => ({
-        id: `${id}-${index}`,
-        text: option,
-        votes: Number(votes[index]),
-        percentage: votes.length > 0 ? Math.round((Number(votes[index]) / votes.reduce((sum: number, vote: bigint) => sum + Number(vote), 0)) * 100) : 0
-      }))
-    }
-  }).filter(Boolean) || []
+  // Enhance polls with voting status
+  const pollsWithVotingStatus = polls.map((poll, index) => ({
+    ...poll,
+    hasVoted: index < 10 ? (votingStatusQueries[index]?.data || false) : false
+  }))
 
-  // Show polls even when not connected, but disable voting
-  const polls = !pollsError ? contractPolls : []
   const isLoading = pollsLoading
   
   // Debug logging
   console.log("=== DAPP PAGE DEBUG ===")
+  console.log("Data Source:", dataSource)
   console.log("Chain ID:", chainId)
   console.log("Contract Address:", contractAddress)
   console.log("Is Connected:", isConnected)
-  console.log("Active Poll IDs:", activePollIds)
   console.log("Polls Loading:", pollsLoading)
   console.log("Polls Error:", pollsError)
-  console.log("Contract Polls:", contractPolls)
-  console.log("Filtered Polls:", polls)
+  console.log("Polls Count:", polls.length)
+  console.log("Global Stats:", globalStats)
   
   // Network info for users
   const networkName = chainId === 8453 ? "Base Mainnet" : chainId === 84532 ? "Base Sepolia" : "Unknown Network"
@@ -144,7 +112,7 @@ export default function DappPage() {
     }
   }
 
-  const filteredPolls = polls.filter((poll) => {
+  const filteredPolls = pollsWithVotingStatus.filter((poll) => {
     if (
       filters.search &&
       !poll.title.toLowerCase().includes(filters.search.toLowerCase()) &&
@@ -171,12 +139,15 @@ export default function DappPage() {
     return true
   })
 
-  const totalPolls = Number(nextPollId || 0n)
-  const activePolls = activePollIds?.length || 0
-
-  const stats = {
-    totalPolls,
-    activePolls,
+  // Use global stats from subgraph if available, otherwise compute from loaded polls
+  const stats = isSubgraph && globalStats ? {
+    totalPolls: globalStats.totalPolls,
+    activePolls: polls.filter(p => p.status === 'active').length,
+    totalVotes: globalStats.totalVotes,
+    totalRewards: globalStats.totalFunding / 1e18, // Convert wei to ETH
+  } : {
+    totalPolls: polls.length,
+    activePolls: polls.filter(p => p.status === 'active').length,
     totalVotes: polls.reduce((sum, poll) => sum + poll.totalVotes, 0),
     totalRewards: polls.reduce((sum, poll) => sum + poll.totalReward, 0),
   }
@@ -196,17 +167,22 @@ export default function DappPage() {
               <div className="flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 flex-shrink-0" />
                 <span className="text-sm">
-                  Contract not deployed on {networkName}. Please switch to Base Sepolia.
+                  {isSubgraph
+                    ? `Using subgraph data source. Contract actions require Base Sepolia.`
+                    : `Contract not deployed on ${networkName}. Please switch to Base Sepolia or use subgraph.`
+                  }
                 </span>
               </div>
-              <Button 
-                size="sm" 
-                variant="outline"
-                className="border-amber-600 text-amber-600 hover:bg-amber-100 dark:hover:bg-amber-900/30"
-                onClick={() => switchChain({ chainId: baseSepolia.id })}
-              >
-                Switch to Base Sepolia
-              </Button>
+              {!isSubgraph && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-amber-600 text-amber-600 hover:bg-amber-100 dark:hover:bg-amber-900/30"
+                  onClick={() => switchChain({ chainId: baseSepolia.id })}
+                >
+                  Switch to Base Sepolia
+                </Button>
+              )}
             </div>
           )}
           {pollsError && (
@@ -291,27 +267,34 @@ export default function DappPage() {
         <div className="text-center py-12">
           <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
           <p className="text-muted-foreground text-lg mb-2">
-            {!mounted || !isConnected
-              ? "Connect your wallet to view polls"
-              : !hasContractOnNetwork
-              ? `Contract not available on ${networkName}`
-              : activePollIds?.length === 0
-              ? "No active polls found on the contract."
+            {pollsError
+              ? `Error loading polls: ${pollsError.message}`
+              : polls.length === 0
+              ? isSubgraph
+                ? "No polls found in the subgraph."
+                : "No polls found on the contract."
               : "No polls found matching your criteria."
             }
           </p>
-          {(!mounted || !isConnected) && (
-            <p className="text-sm text-muted-foreground mb-4">
-              Please connect your wallet to interact with the dapp
-            </p>
-          )}
-          {mounted && isConnected && hasContractOnNetwork && (
+          {polls.length === 0 && !pollsError && (
             <Button asChild className="mt-4">
-              <Link href="/dapp/create">
-                {activePollIds?.length === 0 ? "Create the first poll" : "Create a poll"}
-              </Link>
+              <Link href="/dapp/create">Create the first poll</Link>
             </Button>
           )}
+        </div>
+      )}
+
+      {/* Load More Button */}
+      {!isLoading && hasMore && filteredPolls.length > 0 && (
+        <div className="text-center">
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={loadMore}
+            disabled={isLoading}
+          >
+            Load More Polls
+          </Button>
         </div>
       )}
     </div>
