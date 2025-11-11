@@ -284,8 +284,8 @@ export function PollCreationForm() {
                       type="button"
                       variant="outline"
                       className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !endDate && "text-muted-foreground",
+                        "w-full justify-start text-left font-normal text-foreground hover:text-foreground",
+                        !endDate && "opacity-70 hover:opacity-100",
                         errors.endDate && "border-destructive",
                       )}
                       onClick={() => {
