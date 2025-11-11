@@ -161,8 +161,8 @@ export function FundPollDialog({
       destCoin: getDefaultDestinationCoin(currency),
       sourceNetwork: sourceNetwork || undefined,
       sourceAmount: amount,
-      // Only pass chainId if it's a valid chain (not 0 or undefined)
-      ...(chainId && chainId > 0 ? { chainId } : {}),
+      // Always pass chainId to ensure API queries the correct contract
+      chainId: chainId && chainId > 0 ? chainId : undefined,
       // destNetwork will be auto-determined from poll's chain by backend
     });
 
