@@ -25,6 +25,7 @@ export function Navigation() {
   const contractAddress = usePollsContractAddress()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const bridgeUrl = process.env.NEXT_PUBLIC_BRIDGE_URL || 'http://localhost:3002/bridge'
 
   // Prevent hydration mismatch by only showing connected state after mount
   useEffect(() => {
@@ -92,16 +93,15 @@ export function Navigation() {
               >
                 Dapp
               </Link>
-              <Link
-                href="/dapp/bridge"
+              <a
+                href={bridgeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={() => setMobileMenuOpen(false)}
-                className={cn(
-                  "text-lg transition-colors hover:text-foreground/80",
-                  pathname === "/dapp/bridge" ? "text-foreground font-semibold" : "text-foreground/60",
-                )}
+                className="text-lg transition-colors hover:text-foreground/80 text-foreground/60"
               >
                 Bridge
-              </Link>
+              </a>
               <Link
                 href="/buy-pulse"
                 onClick={() => setMobileMenuOpen(false)}
@@ -215,15 +215,14 @@ export function Navigation() {
             >
               Dapp
             </Link>
-            <Link
-              href="/dapp/bridge"
-              className={cn(
-                "transition-colors hover:text-foreground/80",
-                pathname === "/dapp/bridge" ? "text-foreground" : "text-foreground/60",
-              )}
+            <a
+              href={bridgeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-colors hover:text-foreground/80 text-foreground/60"
             >
               Bridge
-            </Link>
+            </a>
             <Link
               href="/buy-pulse"
               className={cn(
