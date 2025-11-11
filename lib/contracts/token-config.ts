@@ -31,7 +31,7 @@ export const WHITELISTED_TOKENS = {
   // Base Mainnet (8453)
   8453: {
     ETH: '0x0000000000000000000000000000000000000000' as Address,
-    PULSE: '' as Address, // To be deployed
+    PULSE: '0x1b684A60309b0916C77834d62d117d306171FDFE' as Address,
     USDC: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913' as Address,
   },
   // Base Sepolia (84532)
