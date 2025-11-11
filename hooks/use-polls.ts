@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useActivePolls, usePoll, formatPollData, formatVotes, formatETH, formatTimestamp } from '@/lib/contracts/polls-contract-utils'
 import { Address } from 'viem'
+import { useChainId } from 'wagmi'
 
 export interface FormattedPoll {
   id: string
@@ -15,6 +16,7 @@ export interface FormattedPoll {
   category: string
   fundingType: 'community' | 'self' | 'none'
   fundingToken?: string // Token symbol (ETH, USDC, PULSE)
+  chainId?: number // Network where poll was created (8453 = Base Mainnet, 84532 = Base Sepolia)
   options: Array<{
     id: string
     text: string
@@ -77,6 +79,7 @@ export const useFormattedActivePolls = () => {
 // Hook to get a single formatted poll
 export const useFormattedPoll = (pollId: number) => {
   const { data: pollData, isLoading, error } = usePoll(pollId)
+  const chainId = useChainId()
   const [formattedPoll, setFormattedPoll] = useState<FormattedPoll | null>(null)
 
   useEffect(() => {
@@ -111,12 +114,13 @@ export const useFormattedPoll = (pollId: number) => {
         category: 'Governance', // Default category, could be enhanced
         fundingType: formatted.totalFunding > 0n ? 'community' : 'none',
         fundingToken: metadata.token,
+        chainId, // Include current chain ID
         options,
       }
 
       setFormattedPoll(formattedPollData)
     }
-  }, [pollData])
+  }, [pollData, chainId])
 
   return {
     poll: formattedPoll,

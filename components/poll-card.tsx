@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Clock, Users, Coins, Vote, ChevronDown, Wallet, RefreshCw } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { getNetworkName, getNetworkColor } from "@/lib/utils/network"
 import { VoteDialog } from "./vote-dialog"
 import { FundWithTokenDialog } from "./fund-with-token-dialog"
 import { FundPollDialog } from "./sideshift/fund-poll-dialog"
@@ -42,6 +43,7 @@ interface Poll {
   options: PollOption[]
   fundingType: "self" | "community" | "none"
   fundingToken?: string // Token symbol (ETH, USDC, PULSE)
+  chainId?: number // Network where poll was created
   hasVoted?: boolean
 }
 
@@ -76,7 +78,18 @@ export function PollCard({ poll, onVote, onViewDetails }: PollCardProps) {
       <CardHeader className="space-y-4">
         <div className="flex items-start justify-between">
           <div className="space-y-2 flex-1">
-            <h3 className="font-semibold text-lg leading-tight line-clamp-2">{poll.title}</h3>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-semibold text-lg leading-tight line-clamp-2">{poll.title}</h3>
+              {poll.chainId && (
+                <Badge
+                  variant="outline"
+                  className="text-xs font-normal shrink-0"
+                  style={{ borderColor: getNetworkColor(poll.chainId), color: getNetworkColor(poll.chainId) }}
+                >
+                  {getNetworkName(poll.chainId)}
+                </Badge>
+              )}
+            </div>
             <p className="text-sm text-muted-foreground line-clamp-2">{poll.description}</p>
           </div>
           <Badge className={cn("ml-2 shrink-0", statusColors[poll.status])}>{poll.status}</Badge>
