@@ -9,9 +9,9 @@ import { Address } from 'viem';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export interface CreateShiftParams {
-  pollId: string;
+  pollId?: string;
   userAddress: Address;
-  purpose: 'fund_poll' | 'claim_reward';
+  purpose: 'fund_poll' | 'claim_reward' | 'bridge';
   sourceCoin: string;
   destCoin: string;
   sourceNetwork?: string;
@@ -25,6 +25,12 @@ export interface SupportedAsset {
   coin: string;
   name: string;
   networks: string[];
+  tokenDetails?: {
+    [network: string]: {
+      contractAddress: string;
+      decimals: number;
+    };
+  };
 }
 
 export interface SupportedAssetsResponse {
@@ -38,7 +44,7 @@ export interface ShiftResponse {
     sideshiftOrderId: string;
     pollId: string;
     userAddress: Address;
-    purpose: 'fund_poll' | 'claim_reward';
+    purpose: 'fund_poll' | 'claim_reward' | 'bridge';
     sourceAsset: string;
     destAsset: string;
     sourceNetwork: string;

@@ -93,6 +93,16 @@ export function Navigation() {
                 Dapp
               </Link>
               <Link
+                href="/dapp/bridge"
+                onClick={() => setMobileMenuOpen(false)}
+                className={cn(
+                  "text-lg transition-colors hover:text-foreground/80",
+                  pathname === "/dapp/bridge" ? "text-foreground font-semibold" : "text-foreground/60",
+                )}
+              >
+                Bridge
+              </Link>
+              <Link
                 href="/buy-pulse"
                 onClick={() => setMobileMenuOpen(false)}
                 className={cn(
@@ -204,6 +214,15 @@ export function Navigation() {
               )}
             >
               Dapp
+            </Link>
+            <Link
+              href="/dapp/bridge"
+              className={cn(
+                "transition-colors hover:text-foreground/80",
+                pathname === "/dapp/bridge" ? "text-foreground" : "text-foreground/60",
+              )}
+            >
+              Bridge
             </Link>
             <Link
               href="/buy-pulse"
