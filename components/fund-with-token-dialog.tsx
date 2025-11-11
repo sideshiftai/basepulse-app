@@ -24,11 +24,13 @@ import { Loader2, Check, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
 import {
   useFundPollWithToken,
+  useFundPollWithETH,
   useTokenApproval,
   useTokenBalance,
   useTokenAllowance,
   usePollsContractAddress,
 } from "@/lib/contracts/polls-contract-utils"
+import { useBalance } from "wagmi"
 import {
   getSupportedTokens,
   getTokenInfo,
@@ -53,7 +55,7 @@ export function FundWithTokenDialog({
   const pollsContractAddress = usePollsContractAddress()
 
   // State
-  const [selectedToken, setSelectedToken] = useState<string>("PULSE")
+  const [selectedToken, setSelectedToken] = useState<string>("ETH")
   const [amount, setAmount] = useState<string>("")
   const [step, setStep] = useState<"input" | "approve" | "fund">("input")
 
@@ -61,17 +63,26 @@ export function FundWithTokenDialog({
   const supportedTokens = getSupportedTokens(chainId)
   const selectedTokenAddress = supportedTokens[selectedToken] as Address
   const tokenInfo = getTokenInfo(selectedToken)
+  const isETH = selectedToken === "ETH"
 
   // Hooks
-  const { fundPoll, isPending: isFunding, isSuccess: isFundSuccess } = useFundPollWithToken()
+  const { fundPoll: fundPollWithToken, isPending: isFundingToken, isSuccess: isFundSuccessToken } = useFundPollWithToken()
+  const { fundPoll: fundPollWithETH, isPending: isFundingETH, isSuccess: isFundSuccessETH } = useFundPollWithETH()
   const { approve, isPending: isApproving, isSuccess: isApproveSuccess } = useTokenApproval()
 
-  const { data: balance } = useTokenBalance(selectedTokenAddress, address)
+  // Get ETH balance or token balance
+  const { data: ethBalance } = useBalance({ address })
+  const { data: tokenBalance } = useTokenBalance(isETH ? undefined : selectedTokenAddress, address)
+  const balance = isETH ? ethBalance?.value : tokenBalance
+
   const { data: allowance, refetch: refetchAllowance } = useTokenAllowance(
-    selectedTokenAddress,
+    isETH ? undefined : selectedTokenAddress,
     address,
     pollsContractAddress
   )
+
+  const isFunding = isFundingToken || isFundingETH
+  const isFundSuccess = isFundSuccessToken || isFundSuccessETH
 
   // Format balance for display
   const formattedBalance = balance && tokenInfo
@@ -89,8 +100,9 @@ export function FundWithTokenDialog({
     }
   }
 
-  // Check if approval is needed
+  // Check if approval is needed (ETH doesn't need approval)
   const needsApproval = () => {
+    if (isETH) return false // ETH doesn't need approval
     if (!amount || !allowance || !tokenInfo) return true
     try {
       const amountBigInt = parseUnits(amount, tokenInfo.decimals)
@@ -123,11 +135,20 @@ export function FundWithTokenDialog({
 
   // Handle fund
   const handleFund = async () => {
-    if (!selectedTokenAddress || !tokenInfo || !amount) return
+    if (!amount) return
 
     try {
       setStep("fund")
-      await fundPoll(pollId, selectedTokenAddress, amount, tokenInfo.decimals)
+
+      if (isETH) {
+        // Fund with ETH (no token address needed)
+        await fundPollWithETH(pollId, amount)
+      } else {
+        // Fund with ERC20 token
+        if (!selectedTokenAddress || !tokenInfo) return
+        await fundPollWithToken(pollId, selectedTokenAddress, amount, tokenInfo.decimals)
+      }
+
       toast.success("Poll funded successfully!")
     } catch (error: any) {
       console.error("Funding error:", error)
@@ -163,8 +184,8 @@ export function FundWithTokenDialog({
     }
   }, [isFundSuccess, step, onOpenChange])
 
-  // Filter out ETH from tokens (we have separate ETH funding)
-  const tokenOptions = Object.keys(supportedTokens).filter(symbol => symbol !== "ETH")
+  // Include all tokens including ETH
+  const tokenOptions = Object.keys(supportedTokens)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
