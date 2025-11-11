@@ -8,6 +8,7 @@
 import { useState, useEffect } from 'react';
 import { useAccount, useChainId } from 'wagmi';
 import { useSideshift, useShiftMonitor } from '@/hooks/use-sideshift';
+import { sideshiftAPI, SideshiftPairInfo } from '@/lib/api/sideshift-client';
 import { CurrencySelector } from './currency-selector';
 import { NetworkSelector } from './network-selector';
 import { FundingSuccessDialog } from './funding-success-dialog';
@@ -61,6 +62,10 @@ export function FundPollDialog({
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [showFundingDialog, setShowFundingDialog] = useState(false);
 
+  // Pair info for min/max amounts
+  const [pairInfo, setPairInfo] = useState<SideshiftPairInfo | null>(null);
+  const [loadingPairInfo, setLoadingPairInfo] = useState(false);
+
   const { status, shiftData } = useShiftMonitor(shiftId);
 
   // Show success dialog when shift settles
@@ -77,6 +82,32 @@ export function FundPollDialog({
       setShowSuccessDialog(true);
     }
   }, [status, shiftData]);
+
+  // Fetch pair info when currency/network changes
+  useEffect(() => {
+    const fetchPairInfo = async () => {
+      if (!currency) return;
+
+      setLoadingPairInfo(true);
+      try {
+        const destCoin = getDefaultDestinationCoin(currency);
+        const info = await sideshiftAPI.getPairInfo(
+          currency,
+          destCoin,
+          sourceNetwork || undefined,
+          undefined
+        );
+        setPairInfo(info);
+      } catch (error) {
+        console.error('Failed to fetch pair info:', error);
+        setPairInfo(null);
+      } finally {
+        setLoadingPairInfo(false);
+      }
+    };
+
+    fetchPairInfo();
+  }, [currency, sourceNetwork]);
 
   const handleReset = () => {
     setShiftId(null);
@@ -106,6 +137,16 @@ export function FundPollDialog({
         variant: 'destructive',
         title: 'Invalid amount',
         description: 'Please enter a valid amount',
+      });
+      return;
+    }
+
+    // Check if amount meets minimum requirement
+    if (pairInfo && parseFloat(amount) < parseFloat(pairInfo.min)) {
+      toast({
+        variant: 'destructive',
+        title: 'Amount too low',
+        description: `Minimum deposit is ${parseFloat(pairInfo.min).toFixed(2)} ${currency}`,
       });
       return;
     }
@@ -204,9 +245,20 @@ export function FundPollDialog({
                 placeholder="100"
                 disabled={loading}
               />
-              <p className="text-xs text-muted-foreground">
-                Enter the amount of {currency} you want to send
-              </p>
+              {loadingPairInfo ? (
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Loading minimum amount...
+                </p>
+              ) : pairInfo ? (
+                <p className="text-xs text-muted-foreground">
+                  Minimum: {parseFloat(pairInfo.min).toFixed(2)} {currency} • Enter the amount you want to send
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Enter the amount of {currency} you want to send
+                </p>
+              )}
             </div>
 
             <Alert>

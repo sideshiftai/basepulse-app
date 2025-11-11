@@ -76,6 +76,16 @@ export interface PollShiftsResponse {
   shifts: ShiftResponse['shift'][];
 }
 
+export interface SideshiftPairInfo {
+  min: string;            // Minimum deposit amount
+  max: string;            // Maximum deposit amount
+  rate: string;           // Exchange rate
+  depositCoin: string;    // Source cryptocurrency
+  settleCoin: string;     // Destination cryptocurrency
+  depositNetwork: string; // Source blockchain network
+  settleNetwork: string;  // Destination blockchain network
+}
+
 /**
  * Sideshift API Client
  */
@@ -86,6 +96,25 @@ export const sideshiftAPI = {
   async getSupportedAssets(): Promise<SupportedAssetsResponse> {
     const { data } = await axios.get<SupportedAssetsResponse>(
       `${API_URL}/api/sideshift/supported-assets`
+    );
+    return data;
+  },
+
+  /**
+   * Get pair information including min/max deposit amounts
+   */
+  async getPairInfo(
+    depositCoin: string,
+    settleCoin: string,
+    depositNetwork?: string,
+    settleNetwork?: string
+  ): Promise<SideshiftPairInfo> {
+    const params = new URLSearchParams();
+    if (depositNetwork) params.append('depositNetwork', depositNetwork);
+    if (settleNetwork) params.append('settleNetwork', settleNetwork);
+
+    const { data } = await axios.get<SideshiftPairInfo>(
+      `${API_URL}/api/sideshift/pair/${depositCoin}/${settleCoin}${params.toString() ? `?${params.toString()}` : ''}`
     );
     return data;
   },
