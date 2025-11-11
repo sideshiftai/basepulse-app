@@ -6,7 +6,8 @@ import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { WalletProvider } from "@/components/wallet-provider"
 import { Navigation } from "@/components/navigation"
-import { Toaster } from "sonner"
+import { Toaster as SonnerToaster } from "sonner"
+import { Toaster as ShadcnToaster } from "@/components/ui/toaster"
 import { Suspense } from "react"
 import "./globals.css"
 
@@ -30,7 +31,8 @@ export default function RootLayout({
               <Navigation />
               <main className="min-h-screen">{children}</main>
             </Suspense>
-            <Toaster />
+            <SonnerToaster />
+            <ShadcnToaster />
           </WalletProvider>
         </ThemeProvider>
         <Analytics />
