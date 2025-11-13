@@ -13,6 +13,8 @@ import { CurrencySelector } from './currency-selector';
 import { NetworkSelector } from './network-selector';
 import { FundingSuccessDialog } from './funding-success-dialog';
 import { FundPollConfirmationDialog } from './fund-poll-confirmation-dialog';
+import { useMultiNetworkBalance } from '@/lib/hooks/use-multi-network-balance';
+import { type Address } from 'viem';
 import {
   Dialog,
   DialogContent,
@@ -25,7 +27,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Copy, ExternalLink, Loader2, Info } from 'lucide-react';
+import { Copy, ExternalLink, Loader2, Info, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getDefaultDestinationCoin, formatNetworkName } from '@/lib/utils/currency';
 
@@ -47,6 +49,7 @@ export function FundPollDialog({
   const { toast } = useToast();
   const { createShift, loading } = useSideshift();
 
+  // State declarations - must come before hooks that use them
   const [currency, setCurrency] = useState('USDC');
   const [sourceNetwork, setSourceNetwork] = useState<string>('');
   const [amount, setAmount] = useState('');
@@ -65,6 +68,19 @@ export function FundPollDialog({
   // Pair info for min/max amounts
   const [pairInfo, setPairInfo] = useState<SideshiftPairInfo | null>(null);
   const [loadingPairInfo, setLoadingPairInfo] = useState(false);
+
+  // Multi-network balance fetching with 10-second auto-refresh
+  const {
+    formatted: formattedBalance,
+    isLoading: balanceLoading,
+    isError: balanceError,
+    symbol: balanceSymbol,
+  } = useMultiNetworkBalance({
+    address: address as Address | undefined,
+    networkId: sourceNetwork,
+    enabled: !!address && !!sourceNetwork,
+    refetchInterval: 10000, // 10 seconds
+  });
 
   const { status, shiftData } = useShiftMonitor(shiftId);
 
@@ -97,6 +113,7 @@ export function FundPollDialog({
           sourceNetwork || undefined,
           undefined
         );
+        console.log('Pair info:', info);
         setPairInfo(info);
       } catch (error) {
         console.error('Failed to fetch pair info:', error);
@@ -182,6 +199,13 @@ export function FundPollDialog({
     });
   };
 
+  const handleMaxAmount = () => {
+    if (formattedBalance) {
+      // Use the full balance
+      setAmount(formattedBalance);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'waiting':
@@ -236,15 +260,47 @@ export function FundPollDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="amount">Amount</Label>
-              <Input
-                id="amount"
-                type="text"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="100"
-                disabled={loading}
-              />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="amount">Amount</Label>
+                {address && sourceNetwork && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    {balanceLoading ? (
+                      <span className="flex items-center gap-1">
+                        <RefreshCw className="h-3 w-3 animate-spin" />
+                        Loading balance...
+                      </span>
+                    ) : balanceError ? (
+                      <span className="text-red-500">Error loading balance</span>
+                    ) : formattedBalance ? (
+                      <span>
+                        Balance: {parseFloat(formattedBalance).toFixed(6)} {balanceSymbol}
+                      </span>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  id="amount"
+                  type="text"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="100"
+                  disabled={loading}
+                  className="flex-1"
+                />
+                {formattedBalance && !loading && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleMaxAmount}
+                    disabled={loading || balanceLoading}
+                    className="shrink-0"
+                  >
+                    Max
+                  </Button>
+                )}
+              </div>
               {loadingPairInfo ? (
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <Loader2 className="h-3 w-3 animate-spin" />
