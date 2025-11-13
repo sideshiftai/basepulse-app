@@ -7,12 +7,14 @@
 
 import { useState, useEffect } from 'react';
 import { useAccount, useChainId } from 'wagmi';
-import { useSideshift, useShiftMonitor } from '@/hooks/use-sideshift';
+import { useSideshift, useShiftMonitor, useSupportedAssets } from '@/hooks/use-sideshift';
 import { sideshiftAPI, SideshiftPairInfo } from '@/lib/api/sideshift-client';
 import { CurrencySelector } from './currency-selector';
 import { NetworkSelector } from './network-selector';
 import { FundingSuccessDialog } from './funding-success-dialog';
 import { FundPollConfirmationDialog } from './fund-poll-confirmation-dialog';
+import { useMultiNetworkBalance } from '@/lib/hooks/use-multi-network-balance';
+import { type Address } from 'viem';
 import {
   Dialog,
   DialogContent,
@@ -25,9 +27,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Copy, ExternalLink, Loader2, Info } from 'lucide-react';
+import { Copy, ExternalLink, Loader2, Info, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getDefaultDestinationCoin, formatNetworkName } from '@/lib/utils/currency';
+import { getDefaultDestinationCoin, formatNetworkName, getNetworkForChain, getTokenContract, isNativeToken } from '@/lib/utils/currency';
 
 interface FundPollDialogProps {
   pollId: string;
@@ -46,7 +48,9 @@ export function FundPollDialog({
   const chainId = useChainId();
   const { toast } = useToast();
   const { createShift, loading } = useSideshift();
+  const { assets } = useSupportedAssets();
 
+  // State declarations - must come before hooks that use them
   const [currency, setCurrency] = useState('USDC');
   const [sourceNetwork, setSourceNetwork] = useState<string>('');
   const [amount, setAmount] = useState('');
@@ -65,6 +69,26 @@ export function FundPollDialog({
   // Pair info for min/max amounts
   const [pairInfo, setPairInfo] = useState<SideshiftPairInfo | null>(null);
   const [loadingPairInfo, setLoadingPairInfo] = useState(false);
+
+  // Determine token address for ERC20 tokens using SideShift API data
+  const tokenContract = currency && sourceNetwork && !isNativeToken(currency)
+    ? getTokenContract(assets, currency, sourceNetwork)
+    : null;
+
+  const tokenAddress = tokenContract?.contractAddress as Address | undefined;
+
+  // Multi-network balance fetching with 10-second auto-refresh
+  const {
+    formatted: formattedBalance,
+    isLoading: balanceLoading,
+    isError: balanceError,
+  } = useMultiNetworkBalance({
+    address: address as Address | undefined,
+    networkId: sourceNetwork,
+    tokenAddress: tokenAddress, // Now supports ERC20 tokens
+    enabled: !!address && !!sourceNetwork,
+    refetchInterval: 10000, // 10 seconds
+  });
 
   const { status, shiftData } = useShiftMonitor(shiftId);
 
@@ -91,12 +115,16 @@ export function FundPollDialog({
       setLoadingPairInfo(true);
       try {
         const destCoin = getDefaultDestinationCoin(currency);
+        // Determine settlement network based on poll's chain (Base or Base Sepolia)
+        const destNetwork = getNetworkForChain(chainId);
+
         const info = await sideshiftAPI.getPairInfo(
           currency,
           destCoin,
           sourceNetwork || undefined,
-          undefined
+          destNetwork // Pass settlement network to get accurate min/max for the pair
         );
+        console.log('Pair info:', info);
         setPairInfo(info);
       } catch (error) {
         console.error('Failed to fetch pair info:', error);
@@ -107,7 +135,7 @@ export function FundPollDialog({
     };
 
     fetchPairInfo();
-  }, [currency, sourceNetwork]);
+  }, [currency, sourceNetwork, chainId]); // Add chainId to dependencies
 
   const handleReset = () => {
     setShiftId(null);
@@ -182,6 +210,13 @@ export function FundPollDialog({
     });
   };
 
+  const handleMaxAmount = () => {
+    if (formattedBalance) {
+      // Use the full balance
+      setAmount(formattedBalance);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'waiting':
@@ -236,15 +271,49 @@ export function FundPollDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="amount">Amount</Label>
-              <Input
-                id="amount"
-                type="text"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="100"
-                disabled={loading}
-              />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="amount">Amount</Label>
+                {address && sourceNetwork && currency && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    {balanceLoading ? (
+                      <span className="flex items-center gap-1">
+                        <RefreshCw className="h-3 w-3 animate-spin" />
+                        Loading balance...
+                      </span>
+                    ) : balanceError ? (
+                      <span className="text-red-500">Error loading balance</span>
+                    ) : !isNativeToken(currency) && !tokenContract ? (
+                      <span className="text-amber-600">Balance unavailable</span>
+                    ) : formattedBalance ? (
+                      <span>
+                        Balance: {parseFloat(formattedBalance).toFixed(6)} {currency}
+                      </span>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  id="amount"
+                  type="text"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="100"
+                  disabled={loading}
+                  className="flex-1"
+                />
+                {formattedBalance && !loading && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleMaxAmount}
+                    disabled={loading || balanceLoading}
+                    className="shrink-0"
+                  >
+                    Max
+                  </Button>
+                )}
+              </div>
               {loadingPairInfo ? (
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <Loader2 className="h-3 w-3 animate-spin" />

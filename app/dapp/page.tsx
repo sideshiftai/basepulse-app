@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { PollCard } from "@/components/poll-card"
 import { PollFilters } from "@/components/poll-filters"
+import { ConnectWalletButton } from "@/components/connect-wallet-button"
 import { Plus, TrendingUp, Clock, Users, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -184,13 +185,30 @@ export default function DappPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      {/* Show Connect Wallet CTA when not connected */}
+      {!mounted || !isConnected ? (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+          <div className="text-center space-y-4 max-w-2xl">
+            <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
+              Welcome to SideShift Pulse
+            </h1>
+            <p className="text-xl text-muted-foreground">
+              Connect your wallet to explore and vote on community-driven polls
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Create polls, participate in decisions, and earn rewards for your participation
+            </p>
+          </div>
+          <ConnectWalletButton />
+        </div>
+      ) : (
+        <>
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold">Explore Polls</h1>
           <p className="text-muted-foreground">
             Discover and participate in community-driven decisions
-            {!isConnected && " • Connect wallet to vote on polls"}
           </p>
           {!hasContractOnNetwork && isConnected && (
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 text-amber-600 mt-2 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-lg border border-amber-200 dark:border-amber-900">
@@ -292,21 +310,14 @@ export default function DappPage() {
         <div className="text-center py-12">
           <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
           <p className="text-muted-foreground text-lg mb-2">
-            {!mounted || !isConnected
-              ? "Connect your wallet to view polls"
-              : !hasContractOnNetwork
+            {!hasContractOnNetwork
               ? `Contract not available on ${networkName}`
               : activePollIds?.length === 0
               ? "No active polls found on the contract."
               : "No polls found matching your criteria."
             }
           </p>
-          {(!mounted || !isConnected) && (
-            <p className="text-sm text-muted-foreground mb-4">
-              Please connect your wallet to interact with the dapp
-            </p>
-          )}
-          {mounted && isConnected && hasContractOnNetwork && (
+          {hasContractOnNetwork && (
             <Button asChild className="mt-4">
               <Link href="/dapp/create">
                 {activePollIds?.length === 0 ? "Create the first poll" : "Create a poll"}
@@ -314,6 +325,8 @@ export default function DappPage() {
             </Button>
           )}
         </div>
+      )}
+        </>
       )}
     </div>
   )
