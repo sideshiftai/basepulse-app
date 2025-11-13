@@ -71,7 +71,8 @@ export function FundPollDialog({
   const [loadingPairInfo, setLoadingPairInfo] = useState(false);
 
   // Determine token address for ERC20 tokens using SideShift API data
-  const tokenContract = currency && sourceNetwork && !isNativeToken(currency)
+  // Handle SSR case where assets might not be loaded yet
+  const tokenContract = currency && sourceNetwork && assets.length > 0 && !isNativeToken(currency)
     ? getTokenContract(assets, currency, sourceNetwork)
     : null;
 
