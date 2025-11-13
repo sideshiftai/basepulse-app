@@ -7,7 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAccount, useChainId } from 'wagmi';
-import { useSideshift, useShiftMonitor } from '@/hooks/use-sideshift';
+import { useSideshift, useShiftMonitor, useSupportedAssets } from '@/hooks/use-sideshift';
 import { sideshiftAPI, SideshiftPairInfo } from '@/lib/api/sideshift-client';
 import { CurrencySelector } from './currency-selector';
 import { NetworkSelector } from './network-selector';
@@ -29,7 +29,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Copy, ExternalLink, Loader2, Info, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getDefaultDestinationCoin, formatNetworkName } from '@/lib/utils/currency';
+import { getDefaultDestinationCoin, formatNetworkName, getNetworkForChain, getTokenContract, isNativeToken } from '@/lib/utils/currency';
 
 interface FundPollDialogProps {
   pollId: string;
@@ -48,6 +48,7 @@ export function FundPollDialog({
   const chainId = useChainId();
   const { toast } = useToast();
   const { createShift, loading } = useSideshift();
+  const { assets } = useSupportedAssets();
 
   // State declarations - must come before hooks that use them
   const [currency, setCurrency] = useState('USDC');
@@ -69,15 +70,22 @@ export function FundPollDialog({
   const [pairInfo, setPairInfo] = useState<SideshiftPairInfo | null>(null);
   const [loadingPairInfo, setLoadingPairInfo] = useState(false);
 
+  // Determine token address for ERC20 tokens using SideShift API data
+  const tokenContract = currency && sourceNetwork && !isNativeToken(currency)
+    ? getTokenContract(assets, currency, sourceNetwork)
+    : null;
+
+  const tokenAddress = tokenContract?.contractAddress as Address | undefined;
+
   // Multi-network balance fetching with 10-second auto-refresh
   const {
     formatted: formattedBalance,
     isLoading: balanceLoading,
     isError: balanceError,
-    symbol: balanceSymbol,
   } = useMultiNetworkBalance({
     address: address as Address | undefined,
     networkId: sourceNetwork,
+    tokenAddress: tokenAddress, // Now supports ERC20 tokens
     enabled: !!address && !!sourceNetwork,
     refetchInterval: 10000, // 10 seconds
   });
@@ -107,11 +115,14 @@ export function FundPollDialog({
       setLoadingPairInfo(true);
       try {
         const destCoin = getDefaultDestinationCoin(currency);
+        // Determine settlement network based on poll's chain (Base or Base Sepolia)
+        const destNetwork = getNetworkForChain(chainId);
+
         const info = await sideshiftAPI.getPairInfo(
           currency,
           destCoin,
           sourceNetwork || undefined,
-          undefined
+          destNetwork // Pass settlement network to get accurate min/max for the pair
         );
         console.log('Pair info:', info);
         setPairInfo(info);
@@ -124,7 +135,7 @@ export function FundPollDialog({
     };
 
     fetchPairInfo();
-  }, [currency, sourceNetwork]);
+  }, [currency, sourceNetwork, chainId]); // Add chainId to dependencies
 
   const handleReset = () => {
     setShiftId(null);
@@ -262,7 +273,7 @@ export function FundPollDialog({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="amount">Amount</Label>
-                {address && sourceNetwork && (
+                {address && sourceNetwork && currency && (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     {balanceLoading ? (
                       <span className="flex items-center gap-1">
@@ -271,9 +282,11 @@ export function FundPollDialog({
                       </span>
                     ) : balanceError ? (
                       <span className="text-red-500">Error loading balance</span>
+                    ) : !isNativeToken(currency) && !tokenContract ? (
+                      <span className="text-amber-600">Balance unavailable</span>
                     ) : formattedBalance ? (
                       <span>
-                        Balance: {parseFloat(formattedBalance).toFixed(6)} {balanceSymbol}
+                        Balance: {parseFloat(formattedBalance).toFixed(6)} {currency}
                       </span>
                     ) : null}
                   </div>

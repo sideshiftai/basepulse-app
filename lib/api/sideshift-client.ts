@@ -1,6 +1,6 @@
 /**
  * Sideshift API Client
- * Client for calling the BasePulse backend API
+ * Client for calling the Pulse backend API
  */
 
 import axios from 'axios';
