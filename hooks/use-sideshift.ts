@@ -78,6 +78,7 @@ export function useSideshift() {
 
 /**
  * Hook for getting supported assets
+ * Only fetches on the client side to avoid SSR issues
  */
 export function useSupportedAssets() {
   const [assets, setAssets] = useState<SupportedAsset[]>([]);
@@ -85,6 +86,12 @@ export function useSupportedAssets() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Only run in browser environment
+    if (typeof window === 'undefined') {
+      setLoading(false);
+      return;
+    }
+
     let mounted = true;
 
     const fetchAssets = async () => {

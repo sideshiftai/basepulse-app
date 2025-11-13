@@ -48,6 +48,9 @@ export function FundPollDialog({
   const chainId = useChainId();
   const { toast } = useToast();
   const { createShift, loading } = useSideshift();
+
+  // Fetch supported assets for ERC20 token balance lookups
+  // This is client-side only due to 'use client' directive
   const { assets } = useSupportedAssets();
 
   // State declarations - must come before hooks that use them
@@ -79,6 +82,7 @@ export function FundPollDialog({
   const tokenAddress = tokenContract?.contractAddress as Address | undefined;
 
   // Multi-network balance fetching with 10-second auto-refresh
+  // Supports both native tokens (ETH, BNB, MATIC) and ERC20 tokens (USDC, USDT, etc.)
   const {
     formatted: formattedBalance,
     isLoading: balanceLoading,
@@ -86,7 +90,7 @@ export function FundPollDialog({
   } = useMultiNetworkBalance({
     address: address as Address | undefined,
     networkId: sourceNetwork,
-    tokenAddress: tokenAddress, // Now supports ERC20 tokens
+    tokenAddress: tokenAddress,
     enabled: !!address && !!sourceNetwork,
     refetchInterval: 10000, // 10 seconds
   });

@@ -145,11 +145,38 @@ The hook implements robust error handling:
 - **Minimal Re-renders**: Only updates when data actually changes
 - **Parallel Requests**: Batches token balance and decimals queries
 
+## SSR/Vercel Compatibility
+
+To ensure the feature works correctly during Vercel's static site generation:
+
+1. **Browser-Only Execution**: `useSupportedAssets()` hook includes `typeof window === 'undefined'` check
+2. **Client Component**: `fund-poll-dialog.tsx` uses `'use client'` directive
+3. **Conditional Queries**: All React Query hooks use `enabled` parameter to prevent execution during SSR
+
+### Fix Applied (components/sideshift/fund-poll-dialog.tsx:88-93)
+
+```typescript
+// Only run in browser environment
+if (typeof window === 'undefined') {
+  setLoading(false);
+  return;
+}
+```
+
+This prevents the hook from attempting to fetch data during Vercel's build process while allowing it to work normally in the browser.
+
+## Current Features
+
+- ✅ **Native Token Balance Support**: ETH, BNB, MATIC, AVAX, etc.
+- ✅ **ERC20 Token Balance Support**: USDC, USDT, DAI, and other stablecoins
+- ✅ **Dynamic Token Contract Lookup**: Uses SideShift API to get contract addresses
+- ✅ **Balance Unavailable Messaging**: Shows amber warning for unsupported token/network combinations
+- ✅ **Currency Symbol Display**: Shows balance with token symbol (e.g., "Balance: 1.234567 USDC")
+
 ## Future Enhancements
 
 Potential improvements for future versions:
 
-- [ ] Token balance support (ERC20 tokens on non-native networks)
 - [ ] USD value display using price feeds
 - [ ] Balance history tracking
 - [ ] Gas estimation for max button (subtract estimated gas fees)
