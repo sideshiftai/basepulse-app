@@ -10,13 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -34,7 +27,6 @@ import { useBalance } from "wagmi"
 import {
   getSupportedTokens,
   getTokenInfo,
-  TOKEN_INFO,
 } from "@/lib/contracts/token-config"
 
 interface FundWithTokenDialogProps {
@@ -42,6 +34,7 @@ interface FundWithTokenDialogProps {
   onOpenChange: (open: boolean) => void
   pollId: number
   pollTitle: string
+  pollFundingToken?: string // The token symbol this poll accepts (ETH, USDC, PULSE)
 }
 
 export function FundWithTokenDialog({
@@ -49,13 +42,14 @@ export function FundWithTokenDialog({
   onOpenChange,
   pollId,
   pollTitle,
+  pollFundingToken = "ETH", // Default to ETH if not provided
 }: FundWithTokenDialogProps) {
   const { address } = useAccount()
   const chainId = useChainId()
   const pollsContractAddress = usePollsContractAddress()
 
-  // State
-  const [selectedToken, setSelectedToken] = useState<string>("ETH")
+  // State - Initialize with poll's designated funding token
+  const [selectedToken] = useState<string>(pollFundingToken)
   const [amount, setAmount] = useState<string>("")
   const [step, setStep] = useState<"input" | "approve" | "fund">("input")
 
@@ -184,9 +178,6 @@ export function FundWithTokenDialog({
     }
   }, [isFundSuccess, step, onOpenChange])
 
-  // Include all tokens including ETH
-  const tokenOptions = Object.keys(supportedTokens)
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -198,32 +189,23 @@ export function FundWithTokenDialog({
         </DialogHeader>
 
         <div className="space-y-4 pt-4">
-          {/* Token Selection */}
+          {/* Token Display (read-only) */}
           <div className="space-y-2">
-            <Label htmlFor="token">Token</Label>
-            <Select value={selectedToken} onValueChange={setSelectedToken}>
-              <SelectTrigger id="token">
-                <SelectValue placeholder="Select token" />
-              </SelectTrigger>
-              <SelectContent>
-                {tokenOptions.map((symbol) => {
-                  const info = TOKEN_INFO[symbol]
-                  return (
-                    <SelectItem key={symbol} value={symbol}>
-                      <div className="flex items-center gap-2">
-                        <span>{info?.symbol || symbol}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {info?.name || ""}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  )
-                })}
-              </SelectContent>
-            </Select>
+            <Label>Required Token</Label>
+            <div className="p-3 border rounded-md bg-muted/50">
+              <div className="flex items-center gap-2">
+                <span className="font-medium">{selectedToken}</span>
+                <span className="text-muted-foreground text-sm">
+                  - {tokenInfo?.name || selectedToken}
+                </span>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              This poll only accepts {selectedToken} funding
+            </p>
             {address && (
               <p className="text-xs text-muted-foreground">
-                Balance: {parseFloat(formattedBalance).toLocaleString(undefined, {
+                Your Balance: {parseFloat(formattedBalance).toLocaleString(undefined, {
                   maximumFractionDigits: 6
                 })} {selectedToken}
               </p>

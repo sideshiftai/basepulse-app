@@ -57,6 +57,7 @@ export interface Poll {
   isActive: boolean
   creator: Address
   totalFunding: bigint
+  fundingToken: Address
 }
 
 export interface Funding {

@@ -36,6 +36,7 @@ interface FundPollDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
+  pollFundingToken?: string; // The token symbol this poll accepts
 }
 
 export function FundPollDialog({
@@ -43,6 +44,7 @@ export function FundPollDialog({
   open,
   onOpenChange,
   onSuccess,
+  pollFundingToken,
 }: FundPollDialogProps) {
   const { address } = useAccount();
   const chainId = useChainId();
@@ -185,13 +187,13 @@ export function FundPollDialog({
     }
 
     // Backend will automatically determine destNetwork based on poll chain
-    // We determine destCoin here: USDC for stablecoins, ETH for others
+    // Use poll's designated funding token if specified, otherwise use default destination coin
     const result = await createShift({
       pollId,
       userAddress: address,
       purpose: 'fund_poll',
       sourceCoin: currency,
-      destCoin: getDefaultDestinationCoin(currency),
+      destCoin: pollFundingToken || getDefaultDestinationCoin(currency),
       sourceNetwork: sourceNetwork || undefined,
       sourceAmount: amount,
       // Always pass chainId to ensure API queries the correct contract
@@ -338,7 +340,7 @@ export function FundPollDialog({
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription>
-                Funds will be automatically converted to {getDefaultDestinationCoin(currency)} on Base network for the poll.
+                Funds will be automatically converted to {pollFundingToken || getDefaultDestinationCoin(currency)} on Base network for the poll.
               </AlertDescription>
             </Alert>
 
