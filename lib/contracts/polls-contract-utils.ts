@@ -129,7 +129,7 @@ export const useCreatePoll = () => {
     hash,
   })
 
-  const createPoll = async (question: string, options: string[], durationInHours: number) => {
+  const createPoll = async (question: string, options: string[], durationInHours: number, fundingToken: Address) => {
     if (!contractAddress) return
 
     const durationInSeconds = BigInt(durationInHours * 3600) // Convert hours to seconds
@@ -138,7 +138,7 @@ export const useCreatePoll = () => {
       address: contractAddress,
       abi: POLLS_CONTRACT_ABI,
       functionName: CONTRACT_FUNCTIONS.CREATE_POLL,
-      args: [question, options, durationInSeconds],
+      args: [question, options, durationInSeconds, fundingToken],
     })
   }
 
@@ -347,7 +347,7 @@ export const useClosePoll = () => {
 
 // Helper functions to format contract data
 export const formatPollData = (pollData: any): Poll => {
-  const [id, question, options, votes, endTime, isActive, creator, totalFunding] = pollData
+  const [id, question, options, votes, endTime, isActive, creator, totalFunding, distributionMode, fundingToken] = pollData
 
   return {
     id,
@@ -358,6 +358,7 @@ export const formatPollData = (pollData: any): Poll => {
     isActive,
     creator,
     totalFunding,
+    fundingToken,
   }
 }
 

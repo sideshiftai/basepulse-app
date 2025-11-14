@@ -20,9 +20,10 @@ import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { useCreatePoll, usePollsContractAddress } from "@/lib/contracts/polls-contract-utils"
 import { useAccount, useChainId } from "wagmi"
+import { Address } from "viem"
 import { MIN_POLL_DURATION, MAX_POLL_DURATION } from "@/lib/contracts/polls-contract"
 import { useRouter } from "next/navigation"
-import { TOKEN_INFO, getSupportedTokens } from "@/lib/contracts/token-config"
+import { TOKEN_INFO, getSupportedTokens, getTokenAddress } from "@/lib/contracts/token-config"
 
 const pollSchema = z.object({
   title: z.string(),
@@ -177,15 +178,29 @@ export function PollCreationForm() {
         return
       }
 
-      // Encode token preference in the poll title if it's a funded poll
-      // Format: "TITLE|TOKEN:SYMBOL" - we'll parse this when displaying
-      const titleWithMetadata =
-        data.fundingType === "self" && data.fundingToken
-          ? `${data.title}|TOKEN:${data.fundingToken}`
-          : data.title
+      // Determine the funding token address for the contract
+      let fundingTokenAddress: Address
+      if (data.fundingType === "none") {
+        // No rewards - default to ETH (address(0))
+        fundingTokenAddress = '0x0000000000000000000000000000000000000000' as Address
+      } else if (data.fundingType === "community") {
+        // Community funded - default to ETH
+        fundingTokenAddress = '0x0000000000000000000000000000000000000000' as Address
+      } else if (data.fundingToken === "ETH") {
+        // ETH funding
+        fundingTokenAddress = '0x0000000000000000000000000000000000000000' as Address
+      } else {
+        // ERC20 token funding
+        const tokenAddress = getTokenAddress(chainId, data.fundingToken)
+        if (!tokenAddress) {
+          toast.error(`Token ${data.fundingToken} not available on this network`)
+          return
+        }
+        fundingTokenAddress = tokenAddress
+      }
 
-      // Create poll on contract
-      await createPoll(titleWithMetadata, validOptions, durationInHours)
+      // Create poll on contract with funding token
+      await createPoll(data.title, validOptions, durationInHours, fundingTokenAddress)
 
     } catch (error) {
       console.error("Error creating poll:", error)
