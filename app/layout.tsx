@@ -5,7 +5,7 @@ import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { WalletProvider } from "@/components/wallet-provider"
-import { Navigation } from "@/components/navigation"
+import { LayoutContent } from "@/components/layout-content"
 import { Toaster as SonnerToaster } from "sonner"
 import { Toaster as ShadcnToaster } from "@/components/ui/toaster"
 import { Suspense } from "react"
@@ -28,8 +28,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <WalletProvider>
             <Suspense fallback={<div>Loading...</div>}>
-              <Navigation />
-              <main className="min-h-screen">{children}</main>
+              <LayoutContent>{children}</LayoutContent>
             </Suspense>
             <SonnerToaster />
             <ShadcnToaster />
