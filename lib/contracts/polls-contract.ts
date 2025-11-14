@@ -47,6 +47,13 @@ export const CONTRACT_EVENTS = {
   FUNDS_WITHDRAWN: 'FundsWithdrawn',
 } as const
 
+// Enums based on the smart contract
+export enum FundingType {
+  NONE = 0,
+  SELF = 1,
+  COMMUNITY = 2
+}
+
 // Types based on the smart contract
 export interface Poll {
   id: bigint
@@ -58,6 +65,7 @@ export interface Poll {
   creator: Address
   totalFunding: bigint
   fundingToken: Address
+  fundingType: FundingType
 }
 
 export interface Funding {

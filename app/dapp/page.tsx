@@ -11,6 +11,9 @@ import { useRouter } from "next/navigation"
 import { useActivePolls, useNextPollId, usePoll, useVote, useHasUserVoted, usePollsContractAddress } from "@/lib/contracts/polls-contract-utils"
 import { useAccount, useChainId, useSwitchChain } from "wagmi"
 import { baseSepolia } from "wagmi/chains"
+import { FundingType } from "@/lib/contracts/polls-contract"
+import { TOKEN_INFO, getTokenSymbol } from "@/lib/contracts/token-config"
+import { Address } from "viem"
 
 export default function DappPage() {
   const router = useRouter()
@@ -59,9 +62,22 @@ export default function DappPage() {
     const pollData = pollQueries[index]
     const votingStatus = votingStatusQueries[index]
     if (!pollData.data) return null
-    
-    const [id, question, options, votes, endTime, isActive, creator, totalFunding] = pollData.data
-    
+
+    const [id, question, options, votes, endTime, isActive, creator, totalFunding, distributionMode, fundingToken, fundingType] = pollData.data
+
+    // Convert fundingType enum to string
+    let fundingTypeString: "none" | "self" | "community"
+    if (fundingType === FundingType.NONE) {
+      fundingTypeString = "none"
+    } else if (fundingType === FundingType.SELF) {
+      fundingTypeString = "self"
+    } else {
+      fundingTypeString = "community"
+    }
+
+    // Get token symbol from address
+    const tokenSymbol = getTokenSymbol(chainId, fundingToken as Address) || "ETH"
+
     return {
       id: id.toString(),
       title: question,
@@ -73,7 +89,8 @@ export default function DappPage() {
       totalReward: Number(totalFunding) / 1e18,
       status: isActive ? "active" as const : "closed" as const,
       category: "General",
-      fundingType: "none" as const,
+      fundingType: fundingTypeString,
+      fundingToken: tokenSymbol,
       chainId,
       hasVoted: votingStatus.data || false,
       options: options.map((option: string, index: number) => ({

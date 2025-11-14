@@ -21,7 +21,7 @@ import { toast } from "sonner"
 import { useCreatePoll, usePollsContractAddress } from "@/lib/contracts/polls-contract-utils"
 import { useAccount, useChainId } from "wagmi"
 import { Address } from "viem"
-import { MIN_POLL_DURATION, MAX_POLL_DURATION } from "@/lib/contracts/polls-contract"
+import { MIN_POLL_DURATION, MAX_POLL_DURATION, FundingType } from "@/lib/contracts/polls-contract"
 import { useRouter } from "next/navigation"
 import { TOKEN_INFO, getSupportedTokens, getTokenAddress } from "@/lib/contracts/token-config"
 
@@ -199,8 +199,18 @@ export function PollCreationForm() {
         fundingTokenAddress = tokenAddress
       }
 
-      // Create poll on contract with funding token
-      await createPoll(data.title, validOptions, durationInHours, fundingTokenAddress)
+      // Convert funding type string to enum
+      let fundingTypeEnum: FundingType
+      if (data.fundingType === "none") {
+        fundingTypeEnum = FundingType.NONE
+      } else if (data.fundingType === "self") {
+        fundingTypeEnum = FundingType.SELF
+      } else {
+        fundingTypeEnum = FundingType.COMMUNITY
+      }
+
+      // Create poll on contract with funding token and funding type
+      await createPoll(data.title, validOptions, durationInHours, fundingTokenAddress, fundingTypeEnum)
 
     } catch (error) {
       console.error("Error creating poll:", error)

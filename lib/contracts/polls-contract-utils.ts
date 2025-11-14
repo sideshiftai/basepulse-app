@@ -8,6 +8,7 @@ import {
   Poll,
   Funding,
   SupportedChainId,
+  FundingType,
 } from './polls-contract'
 import { ERC20_ABI } from './token-config'
 
@@ -129,7 +130,7 @@ export const useCreatePoll = () => {
     hash,
   })
 
-  const createPoll = async (question: string, options: string[], durationInHours: number, fundingToken: Address) => {
+  const createPoll = async (question: string, options: string[], durationInHours: number, fundingToken: Address, fundingType: FundingType) => {
     if (!contractAddress) return
 
     const durationInSeconds = BigInt(durationInHours * 3600) // Convert hours to seconds
@@ -138,7 +139,7 @@ export const useCreatePoll = () => {
       address: contractAddress,
       abi: POLLS_CONTRACT_ABI,
       functionName: CONTRACT_FUNCTIONS.CREATE_POLL,
-      args: [question, options, durationInSeconds, fundingToken],
+      args: [question, options, durationInSeconds, fundingToken, fundingType],
     })
   }
 
@@ -347,7 +348,7 @@ export const useClosePoll = () => {
 
 // Helper functions to format contract data
 export const formatPollData = (pollData: any): Poll => {
-  const [id, question, options, votes, endTime, isActive, creator, totalFunding, distributionMode, fundingToken] = pollData
+  const [id, question, options, votes, endTime, isActive, creator, totalFunding, distributionMode, fundingToken, fundingType] = pollData
 
   return {
     id,
@@ -359,6 +360,7 @@ export const formatPollData = (pollData: any): Poll => {
     creator,
     totalFunding,
     fundingToken,
+    fundingType,
   }
 }
 
