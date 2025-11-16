@@ -385,3 +385,113 @@ export const formatETH = (wei: bigint): string => {
 export const formatTimestamp = (timestamp: bigint): Date => {
   return new Date(Number(timestamp) * 1000)
 }
+
+// Hook to set distribution mode
+export const useSetDistributionMode = () => {
+  const contractAddress = usePollsContractAddress()
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const setDistributionMode = async (pollId: number, mode: number) => {
+    if (!contractAddress) return
+
+    return writeContract({
+      address: contractAddress,
+      abi: POLLS_CONTRACT_ABI,
+      functionName: 'setDistributionMode',
+      args: [BigInt(pollId), mode],
+    })
+  }
+
+  return {
+    setDistributionMode,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+  }
+}
+
+// Hook to withdraw funds from a poll
+export const useWithdrawFunds = () => {
+  const contractAddress = usePollsContractAddress()
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const withdrawFunds = async (pollId: number, recipient: Address, tokens: Address[]) => {
+    if (!contractAddress) return
+
+    return writeContract({
+      address: contractAddress,
+      abi: POLLS_CONTRACT_ABI,
+      functionName: 'withdrawFunds',
+      args: [BigInt(pollId), recipient, tokens],
+    })
+  }
+
+  return {
+    withdrawFunds,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+  }
+}
+
+// Hook to distribute rewards to multiple recipients
+export const useDistributeRewards = () => {
+  const contractAddress = usePollsContractAddress()
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const distributeRewards = async (
+    pollId: number,
+    token: Address,
+    recipients: Address[],
+    amounts: bigint[]
+  ) => {
+    if (!contractAddress) return
+
+    return writeContract({
+      address: contractAddress,
+      abi: POLLS_CONTRACT_ABI,
+      functionName: 'distributeRewards',
+      args: [BigInt(pollId), token, recipients, amounts],
+    })
+  }
+
+  return {
+    distributeRewards,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+  }
+}
+
+// Hook to get poll token balance
+export const usePollTokenBalance = (pollId: number, tokenAddress?: Address) => {
+  const contractAddress = usePollsContractAddress()
+
+  return useReadContract({
+    address: contractAddress,
+    abi: POLLS_CONTRACT_ABI,
+    functionName: 'getPollTokenBalance',
+    args: tokenAddress ? [BigInt(pollId), tokenAddress] : undefined,
+    query: {
+      enabled: !!contractAddress && !!tokenAddress,
+    },
+  })
+}

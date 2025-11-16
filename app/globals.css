@@ -189,10 +189,20 @@
 }
 
 /* Added gradient backgrounds for hero sections */
+/* Light theme gradients */
 .gradient-bg {
-  background: linear-gradient(135deg, oklch(0.08 0.01 264) 0%, oklch(0.12 0.02 280) 50%, oklch(0.08 0.01 264) 100%);
+  background: linear-gradient(135deg, oklch(0.98 0.01 264) 0%, oklch(0.95 0.02 280) 50%, oklch(0.98 0.01 264) 100%);
 }
 
 .gradient-card {
+  background: linear-gradient(135deg, oklch(0.96 0.015 264) 0%, oklch(0.93 0.02 280) 100%);
+}
+
+/* Dark theme gradients */
+.dark .gradient-bg {
+  background: linear-gradient(135deg, oklch(0.08 0.01 264) 0%, oklch(0.12 0.02 280) 50%, oklch(0.08 0.01 264) 100%);
+}
+
+.dark .gradient-card {
   background: linear-gradient(135deg, oklch(0.12 0.015 264) 0%, oklch(0.15 0.02 280) 100%);
 }
