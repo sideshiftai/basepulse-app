@@ -5,9 +5,11 @@
 
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useAccount } from "wagmi"
-import { AlertCircle } from "lucide-react"
+import { AlertCircle, Plus, LayoutGrid, Table } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { formatEther } from "viem"
 import {
   useActivePolls,
   usePoll,
@@ -19,14 +21,34 @@ import {
 import { toast } from "sonner"
 import { ManagePollsTab } from "@/components/creator/manage-polls-tab"
 import { CreatorBreadcrumb } from "@/components/creator/creator-breadcrumb"
+import { CreatorHeaderBanner } from "@/components/creator/creator-header-banner"
+import { DashboardStats } from "@/components/creator/dashboard-stats"
+import { PollCard } from "@/components/creator/poll-card"
+import { Button } from "@/components/ui/button"
 
 export default function ManagePollsPage() {
   const { address, isConnected } = useAccount()
+  const router = useRouter()
   const { data: activePollIds, isLoading: pollsLoading } = useActivePolls()
   const { closePoll } = useClosePoll()
   const { setDistributionMode } = useSetDistributionMode()
   const { withdrawFunds } = useWithdrawFunds()
   const { distributeRewards } = useDistributeRewards()
+
+  // View toggle state with localStorage persistence
+  const [viewMode, setViewMode] = useState<"table" | "cards">("cards")
+
+  useEffect(() => {
+    const stored = localStorage.getItem("manage-polls-view")
+    if (stored === "table" || stored === "cards") {
+      setViewMode(stored)
+    }
+  }, [])
+
+  const toggleView = (mode: "table" | "cards") => {
+    setViewMode(mode)
+    localStorage.setItem("manage-polls-view", mode)
+  }
 
   // Fetch all polls (up to 10)
   const pollQueries = Array.from({ length: 10 }, (_, i) =>
@@ -62,6 +84,27 @@ export default function ManagePollsPage() {
       })
       .filter(Boolean)
   }, [activePollIds, address, pollQueries])
+
+  // Calculate dashboard stats
+  const dashboardStats = useMemo(() => {
+    const totalPolls = myPolls.length
+    const activePolls = myPolls.filter((p) => p.isActive).length
+    const totalResponses = myPolls.reduce(
+      (sum, poll) => sum + Number(poll.totalVotes),
+      0
+    )
+    const totalFunded = myPolls.reduce(
+      (sum, poll) => sum + Number(formatEther(poll.totalFunding)),
+      0
+    )
+
+    return {
+      totalPolls,
+      activePolls,
+      totalResponses,
+      totalFunded: `${totalFunded.toFixed(4)} ETH`,
+    }
+  }, [myPolls])
 
   const handleSetDistributionMode = async (pollId: bigint, mode: number) => {
     try {
@@ -138,21 +181,90 @@ export default function ManagePollsPage() {
         {/* Breadcrumb */}
         <CreatorBreadcrumb />
 
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold">Manage Polls</h1>
-          <p className="text-muted-foreground">
-            Manage distribution modes, withdraw funds, and distribute rewards
-          </p>
-        </div>
-
-        <ManagePollsTab
-          polls={myPolls}
-          isLoading={pollsLoading}
-          onSetDistributionMode={handleSetDistributionMode}
-          onWithdrawFunds={handleWithdrawFunds}
-          onDistributeRewards={handleDistributeRewards}
-          onClosePoll={handleClosePoll}
+        {/* Header Banner */}
+        <CreatorHeaderBanner
+          title="Manage Polls"
+          description="Manage your polls and track their performance"
         />
+
+        {/* Stats */}
+        <DashboardStats
+          totalPolls={dashboardStats.totalPolls}
+          totalResponses={dashboardStats.totalResponses}
+          activePolls={dashboardStats.activePolls}
+          totalFunded={dashboardStats.totalFunded}
+          isLoading={pollsLoading}
+        />
+
+        {/* My Polls Section with View Toggle and New Poll Button */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold">My Polls</h2>
+              <p className="text-sm text-muted-foreground">
+                Manage your polls and track their performance
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {/* View Toggle */}
+              <div className="flex border rounded-md">
+                <Button
+                  variant={viewMode === "cards" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => toggleView("cards")}
+                  className="rounded-r-none"
+                >
+                  <LayoutGrid className="h-4 w-4 mr-2" />
+                  Cards
+                </Button>
+                <Button
+                  variant={viewMode === "table" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => toggleView("table")}
+                  className="rounded-l-none"
+                >
+                  <Table className="h-4 w-4 mr-2" />
+                  Table
+                </Button>
+              </div>
+
+              {/* New Poll Button */}
+              <Button onClick={() => router.push("/dapp/create")}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Poll
+              </Button>
+            </div>
+          </div>
+
+          {/* Conditional Rendering: Cards or Table */}
+          {viewMode === "cards" ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {myPolls.length === 0 ? (
+                <div className="col-span-2 text-center py-12 text-muted-foreground">
+                  No polls found. Create your first poll to get started.
+                </div>
+              ) : (
+                myPolls.map((poll) => (
+                  <PollCard
+                    key={Number(poll.id)}
+                    poll={poll}
+                    onClosePoll={handleClosePoll}
+                    onSetDistributionMode={handleSetDistributionMode}
+                  />
+                ))
+              )}
+            </div>
+          ) : (
+            <ManagePollsTab
+              polls={myPolls}
+              isLoading={pollsLoading}
+              onSetDistributionMode={handleSetDistributionMode}
+              onWithdrawFunds={handleWithdrawFunds}
+              onDistributeRewards={handleDistributeRewards}
+              onClosePoll={handleClosePoll}
+            />
+          )}
+        </div>
       </div>
     </div>
   )
