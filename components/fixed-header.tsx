@@ -45,6 +45,7 @@ export function FixedHeader() {
   const navItems = [
     { label: "Home", href: "/" },
     { label: "Dapp", href: "/dapp" },
+    { label: "Creator", href: "/creator", requiresAuth: true },
     { label: "Bridge", href: bridgeUrl, external: true },
     { label: "Buy PULSE", href: "/buy-pulse" },
     { label: "Wallet", href: "/wallet", requiresAuth: true },

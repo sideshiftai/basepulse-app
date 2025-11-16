@@ -9,6 +9,7 @@ import { DashboardStats } from "@/components/creator/dashboard-stats"
 import { ResponsesOverviewChart } from "@/components/creator/responses-overview-chart"
 import { ResponsesTimelineChart } from "@/components/creator/responses-timeline-chart"
 import { fetchAnalyticsTrends } from "@/lib/api/analytics"
+import { CreatorBreadcrumb } from "@/components/creator/creator-breadcrumb"
 
 export default function CreatorPage() {
   const [timelineData, setTimelineData] = useState<any[]>([])
@@ -146,6 +147,9 @@ export default function CreatorPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-7xl mx-auto space-y-8">
+        {/* Breadcrumb */}
+        <CreatorBreadcrumb />
+
         {/* Header */}
         <div className="space-y-2">
           <h1 className="text-3xl font-bold">Creator Dashboard</h1>

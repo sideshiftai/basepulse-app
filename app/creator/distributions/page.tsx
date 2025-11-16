@@ -10,6 +10,7 @@ import { useAccount, useChainId } from "wagmi"
 import { AlertCircle } from "lucide-react"
 import { DistributionsTab } from "@/components/creator/distributions-tab"
 import { fetchPollDistributions } from "@/lib/api/analytics"
+import { CreatorBreadcrumb } from "@/components/creator/creator-breadcrumb"
 
 export default function DistributionsPage() {
   const { address, isConnected } = useAccount()
@@ -59,6 +60,9 @@ export default function DistributionsPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-7xl mx-auto space-y-6">
+        {/* Breadcrumb */}
+        <CreatorBreadcrumb />
+
         <div className="space-y-2">
           <h1 className="text-3xl font-bold">Distribution History</h1>
           <p className="text-muted-foreground">

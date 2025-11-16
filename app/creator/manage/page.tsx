@@ -18,6 +18,7 @@ import {
 } from "@/lib/contracts/polls-contract-utils"
 import { toast } from "sonner"
 import { ManagePollsTab } from "@/components/creator/manage-polls-tab"
+import { CreatorBreadcrumb } from "@/components/creator/creator-breadcrumb"
 
 export default function ManagePollsPage() {
   const { address, isConnected } = useAccount()
@@ -134,6 +135,9 @@ export default function ManagePollsPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-7xl mx-auto space-y-6">
+        {/* Breadcrumb */}
+        <CreatorBreadcrumb />
+
         <div className="space-y-2">
           <h1 className="text-3xl font-bold">Manage Polls</h1>
           <p className="text-muted-foreground">
