@@ -1,49 +1,41 @@
 /**
  * Layout Content Component
- * Handles the sidebar + main content layout structure
+ * Handles the fixed header + sidebar + main content layout structure
  */
 
 "use client"
 
-import { useAccount, useReadContract } from "wagmi"
-import { usePollsContractAddress } from "@/lib/contracts/polls-contract-utils"
-import { POLLS_CONTRACT_ABI } from "@/lib/contracts/polls-contract"
-import { SidebarNavigation } from "@/components/sidebar-navigation"
-import { Navigation } from "@/components/navigation"
+import { FixedHeader } from "@/components/fixed-header"
+import { NewSidebar } from "@/components/new-sidebar"
+import { useSidebar } from "@/contexts/sidebar-context"
+import { cn } from "@/lib/utils"
 
 interface LayoutContentProps {
   children: React.ReactNode
 }
 
 export function LayoutContent({ children }: LayoutContentProps) {
-  const { address, isConnected } = useAccount()
-  const contractAddress = usePollsContractAddress()
-
-  // Check if current user is owner
-  const { data: owner } = useReadContract({
-    address: contractAddress,
-    abi: POLLS_CONTRACT_ABI,
-    functionName: "owner",
-  })
-
-  const isOwner =
-    isConnected &&
-    address &&
-    owner &&
-    address.toLowerCase() === owner.toLowerCase()
+  const { isCollapsed } = useSidebar()
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      {/* Sidebar Navigation */}
-      <SidebarNavigation isOwner={isOwner} />
+    <div className="flex min-h-screen flex-col">
+      {/* Fixed Header */}
+      <FixedHeader />
 
-      {/* Main Content Area */}
-      <div className="flex flex-1 flex-col overflow-hidden lg:pl-60">
-        {/* Top Navigation (for theme toggle and wallet connect) */}
-        <Navigation />
+      {/* Content Area (Sidebar + Main) */}
+      <div className="flex flex-1 pt-16">
+        {/* Sidebar */}
+        <NewSidebar />
 
-        {/* Page Content */}
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        {/* Main Content */}
+        <main
+          className={cn(
+            "flex-1 overflow-y-auto transition-all duration-300",
+            isCollapsed ? "ml-16" : "ml-64"
+          )}
+        >
+          {children}
+        </main>
       </div>
     </div>
   )
