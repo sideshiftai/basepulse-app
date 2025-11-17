@@ -23,6 +23,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { DistributionModeSelector } from "@/components/creator/distribution-mode-selector"
 
 interface PollCardProps {
   poll: {
@@ -68,9 +69,9 @@ export function PollCard({ poll, onClosePoll, onSetDistributionMode }: PollCardP
       case 0:
         return "MANUAL_PULL"
       case 1:
-        return "AUTO_PUSH"
+        return "MANUAL_PUSH"
       case 2:
-        return "BURN"
+        return "AUTOMATED"
       default:
         return "UNKNOWN"
     }
@@ -156,42 +157,28 @@ export function PollCard({ poll, onClosePoll, onSetDistributionMode }: PollCardP
           </div>
         </div>
 
-        {/* Poll Status Management */}
+        {/* Distribution Settings */}
         {poll.isActive && (
           <div className="space-y-3 pt-4 border-t">
-            <h4 className="text-sm font-medium">Poll Status Management</h4>
-            <div className="flex flex-wrap gap-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" size="sm" disabled>
-                      Pause
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Contract upgrade required for pause functionality</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+            <h4 className="text-sm font-medium">Distribution Settings</h4>
+            <DistributionModeSelector
+              pollId={poll.id}
+              currentMode={poll.distributionMode.toString() as "0" | "1" | "2"}
+              onModeChange={onSetDistributionMode}
+            />
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onSetDistributionMode(poll.id, 0)}
-              >
-                Enable Claiming
-              </Button>
-
+            <div className="flex gap-2 pt-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => onClosePoll(poll.id)}
+                className="flex-1"
               >
-                Close
+                Close Poll
               </Button>
             </div>
             <p className="text-xs text-muted-foreground italic">
-              Poll is permanently closed
+              Closing the poll is permanent and cannot be undone
             </p>
           </div>
         )}

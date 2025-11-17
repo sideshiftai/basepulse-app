@@ -50,19 +50,13 @@ export function DistributionModeSelector({
       value: "0" as DistributionMode,
       label: "Manual Pull",
       description: "Responders claim their own rewards when ready",
-      details: "Best for: Giving users control over when they receive rewards",
+      details: "Best for: Giving users control over when they receive rewards. Creator manually withdraws to single address.",
     },
     {
       value: "1" as DistributionMode,
       label: "Manual Push",
       description: "You manually distribute rewards to responders",
-      details: "Best for: Custom distribution logic or curated reward allocation",
-    },
-    {
-      value: "2" as DistributionMode,
-      label: "Automated",
-      description: "System automatically distributes when poll ends",
-      details: "Best for: Hands-off automated reward distribution",
+      details: "Best for: Custom distribution logic or curated reward allocation. Creator manually distributes to multiple recipients.",
     },
   ]
 

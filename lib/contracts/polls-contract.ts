@@ -54,6 +54,12 @@ export enum FundingType {
   COMMUNITY = 2
 }
 
+export enum DistributionMode {
+  MANUAL_PULL = 0,  // Creator manually withdraws to single address
+  MANUAL_PUSH = 1,  // Creator manually distributes to multiple recipients
+  AUTOMATED = 2     // System automatically distributes when poll ends
+}
+
 // Types based on the smart contract
 export interface Poll {
   id: bigint
@@ -66,6 +72,7 @@ export interface Poll {
   totalFunding: bigint
   fundingToken: Address
   fundingType: FundingType
+  distributionMode: DistributionMode
 }
 
 export interface Funding {

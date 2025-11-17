@@ -65,7 +65,7 @@ export default function ManagePollsPage() {
         const pollData = pollQueries[index]
         if (!pollData.data) return null
 
-        const [id, question, options, votes, endTime, isActive, creator, totalFunding] = pollData.data
+        const [id, question, options, votes, endTime, isActive, creator, totalFunding, distributionMode] = pollData.data
 
         // Only include polls created by current user
         if (creator.toLowerCase() !== address.toLowerCase()) return null
@@ -77,7 +77,11 @@ export default function ManagePollsPage() {
           totalVotes: votes.reduce((sum: bigint, vote: bigint) => sum + vote, BigInt(0)),
           totalFunding,
           endTime,
-          distributionMode: 0 as 0 | 1 | 2, // Default to MANUAL_PULL
+          distributionMode: distributionMode as 0 | 1 | 2, // From contract
+          options: options.map((text: string, index: number) => ({
+            text,
+            votes: votes[index],
+          })),
           balances: [], // TODO: Fetch token balances
           voters: [], // TODO: Fetch voters
         }

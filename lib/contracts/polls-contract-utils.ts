@@ -361,6 +361,7 @@ export const formatPollData = (pollData: any): Poll => {
     totalFunding,
     fundingToken,
     fundingType,
+    distributionMode,
   }
 }
 
