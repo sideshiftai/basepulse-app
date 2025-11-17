@@ -24,6 +24,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { DistributionModeSelector } from "@/components/creator/distribution-mode-selector"
+import { PendingDistributionBadge } from "@/components/creator/pending-distribution-badge"
+import { usePendingDistributions } from "@/lib/hooks/use-pending-distributions"
 
 interface PollCardProps {
   poll: {
@@ -48,6 +50,9 @@ export function PollCard({ poll, onClosePoll, onSetDistributionMode }: PollCardP
 
   // Count unique participants (approximation - actual count would need voter data)
   const participantsCount = Number(poll.totalVotes)
+
+  // Check for pending distributions
+  const pendingStatus = usePendingDistributions(poll)
 
   // Get status text
   const getStatus = () => {
@@ -98,6 +103,10 @@ export function PollCard({ poll, onClosePoll, onSetDistributionMode }: PollCardP
               {poll.distributionMode !== undefined && (
                 <Badge variant="outline">{getDistributionMode()}</Badge>
               )}
+              <PendingDistributionBadge
+                hasPending={pendingStatus.hasPending}
+                mode={poll.distributionMode}
+              />
             </div>
           </div>
           <DropdownMenu>

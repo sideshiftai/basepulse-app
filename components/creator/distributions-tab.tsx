@@ -236,10 +236,17 @@ export function DistributionsTab({
               ))}
             </div>
           ) : filteredDistributions.length === 0 ? (
-            <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
-              {searchQuery || eventFilter !== "all" || pollFilter !== "all"
-                ? "No distributions match your filters"
-                : "No distribution events yet"}
+            <div className="flex h-32 flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
+              {searchQuery || eventFilter !== "all" || pollFilter !== "all" ? (
+                <p>No distributions match your filters</p>
+              ) : (
+                <>
+                  <p>No distribution events yet</p>
+                  <p className="text-xs">
+                    Distribute rewards from the Manage Polls page
+                  </p>
+                </>
+              )}
             </div>
           ) : (
             <div className="rounded-md border">

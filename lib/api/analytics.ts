@@ -150,3 +150,38 @@ export async function comparePoll(pollIds: number[]): Promise<any> {
   }
   return response.json();
 }
+
+/**
+ * Fetch all distributions for a creator across all their polls
+ */
+export async function fetchCreatorDistributions(
+  creatorAddress: string,
+  chainId: number
+): Promise<Distribution[]> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/creator/${creatorAddress}/distributions?chainId=${chainId}`
+    );
+
+    if (!response.ok) {
+      // If API endpoint doesn't exist yet, return empty array
+      if (response.status === 404) {
+        console.warn('Creator distributions endpoint not found, returning empty array');
+        return [];
+      }
+      throw new Error(`Failed to fetch creator distributions: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    // Convert timestamp strings to Date objects
+    return (data.distributions || []).map((dist: any) => ({
+      ...dist,
+      timestamp: new Date(dist.timestamp),
+    }));
+  } catch (error) {
+    console.error('Error fetching creator distributions:', error);
+    // Return empty array as fallback
+    return [];
+  }
+}
