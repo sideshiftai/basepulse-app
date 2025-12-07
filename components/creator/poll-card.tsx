@@ -36,6 +36,8 @@ interface PollCardProps {
     totalFunding: bigint
     endTime: bigint
     distributionMode: 0 | 1 | 2
+    fundingToken?: string
+    fundingTokenSymbol?: string
     options: Array<{ text: string; votes: bigint }>
   }
   onClosePoll: (pollId: bigint) => void
@@ -162,7 +164,7 @@ export function PollCard({ poll, onClosePoll, onSetDistributionMode }: PollCardP
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Reward Fund</span>
-            <span className="font-medium">{Number(formatEther(poll.totalFunding)).toFixed(4)} PULSE</span>
+            <span className="font-medium">{Number(formatEther(poll.totalFunding)).toFixed(4)} {poll.fundingTokenSymbol || "PULSE"}</span>
           </div>
         </div>
 

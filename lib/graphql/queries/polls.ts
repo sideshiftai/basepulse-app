@@ -199,3 +199,26 @@ export const GET_USER_FUNDINGS = gql`
     }
   }
 `
+
+/**
+ * Get voters for a specific poll
+ * Used for bulk distribution to get list of recipients
+ */
+export const GET_POLL_VOTERS = gql`
+  query GetPollVoters(
+    $pollId: ID!
+    $first: Int = 1000
+  ) {
+    votes(
+      first: $first
+      where: { poll: $pollId }
+      orderBy: timestamp
+      orderDirection: asc
+    ) {
+      id
+      voter
+      optionIndex
+      timestamp
+    }
+  }
+`

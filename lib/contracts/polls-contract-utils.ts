@@ -348,7 +348,7 @@ export const useClosePoll = () => {
 
 // Helper functions to format contract data
 export const formatPollData = (pollData: any): Poll => {
-  const [id, question, options, votes, endTime, isActive, creator, totalFunding, distributionMode, fundingToken, fundingType] = pollData
+  const [id, question, options, votes, endTime, isActive, creator, totalFunding, distributionMode, fundingToken, fundingType, status, previousStatus] = pollData
 
   return {
     id,
@@ -362,6 +362,8 @@ export const formatPollData = (pollData: any): Poll => {
     fundingToken,
     fundingType,
     distributionMode,
+    status,
+    previousStatus,
   }
 }
 
@@ -495,4 +497,94 @@ export const usePollTokenBalance = (pollId: number, tokenAddress?: Address) => {
       enabled: !!contractAddress && !!tokenAddress,
     },
   })
+}
+
+// Hook to set poll status to FOR_CLAIMING
+export const useSetForClaiming = () => {
+  const contractAddress = usePollsContractAddress()
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const setForClaiming = async (pollId: number) => {
+    if (!contractAddress) return
+
+    return writeContract({
+      address: contractAddress,
+      abi: POLLS_CONTRACT_ABI,
+      functionName: CONTRACT_FUNCTIONS.SET_FOR_CLAIMING,
+      args: [BigInt(pollId)],
+    })
+  }
+
+  return {
+    setForClaiming,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+  }
+}
+
+// Hook to pause a poll
+export const usePausePoll = () => {
+  const contractAddress = usePollsContractAddress()
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const pausePoll = async (pollId: number) => {
+    if (!contractAddress) return
+
+    return writeContract({
+      address: contractAddress,
+      abi: POLLS_CONTRACT_ABI,
+      functionName: CONTRACT_FUNCTIONS.PAUSE_POLL,
+      args: [BigInt(pollId)],
+    })
+  }
+
+  return {
+    pausePoll,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+  }
+}
+
+// Hook to resume a paused poll
+export const useResumePoll = () => {
+  const contractAddress = usePollsContractAddress()
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const resumePoll = async (pollId: number) => {
+    if (!contractAddress) return
+
+    return writeContract({
+      address: contractAddress,
+      abi: POLLS_CONTRACT_ABI,
+      functionName: CONTRACT_FUNCTIONS.RESUME_POLL,
+      args: [BigInt(pollId)],
+    })
+  }
+
+  return {
+    resumePoll,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+  }
 }

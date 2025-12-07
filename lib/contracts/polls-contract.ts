@@ -1,7 +1,7 @@
 import { Address } from 'viem'
-import PollsContractABI from './PollsContract.abi.json'
+import PollsContractArtifact from './PollsContract.abi.json'
 
-export const POLLS_CONTRACT_ABI = PollsContractABI as const
+export const POLLS_CONTRACT_ABI = PollsContractArtifact.abi as const
 
 import { CONTRACT_ADDRESSES, SUPPORTED_CHAINS, getContractAddress } from './contract-config'
 
@@ -35,6 +35,9 @@ export const CONTRACT_FUNCTIONS = {
   FUND_POLL_WITH_TOKEN: 'fundPollWithToken',
   WITHDRAW_FUNDS: 'withdrawFunds',
   CLOSE_POLL: 'closePoll',
+  SET_FOR_CLAIMING: 'setForClaiming',
+  PAUSE_POLL: 'pausePoll',
+  RESUME_POLL: 'resumePoll',
   WHITELIST_TOKEN: 'whitelistToken',
 } as const
 
@@ -60,6 +63,13 @@ export enum DistributionMode {
   AUTOMATED = 2     // System automatically distributes when poll ends
 }
 
+export enum PollStatus {
+  ACTIVE = 0,        // Accepting votes/funding
+  CLOSED = 1,        // Voting ended, awaiting distribution setup
+  FOR_CLAIMING = 2,  // Ready for reward distribution
+  PAUSED = 3         // Temporarily suspended
+}
+
 // Types based on the smart contract
 export interface Poll {
   id: bigint
@@ -73,6 +83,8 @@ export interface Poll {
   fundingToken: Address
   fundingType: FundingType
   distributionMode: DistributionMode
+  status: PollStatus
+  previousStatus: PollStatus
 }
 
 export interface Funding {

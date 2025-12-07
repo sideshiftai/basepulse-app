@@ -30,7 +30,7 @@ import { DistributionStatusBadge } from "./distribution-status-badge"
 import { PollBalanceCard } from "./poll-balance-card"
 import { DistributionModeSelector } from "./distribution-mode-selector"
 import { WithdrawFundsDialog } from "./withdraw-funds-dialog"
-import { BatchDistributeDialog } from "./batch-distribute-dialog"
+import { BatchDistributeWizard } from "./batch-distribute-wizard"
 import { DonateTreasuryDialog } from "./donate-treasury-dialog"
 import { PendingDistributionBadge } from "./pending-distribution-badge"
 import { usePendingDistributions } from "@/lib/hooks/use-pending-distributions"
@@ -54,6 +54,8 @@ interface Poll {
   totalFunding: bigint
   endTime: bigint
   distributionMode: 0 | 1 | 2
+  fundingToken?: string
+  fundingTokenSymbol?: string
   balances: TokenBalance[]
   voters: Voter[]
 }
@@ -109,10 +111,11 @@ export function ManagePollsTab({
     return <Badge variant="default">Active</Badge>
   }
 
-  const formatReward = (amount: bigint) => {
-    if (amount === BigInt(0)) return "0 ETH"
+  const formatReward = (amount: bigint, symbol?: string) => {
+    const tokenSymbol = symbol || "ETH"
+    if (amount === BigInt(0)) return `0 ${tokenSymbol}`
     const formatted = parseFloat(formatEther(amount)).toFixed(4)
-    return `${formatted} ETH`
+    return `${formatted} ${tokenSymbol}`
   }
 
   const hasPendingDistribution = (poll: Poll) => {
@@ -226,7 +229,7 @@ export function ManagePollsTab({
                           </div>
                           <div className="text-right min-w-[80px]">
                             <div className="text-sm font-medium">
-                              {formatReward(poll.totalFunding)}
+                              {formatReward(poll.totalFunding, poll.fundingTokenSymbol)}
                             </div>
                           </div>
                         </div>
@@ -309,13 +312,11 @@ export function ManagePollsTab({
       )}
 
       {distributeDialog && (
-        <BatchDistributeDialog
+        <BatchDistributeWizard
           open={!!distributeDialog}
           onOpenChange={(open) => !open && setDistributeDialog(null)}
           pollId={distributeDialog}
           pollTitle={polls.find((p) => p.id === distributeDialog)?.question || ""}
-          balances={polls.find((p) => p.id === distributeDialog)?.balances || []}
-          voters={polls.find((p) => p.id === distributeDialog)?.voters || []}
           onDistribute={onDistributeRewards}
         />
       )}
