@@ -13,7 +13,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAvailableQuests, useUpdateQuestProgress } from '@/hooks/use-creator-quests'
-import { Search, Target, Trophy, Users, Clock, CheckCircle2, Sparkles } from 'lucide-react'
+import { QuestActionDialog } from './quest-action-dialog'
+import { Search, Target, Trophy, Users, Clock, CheckCircle2, Sparkles, ChevronRight } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import {
   CreatorQuestWithParticipation,
@@ -36,10 +37,10 @@ const requirementTypeLabels: Record<CreatorQuestRequirementType, string> = {
 
 interface QuestCardProps {
   quest: CreatorQuestWithParticipation
+  onClick?: () => void
 }
 
-function QuestCard({ quest }: QuestCardProps) {
-  const updateProgressMutation = useUpdateQuestProgress()
+function QuestCard({ quest, onClick }: QuestCardProps) {
   const participation = quest.participation
   const isCompleted = participation?.isCompleted
   const progress = participation?.progress || 0
@@ -64,8 +65,16 @@ function QuestCard({ quest }: QuestCardProps) {
   const timeRemaining = getTimeRemaining()
   const slotsRemaining = getSlotsRemaining()
 
+  // Completed quests are not clickable per user requirement
+  const isClickable = !isCompleted
+
   return (
-    <Card className={`transition-all ${isCompleted ? 'bg-green-500/5 border-green-500/20' : ''}`}>
+    <Card
+      className={`transition-all ${isCompleted ? 'bg-green-500/5 border-green-500/20' : ''} ${
+        isClickable ? 'cursor-pointer hover:border-primary/50 hover:shadow-md' : ''
+      }`}
+      onClick={isClickable ? onClick : undefined}
+    >
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="flex-1">
@@ -136,13 +145,18 @@ function QuestCard({ quest }: QuestCardProps) {
             )}
           </div>
 
-          {/* Points Awarded */}
-          {isCompleted && participation?.pointsAwarded && (
+          {/* Points Awarded or Click hint */}
+          {isCompleted && participation?.pointsAwarded ? (
             <div className="flex items-center gap-2 p-2 bg-green-500/10 rounded-lg">
               <Sparkles className="w-4 h-4 text-green-500" />
               <span className="text-sm text-green-600 dark:text-green-400">
                 You earned <span className="font-bold">{participation.pointsAwarded}</span> points!
               </span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between pt-2 border-t">
+              <span className="text-xs text-muted-foreground">Click to start quest</span>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </div>
           )}
         </div>
@@ -152,9 +166,28 @@ function QuestCard({ quest }: QuestCardProps) {
 }
 
 export function AvailableQuestsList() {
-  const { data: quests, isLoading, error } = useAvailableQuests(true)
+  const { data: quests, isLoading, error, refetch } = useAvailableQuests(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [filter, setFilter] = useState<'all' | 'available' | 'in_progress' | 'completed'>('all')
+  const [selectedQuest, setSelectedQuest] = useState<CreatorQuestWithParticipation | null>(null)
+  const [dialogOpen, setDialogOpen] = useState(false)
+
+  const handleQuestClick = (quest: CreatorQuestWithParticipation) => {
+    setSelectedQuest(quest)
+    setDialogOpen(true)
+  }
+
+  const handleDialogClose = (open: boolean) => {
+    setDialogOpen(open)
+    if (!open) {
+      setSelectedQuest(null)
+    }
+  }
+
+  const handleProgressUpdate = () => {
+    // Refetch quests to update progress
+    refetch()
+  }
 
   const filteredQuests = quests?.filter((quest) => {
     const matchesSearch = quest.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -249,10 +282,22 @@ export function AvailableQuestsList() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {filteredQuests.map((quest) => (
-            <QuestCard key={quest.id} quest={quest} />
+            <QuestCard
+              key={quest.id}
+              quest={quest}
+              onClick={() => handleQuestClick(quest)}
+            />
           ))}
         </div>
       )}
+
+      {/* Quest Action Dialog */}
+      <QuestActionDialog
+        quest={selectedQuest}
+        open={dialogOpen}
+        onOpenChange={handleDialogClose}
+        onProgressUpdate={handleProgressUpdate}
+      />
     </div>
   )
 }
