@@ -63,17 +63,17 @@ export function FixedHeader() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-16 items-center px-4">
+      <div className="flex h-16 items-center justify-between px-4">
         {/* Logo/Brand */}
-        <Link href="/" className="mr-6 flex items-center space-x-2">
+        <Link href="/" className="flex items-center space-x-2 shrink-0">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
             <span className="text-sm font-bold text-primary-foreground">BP</span>
           </div>
           <span className="hidden font-bold sm:inline-block">BasePulse</span>
         </Link>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden flex-1 items-center space-x-6 text-sm font-medium md:flex">
+        {/* Desktop Navigation - Absolutely Centered */}
+        <nav className="hidden items-center space-x-6 text-sm font-medium md:flex absolute left-1/2 -translate-x-1/2">
           {filteredNavItems.map((item) => {
             if (item.external) {
               return (
@@ -98,7 +98,7 @@ export function FixedHeader() {
                 href={item.href}
                 className={cn(
                   "transition-colors hover:text-foreground/80",
-                  pathname === item.href
+                  pathname === item.href || pathname?.startsWith(item.href + "/")
                     ? "text-foreground"
                     : "text-foreground/60"
                 )}
@@ -110,7 +110,7 @@ export function FixedHeader() {
         </nav>
 
         {/* Right side actions */}
-        <div className="flex flex-1 items-center justify-end space-x-2">
+        <div className="flex items-center space-x-2 shrink-0">
           <ThemeToggle />
           <ConnectWalletButton />
 
