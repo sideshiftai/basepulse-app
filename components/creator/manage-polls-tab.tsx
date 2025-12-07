@@ -32,6 +32,8 @@ import { DistributionModeSelector } from "./distribution-mode-selector"
 import { WithdrawFundsDialog } from "./withdraw-funds-dialog"
 import { BatchDistributeDialog } from "./batch-distribute-dialog"
 import { DonateTreasuryDialog } from "./donate-treasury-dialog"
+import { PendingDistributionBadge } from "./pending-distribution-badge"
+import { usePendingDistributions } from "@/lib/hooks/use-pending-distributions"
 
 interface TokenBalance {
   token: string
@@ -111,6 +113,16 @@ export function ManagePollsTab({
     if (amount === BigInt(0)) return "0 ETH"
     const formatted = parseFloat(formatEther(amount)).toFixed(4)
     return `${formatted} ETH`
+  }
+
+  const hasPendingDistribution = (poll: Poll) => {
+    const now = BigInt(Math.floor(Date.now() / 1000))
+    const hasEnded = poll.endTime < now
+    const hasFunds = poll.totalFunding > BigInt(0)
+    const isClosed = !poll.isActive
+    const isManualMode = poll.distributionMode === 0 || poll.distributionMode === 1
+
+    return hasEnded && isClosed && hasFunds && isManualMode
   }
 
   const toggleExpanded = (pollId: bigint) => {
@@ -199,8 +211,13 @@ export function ManagePollsTab({
                           </div>
                         </div>
                         <div className="flex items-center gap-4 flex-shrink-0">
-                          <div className="hidden md:block">
+                          <div className="hidden md:flex md:items-center md:gap-2">
                             {getStatusBadge(poll.isActive, poll.endTime)}
+                            <PendingDistributionBadge
+                              hasPending={hasPendingDistribution(poll)}
+                              mode={poll.distributionMode}
+                              variant="compact"
+                            />
                           </div>
                           <div className="hidden sm:block text-right">
                             <div className="text-sm text-muted-foreground">

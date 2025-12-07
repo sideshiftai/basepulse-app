@@ -19,8 +19,8 @@ export function LayoutContent({ children }: LayoutContentProps) {
   const { isCollapsed } = useSidebar()
   const pathname = usePathname()
 
-  // Show sidebar only on creator pages
-  const showSidebar = pathname?.startsWith("/creator")
+  // Show sidebar on creator and participant pages
+  const showSidebar = pathname?.startsWith("/creator") || pathname?.startsWith("/participant")
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -29,7 +29,7 @@ export function LayoutContent({ children }: LayoutContentProps) {
 
       {/* Content Area (Sidebar + Main) */}
       <div className="flex flex-1 pt-16">
-        {/* Sidebar - Only show on creator pages */}
+        {/* Sidebar - Only show on creator and participant pages */}
         {showSidebar && <NewSidebar />}
 
         {/* Main Content */}

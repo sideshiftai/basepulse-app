@@ -8,8 +8,10 @@ import { formatEther } from "viem"
 import { DashboardStats } from "@/components/creator/dashboard-stats"
 import { ResponsesOverviewChart } from "@/components/creator/responses-overview-chart"
 import { ResponsesTimelineChart } from "@/components/creator/responses-timeline-chart"
+import { PendingDistributionsCard } from "@/components/creator/pending-distributions-card"
 import { fetchAnalyticsTrends } from "@/lib/api/analytics"
 import { CreatorBreadcrumb } from "@/components/creator/creator-breadcrumb"
+import { usePendingDistributionsCount } from "@/lib/hooks/use-pending-distributions"
 
 export default function CreatorPage() {
   const [timelineData, setTimelineData] = useState<any[]>([])
@@ -35,7 +37,7 @@ export default function CreatorPage() {
         const pollData = pollQueries[index]
         if (!pollData.data) return null
 
-        const [id, question, options, votes, endTime, isActive, creator, totalFunding] = pollData.data
+        const [id, question, options, votes, endTime, isActive, creator, totalFunding, distributionMode] = pollData.data
 
         // Only include polls created by current user
         if (creator.toLowerCase() !== address.toLowerCase()) return null
@@ -47,6 +49,7 @@ export default function CreatorPage() {
           totalVotes: votes.reduce((sum: bigint, vote: bigint) => sum + vote, BigInt(0)),
           totalFunding,
           endTime,
+          distributionMode: distributionMode as 0 | 1 | 2,
           options: options.map((option: string, idx: number) => ({
             text: option,
             votes: votes[idx],
@@ -76,6 +79,9 @@ export default function CreatorPage() {
       totalFunded: `${totalFunded.toFixed(4)} ETH`,
     }
   }, [myPolls])
+
+  // Calculate pending distributions count
+  const pendingDistributionsCount = usePendingDistributionsCount(myPolls)
 
   // Calculate responses overview data
   const responsesOverviewData = useMemo(() => {
@@ -164,6 +170,12 @@ export default function CreatorPage() {
           totalResponses={dashboardStats.totalResponses}
           activePolls={dashboardStats.activePolls}
           totalFunded={dashboardStats.totalFunded}
+          isLoading={pollsLoading}
+        />
+
+        {/* Pending Distributions */}
+        <PendingDistributionsCard
+          pendingCount={pendingDistributionsCount}
           isLoading={pollsLoading}
         />
 
