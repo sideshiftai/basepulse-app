@@ -48,8 +48,8 @@ export function Navigation() {
       .includes(address.toLowerCase())
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4">
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 relative">
+      <div className="flex h-16 items-center px-4 justify-between">
         {/* Mobile Logo */}
         <Link className="flex md:hidden items-center space-x-2" href="/">
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
@@ -188,116 +188,130 @@ export function Navigation() {
         </Sheet>
         </div>
 
-        {/* Desktop Navigation */}
-        <div className="mr-4 hidden md:flex">
-          <Link className="mr-6 flex items-center space-x-2" href="/">
+        {/* Desktop Logo - Left */}
+        <div className="hidden md:flex items-center shrink-0">
+          <Link className="flex items-center space-x-2" href="/">
             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-sm">SS</span>
             </div>
-            <span className="hidden font-bold sm:inline-block text-xl">SideShift Pulse</span>
+            <span className="hidden font-bold lg:inline-block text-xl">BasePulse</span>
           </Link>
-          <nav className="flex items-center gap-6 text-sm">
-            <Link
-              href="/"
-              className={cn(
-                "transition-colors hover:text-foreground/80",
-                pathname === "/" ? "text-foreground" : "text-foreground/60",
-              )}
-            >
-              Home
-            </Link>
-            <Link
-              href="/dapp"
-              className={cn(
-                "transition-colors hover:text-foreground/80",
-                pathname === "/dapp" ? "text-foreground" : "text-foreground/60",
-              )}
-            >
-              Dapp
-            </Link>
-            <a
-              href={bridgeUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="transition-colors hover:text-foreground/80 text-foreground/60"
-            >
-              Bridge
-            </a>
-            <Link
-              href="/buy-pulse"
-              className={cn(
-                "transition-colors hover:text-foreground/80",
-                pathname === "/buy-pulse" ? "text-foreground" : "text-foreground/60",
-              )}
-            >
-              Buy PULSE
-            </Link>
-            <Link
-              href="/wallet"
-              className={cn(
-                "transition-colors hover:text-foreground/80",
-                pathname === "/wallet" ? "text-foreground" : "text-foreground/60",
-              )}
-            >
-              Wallet
-            </Link>
-            {mounted && isConnected && (
-              <>
-                <Link
-                  href="/creator"
-                  className={cn(
-                    "transition-colors hover:text-foreground/80",
-                    pathname === "/creator" ? "text-foreground" : "text-foreground/60",
-                  )}
-                >
-                  Creator
-                </Link>
-                <Link
-                  href="/dapp/shifts"
-                  className={cn(
-                    "transition-colors hover:text-foreground/80",
-                    pathname === "/dapp/shifts" ? "text-foreground" : "text-foreground/60",
-                  )}
-                >
-                  My Shifts
-                </Link>
-                <Link
-                  href="/settings"
-                  className={cn(
-                    "transition-colors hover:text-foreground/80",
-                    pathname === "/settings" ? "text-foreground" : "text-foreground/60",
-                  )}
-                >
-                  Settings
-                </Link>
-              </>
-            )}
-            {mounted && isOwner && (
-              <Link
-                href="/admin"
-                className={cn(
-                  "transition-colors hover:text-foreground/80",
-                  pathname === "/admin" ? "text-foreground" : "text-foreground/60",
-                )}
-              >
-                Admin
-              </Link>
-            )}
-            {isAnnouncementAdmin && (
-              <Link
-                href="/admin/announcements"
-                className={cn(
-                  "transition-colors hover:text-foreground/80",
-                  pathname === "/admin/announcements" ? "text-foreground" : "text-foreground/60",
-                )}
-              >
-                Announcements
-              </Link>
-            )}
-          </nav>
         </div>
 
-        <div className="hidden md:flex flex-1 items-center justify-end space-x-2">
+        {/* Desktop Navigation - Fixed Center on Viewport */}
+        <nav className="hidden md:flex items-center gap-6 text-sm fixed left-1/2 top-0 h-16 -translate-x-1/2 z-50">
+          <Link
+            href="/"
+            className={cn(
+              "transition-colors hover:text-foreground/80",
+              pathname === "/" ? "text-foreground" : "text-foreground/60",
+            )}
+          >
+            Home
+          </Link>
+          <Link
+            href="/dapp"
+            className={cn(
+              "transition-colors hover:text-foreground/80",
+              pathname === "/dapp" ? "text-foreground" : "text-foreground/60",
+            )}
+          >
+            Dapp
+          </Link>
+          {mounted && isConnected && (
+            <Link
+              href="/creator"
+              className={cn(
+                "transition-colors hover:text-foreground/80",
+                pathname === "/creator" || pathname.startsWith("/creator/") ? "text-foreground" : "text-foreground/60",
+              )}
+            >
+              Creator
+            </Link>
+          )}
+          {mounted && isConnected && (
+            <Link
+              href="/participant"
+              className={cn(
+                "transition-colors hover:text-foreground/80",
+                pathname === "/participant" || pathname.startsWith("/participant/") ? "text-foreground" : "text-foreground/60",
+              )}
+            >
+              Participant
+            </Link>
+          )}
+          <a
+            href={bridgeUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="transition-colors hover:text-foreground/80 text-foreground/60"
+          >
+            Bridge
+          </a>
+          <Link
+            href="/buy-pulse"
+            className={cn(
+              "transition-colors hover:text-foreground/80",
+              pathname === "/buy-pulse" ? "text-foreground" : "text-foreground/60",
+            )}
+          >
+            Buy PULSE
+          </Link>
+          <Link
+            href="/wallet"
+            className={cn(
+              "transition-colors hover:text-foreground/80",
+              pathname === "/wallet" ? "text-foreground" : "text-foreground/60",
+            )}
+          >
+            Wallet
+          </Link>
+          {mounted && isConnected && (
+            <Link
+              href="/dapp/shifts"
+              className={cn(
+                "transition-colors hover:text-foreground/80",
+                pathname === "/dapp/shifts" ? "text-foreground" : "text-foreground/60",
+              )}
+            >
+              My Shifts
+            </Link>
+          )}
+          <Link
+            href="/settings"
+            className={cn(
+              "transition-colors hover:text-foreground/80",
+              pathname === "/settings" ? "text-foreground" : "text-foreground/60",
+            )}
+          >
+            Settings
+          </Link>
+          {mounted && isOwner && (
+            <Link
+              href="/admin"
+              className={cn(
+                "transition-colors hover:text-foreground/80",
+                pathname === "/admin" ? "text-foreground" : "text-foreground/60",
+              )}
+            >
+              Admin
+            </Link>
+          )}
+          {isAnnouncementAdmin && (
+            <Link
+              href="/admin/announcements"
+              className={cn(
+                "transition-colors hover:text-foreground/80",
+                pathname === "/admin/announcements" ? "text-foreground" : "text-foreground/60",
+              )}
+            >
+              Announcements
+            </Link>
+          )}
+        </nav>
+
+        {/* Desktop Right Side */}
+        <div className="hidden md:flex items-center space-x-2 shrink-0">
           <ConnectWalletButton />
           <ThemeToggle />
         </div>
