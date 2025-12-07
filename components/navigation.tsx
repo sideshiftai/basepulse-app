@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { DataSourceToggle } from "@/components/data-source-toggle"
 import { ConnectWalletButton } from "@/components/connect-wallet-button"
 import { cn } from "@/lib/utils"
 import { useAccount, useReadContract } from "wagmi"
@@ -60,6 +61,7 @@ export function Navigation() {
 
         {/* Mobile Menu - Right Side */}
         <div className="flex md:hidden items-center gap-2">
+          <DataSourceToggle />
           <ThemeToggle />
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
@@ -313,6 +315,7 @@ export function Navigation() {
         {/* Desktop Right Side */}
         <div className="hidden md:flex items-center space-x-2 shrink-0">
           <ConnectWalletButton />
+          <DataSourceToggle />
           <ThemeToggle />
         </div>
       </div>
