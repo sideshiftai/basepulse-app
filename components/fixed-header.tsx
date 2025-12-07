@@ -10,6 +10,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useAccount, useReadContract } from "wagmi"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { DataSourceToggle } from "@/components/data-source-toggle"
 import { ConnectWalletButton } from "@/components/connect-wallet-button"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -111,6 +112,7 @@ export function FixedHeader() {
 
         {/* Right side actions */}
         <div className="flex items-center space-x-2 shrink-0">
+          <DataSourceToggle />
           <ThemeToggle />
           <ConnectWalletButton />
 
