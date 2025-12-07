@@ -6,7 +6,7 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
-import { useAccount } from "wagmi"
+import { useAccount, useChainId } from "wagmi"
 import { AlertCircle, Plus, LayoutGrid, Table } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { formatEther } from "viem"
@@ -25,9 +25,11 @@ import { CreatorHeaderBanner } from "@/components/creator/creator-header-banner"
 import { DashboardStats } from "@/components/creator/dashboard-stats"
 import { PollCard } from "@/components/creator/poll-card"
 import { Button } from "@/components/ui/button"
+import { getTokenSymbol } from "@/lib/contracts/token-config"
 
 export default function ManagePollsPage() {
   const { address, isConnected } = useAccount()
+  const chainId = useChainId()
   const router = useRouter()
   const { data: activePollIds, isLoading: pollsLoading } = useActivePolls()
   const { closePoll } = useClosePoll()
@@ -65,10 +67,13 @@ export default function ManagePollsPage() {
         const pollData = pollQueries[index]
         if (!pollData.data) return null
 
-        const [id, question, options, votes, endTime, isActive, creator, totalFunding, distributionMode] = pollData.data
+        const [id, question, options, votes, endTime, isActive, creator, totalFunding, distributionMode, fundingToken, fundingType] = pollData.data
 
         // Only include polls created by current user
         if (creator.toLowerCase() !== address.toLowerCase()) return null
+
+        // Get token symbol from address
+        const fundingTokenSymbol = getTokenSymbol(chainId, fundingToken) || "ETH"
 
         return {
           id,
@@ -78,6 +83,8 @@ export default function ManagePollsPage() {
           totalFunding,
           endTime,
           distributionMode: distributionMode as 0 | 1 | 2, // From contract
+          fundingToken,
+          fundingTokenSymbol,
           options: options.map((text: string, index: number) => ({
             text,
             votes: votes[index],
@@ -87,7 +94,7 @@ export default function ManagePollsPage() {
         }
       })
       .filter(Boolean)
-  }, [activePollIds, address, pollQueries])
+  }, [activePollIds, address, chainId, pollQueries])
 
   // Calculate dashboard stats
   const dashboardStats = useMemo(() => {
