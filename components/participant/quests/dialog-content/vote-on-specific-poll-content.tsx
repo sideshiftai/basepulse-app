@@ -79,6 +79,7 @@ export function VoteOnSpecificPollContent({ quest, onProgressUpdate }: VoteOnSpe
           <InlineVotingCard
             key={poll.id}
             poll={poll}
+            questId={quest.id}
             onVoteSuccess={handleVoteSuccess}
           />
         ))}

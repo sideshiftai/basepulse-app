@@ -145,6 +145,7 @@ export function ParticipateInPollsContent({ quest, onProgressUpdate }: Participa
                 <InlineVotingCard
                   key={poll.id}
                   poll={poll}
+                  questId={quest.id}
                   onVoteSuccess={handleVoteSuccess}
                 />
               ))}
@@ -159,6 +160,7 @@ export function ParticipateInPollsContent({ quest, onProgressUpdate }: Participa
               <InlineVotingCard
                 key={poll.id}
                 poll={poll}
+                questId={quest.id}
                 onVoteSuccess={handleVoteSuccess}
               />
             ))}
