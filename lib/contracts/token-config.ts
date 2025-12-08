@@ -26,18 +26,22 @@ export interface TokenInfo {
   isNative?: boolean; // true for ETH
 }
 
+// PULSE token addresses from environment variables (with fallbacks)
+const PULSE_TOKEN_BASE_MAINNET = (process.env.NEXT_PUBLIC_PULSE_TOKEN_BASE_MAINNET || '0x1b684A60309b0916C77834d62d117d306171FDFE') as Address;
+const PULSE_TOKEN_BASE_SEPOLIA = (process.env.NEXT_PUBLIC_PULSE_TOKEN_BASE_SEPOLIA || '0x19821658D5798976152146d1c1882047670B898c') as Address;
+
 // Whitelisted tokens by network
 export const WHITELISTED_TOKENS = {
   // Base Mainnet (8453)
   8453: {
     ETH: '0x0000000000000000000000000000000000000000' as Address,
-    PULSE: '0x1b684A60309b0916C77834d62d117d306171FDFE' as Address,
+    PULSE: PULSE_TOKEN_BASE_MAINNET,
     USDC: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913' as Address,
   },
   // Base Sepolia (84532)
   84532: {
     ETH: '0x0000000000000000000000000000000000000000' as Address,
-    PULSE: '0x19821658D5798976152146d1c1882047670B898c' as Address,
+    PULSE: PULSE_TOKEN_BASE_SEPOLIA,
     USDC: '0x036CbD53842c5426634e7929541eC2318f3dCF7e' as Address,
   },
 } as const;

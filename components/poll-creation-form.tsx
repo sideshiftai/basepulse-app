@@ -14,14 +14,15 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Badge } from "@/components/ui/badge"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon, Plus, X, Info, Coins, Users, Clock, AlertCircle } from "lucide-react"
+import { CalendarIcon, Plus, X, Info, Coins, Users, Clock, AlertCircle, Sparkles, Lock } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { useCreatePoll, usePollsContractAddress } from "@/lib/contracts/polls-contract-utils"
 import { useAccount, useChainId } from "wagmi"
 import { Address } from "viem"
-import { MIN_POLL_DURATION, MAX_POLL_DURATION, FundingType } from "@/lib/contracts/polls-contract"
+import { MIN_POLL_DURATION, MAX_POLL_DURATION, FundingType, VotingType } from "@/lib/contracts/polls-contract"
+import { useIsPremiumOrStaked } from "@/lib/contracts/premium-contract-utils"
 import { useRouter } from "next/navigation"
 import { TOKEN_INFO, getSupportedTokens, getTokenAddress } from "@/lib/contracts/token-config"
 
@@ -37,6 +38,7 @@ const pollSchema = z.object({
   fundingType: z.enum(["none", "self", "community"]),
   fundingToken: z.string().optional(),
   rewardAmount: z.coerce.number().min(0).optional(),
+  votingType: z.enum(["linear", "quadratic"]),
 })
 
 type PollFormData = z.infer<typeof pollSchema>
@@ -47,11 +49,14 @@ export function PollCreationForm() {
   const [options, setOptions] = useState<string[]>(["", ""])
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
 
-  const { isConnected } = useAccount()
+  const { isConnected, address } = useAccount()
   const contractAddress = usePollsContractAddress()
   const chainId = useChainId()
   const { createPoll, isPending, isConfirming, isSuccess, error } = useCreatePoll()
   const router = useRouter()
+
+  // Check if user has premium access (subscription or staking)
+  const { data: isPremium, isLoading: isPremiumLoading } = useIsPremiumOrStaked(address)
 
   // Get supported tokens for the current chain
   const supportedTokens = getSupportedTokens(chainId)
@@ -76,6 +81,7 @@ export function PollCreationForm() {
       fundingToken: "ETH",
       options: ["", ""],
       rewardAmount: 0,
+      votingType: "linear",
     },
   })
 
@@ -83,6 +89,7 @@ export function PollCreationForm() {
   const fundingToken = watch("fundingToken")
   const endDate = watch("endDate")
   const category = watch("category")
+  const votingType = watch("votingType")
 
   const isSubmitting = isPending || isConfirming
 
@@ -209,8 +216,17 @@ export function PollCreationForm() {
         fundingTypeEnum = FundingType.COMMUNITY
       }
 
-      // Create poll on contract with funding token and funding type
-      await createPoll(data.title, validOptions, durationInHours, fundingTokenAddress, fundingTypeEnum)
+      // Convert voting type string to enum
+      const votingTypeEnum = data.votingType === "quadratic" ? VotingType.QUADRATIC : VotingType.LINEAR
+
+      // Validate premium access for quadratic voting
+      if (votingTypeEnum === VotingType.QUADRATIC && !isPremium) {
+        toast.error("Premium access required to create quadratic voting polls")
+        return
+      }
+
+      // Create poll on contract with funding token, funding type, and voting type
+      await createPoll(data.title, validOptions, durationInHours, fundingTokenAddress, fundingTypeEnum, votingTypeEnum)
 
     } catch (error) {
       console.error("Error creating poll:", error)
@@ -244,6 +260,7 @@ export function PollCreationForm() {
         category: "",
         fundingType: "none",
         options: ["", ""],
+        votingType: "linear",
       })
       // Redirect to dapp page
       router.push("/dapp")
@@ -395,6 +412,106 @@ export function PollCreationForm() {
             )}
 
             {errors.options && <p className="text-sm text-destructive">{errors.options.message}</p>}
+          </CardContent>
+        </Card>
+
+        {/* Voting Type */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              Voting Type
+              <Badge variant="secondary" className="text-xs">
+                <Sparkles className="h-3 w-3 mr-1" />
+                Beta
+              </Badge>
+            </CardTitle>
+            <CardDescription>
+              Choose how votes are counted in your poll
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <RadioGroup
+              value={votingType}
+              onValueChange={(value) => setValue("votingType", value as "linear" | "quadratic", { shouldValidate: true })}
+              className="space-y-4"
+            >
+              <div className="flex items-start space-x-3 p-4 border rounded-lg">
+                <RadioGroupItem value="linear" id="linear" className="mt-1" />
+                <div className="flex-1">
+                  <Label htmlFor="linear" className="font-medium cursor-pointer">
+                    Linear Voting (Default)
+                  </Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Traditional one person, one vote. Every participant gets equal voting power.
+                  </p>
+                  <Badge variant="secondary" className="mt-2">
+                    <Users className="h-3 w-3 mr-1" />
+                    Equal Voice
+                  </Badge>
+                </div>
+              </div>
+
+              <div
+                className={cn(
+                  "flex items-start space-x-3 p-4 border rounded-lg transition-opacity",
+                  !isPremium && "opacity-60"
+                )}
+              >
+                <RadioGroupItem
+                  value="quadratic"
+                  id="quadratic"
+                  className="mt-1"
+                  disabled={!isPremium && !isPremiumLoading}
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="quadratic" className={cn("font-medium", !isPremium && "cursor-not-allowed")}>
+                      Quadratic Voting
+                    </Label>
+                    {!isPremium && !isPremiumLoading && (
+                      <Badge variant="outline" className="text-amber-600 border-amber-300">
+                        <Lock className="h-3 w-3 mr-1" />
+                        Premium
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Voters buy votes with PULSE tokens. Cost increases quadratically (1, 4, 9, 16...)
+                    to prevent vote buying and encourage broader participation.
+                  </p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <Badge variant="secondary">
+                      <Coins className="h-3 w-3 mr-1" />
+                      Pay-per-Vote
+                    </Badge>
+                    <Badge variant="secondary">
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      Fair Influence
+                    </Badge>
+                  </div>
+                  {!isPremium && !isPremiumLoading && (
+                    <div className="mt-3 p-2 bg-amber-50 dark:bg-amber-950/20 rounded-md">
+                      <p className="text-xs text-amber-700 dark:text-amber-400">
+                        Unlock quadratic voting by subscribing to Premium or staking 10,000+ PULSE tokens.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </RadioGroup>
+
+            {votingType === "quadratic" && isPremium && (
+              <div className="flex items-start gap-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                <div className="text-sm">
+                  <p className="font-medium text-primary">Quadratic Voting Selected</p>
+                  <p className="text-muted-foreground mt-1">
+                    Voters will need PULSE tokens to participate. The cost for each additional vote
+                    increases by the square: 1st vote = 1 PULSE, 2nd = 4 PULSE, 3rd = 9 PULSE, etc.
+                  </p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

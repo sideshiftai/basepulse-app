@@ -9,6 +9,7 @@ import {
   Funding,
   SupportedChainId,
   FundingType,
+  VotingType,
 } from './polls-contract'
 import { ERC20_ABI } from './token-config'
 
@@ -130,7 +131,14 @@ export const useCreatePoll = () => {
     hash,
   })
 
-  const createPoll = async (question: string, options: string[], durationInHours: number, fundingToken: Address, fundingType: FundingType) => {
+  const createPoll = async (
+    question: string,
+    options: string[],
+    durationInHours: number,
+    fundingToken: Address,
+    fundingType: FundingType,
+    votingType: VotingType = VotingType.LINEAR
+  ) => {
     if (!contractAddress) return
 
     const durationInSeconds = BigInt(durationInHours * 3600) // Convert hours to seconds
@@ -139,7 +147,7 @@ export const useCreatePoll = () => {
       address: contractAddress,
       abi: POLLS_CONTRACT_ABI,
       functionName: CONTRACT_FUNCTIONS.CREATE_POLL,
-      args: [question, options, durationInSeconds, fundingToken, fundingType],
+      args: [question, options, durationInSeconds, fundingToken, fundingType, votingType],
     })
   }
 
@@ -349,7 +357,7 @@ export const useClosePoll = () => {
 
 // Helper functions to format contract data
 export const formatPollData = (pollData: any): Poll => {
-  const [id, question, options, votes, endTime, isActive, creator, totalFunding, distributionMode, fundingToken, fundingType, status, previousStatus] = pollData
+  const [id, question, options, votes, endTime, isActive, creator, totalFunding, distributionMode, fundingToken, fundingType, status, previousStatus, votingType, totalVotesBought] = pollData
 
   return {
     id,
@@ -365,6 +373,8 @@ export const formatPollData = (pollData: any): Poll => {
     distributionMode,
     status,
     previousStatus,
+    votingType: votingType ?? 0, // Default to LINEAR if not present
+    totalVotesBought: totalVotesBought ?? BigInt(0),
   }
 }
 
@@ -588,4 +598,98 @@ export const useResumePoll = () => {
     isSuccess,
     error,
   }
+}
+
+// ============ Quadratic Voting Hooks ============
+
+// Hook to buy votes in a quadratic voting poll
+export const useBuyVotes = () => {
+  const contractAddress = usePollsContractAddress()
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const buyVotes = async (pollId: number, optionIndex: number, numVotes: number) => {
+    if (!contractAddress) return
+
+    return writeContract({
+      address: contractAddress,
+      abi: POLLS_CONTRACT_ABI,
+      functionName: CONTRACT_FUNCTIONS.BUY_VOTES,
+      args: [BigInt(pollId), BigInt(optionIndex), BigInt(numVotes)],
+    })
+  }
+
+  return {
+    buyVotes,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+  }
+}
+
+// Hook to preview vote cost for quadratic voting
+export const usePreviewVoteCost = (pollId: number, voterAddress?: Address, numVotes?: number) => {
+  const contractAddress = usePollsContractAddress()
+
+  return useReadContract({
+    address: contractAddress,
+    abi: POLLS_CONTRACT_ABI,
+    functionName: CONTRACT_FUNCTIONS.PREVIEW_VOTE_COST,
+    args: voterAddress && numVotes !== undefined
+      ? [BigInt(pollId), voterAddress, BigInt(numVotes)]
+      : undefined,
+    query: {
+      enabled: !!contractAddress && !!voterAddress && numVotes !== undefined && numVotes > 0,
+    },
+  })
+}
+
+// Hook to get user's votes in a quadratic voting poll
+export const useUserVotesInPoll = (pollId: number, voterAddress?: Address) => {
+  const contractAddress = usePollsContractAddress()
+
+  return useReadContract({
+    address: contractAddress,
+    abi: POLLS_CONTRACT_ABI,
+    functionName: CONTRACT_FUNCTIONS.GET_USER_VOTES_IN_POLL,
+    args: voterAddress ? [BigInt(pollId), voterAddress] : undefined,
+    query: {
+      enabled: !!contractAddress && !!voterAddress,
+    },
+  })
+}
+
+// Hook to calculate quadratic cost (pure calculation, no blockchain state)
+export const useCalculateQuadraticCost = (currentVotes: number, additionalVotes: number) => {
+  const contractAddress = usePollsContractAddress()
+
+  return useReadContract({
+    address: contractAddress,
+    abi: POLLS_CONTRACT_ABI,
+    functionName: CONTRACT_FUNCTIONS.CALCULATE_QUADRATIC_COST,
+    args: [BigInt(currentVotes), BigInt(additionalVotes)],
+    query: {
+      enabled: !!contractAddress && additionalVotes > 0,
+    },
+  })
+}
+
+// Helper function to calculate quadratic cost locally (for quick UI previews)
+export const calculateQuadraticCostLocal = (currentVotes: number, additionalVotes: number): bigint => {
+  let totalCost = BigInt(0)
+  for (let i = 1; i <= additionalVotes; i++) {
+    const voteNumber = BigInt(currentVotes + i)
+    totalCost += voteNumber * voteNumber
+  }
+  return totalCost * BigInt(1e18) // PULSE has 18 decimals
+}
+
+// Format quadratic cost for display
+export const formatQuadraticCost = (cost: bigint, decimals: number = 18): string => {
+  return formatEther(cost)
 }
