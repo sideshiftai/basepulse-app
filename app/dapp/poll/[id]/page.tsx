@@ -7,11 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { ArrowLeft, Clock, Users, Coins, TrendingUp, Award } from "lucide-react"
-import { usePoll, useHasUserVoted, usePollsContractAddress } from "@/lib/contracts/polls-contract-utils"
+import { ArrowLeft, Clock, Users, Coins, TrendingUp, Award, Sparkles, Vote } from "lucide-react"
+import { usePoll, useHasUserVoted, usePollsContractAddress, useUserVotesInPoll, formatPollData } from "@/lib/contracts/polls-contract-utils"
+import { VotingType } from "@/lib/contracts/polls-contract"
 import { useAccount, useChainId } from "wagmi"
 import { ClaimRewardsDialog } from "@/components/sideshift/claim-rewards-dialog"
 import { FundingHistory } from "@/components/poll/funding-history"
+import { QuadraticVotePanel } from "@/components/poll/quadratic-vote-panel"
 import { formatEther } from "viem"
 
 interface PageProps {
@@ -54,7 +56,11 @@ export default function PollDetailPage({ params }: PageProps) {
     )
   }
 
-  const [id, question, options, votes, endTime, isActive, creator, totalFunding] = pollData
+  const [id, question, options, votes, endTime, isActive, creator, totalFunding, , , votingType] = pollData
+  const isQuadraticVoting = votingType === VotingType.QUADRATIC
+
+  // Get user's votes in QV poll
+  const { data: userVotesInPoll } = useUserVotesInPoll(pollId, address)
 
   // Calculate poll stats
   const totalVotes = votes.reduce((sum: number, vote: bigint) => sum + Number(vote), 0)
@@ -107,7 +113,18 @@ export default function PollDetailPage({ params }: PageProps) {
               <Badge variant={hasEnded ? "destructive" : "default"}>
                 {hasEnded ? "Ended" : "Active"}
               </Badge>
+              {isQuadraticVoting && (
+                <Badge variant="outline" className="border-primary text-primary">
+                  <Vote className="h-3 w-3 mr-1" />
+                  Quadratic
+                </Badge>
+              )}
               {hasVoted && <Badge variant="secondary">You Voted</Badge>}
+              {isQuadraticVoting && userVotesInPoll !== undefined && Number(userVotesInPoll) > 0 && (
+                <Badge variant="secondary">
+                  {String(Number(userVotesInPoll))} {Number(userVotesInPoll) === 1 ? 'vote' : 'votes'} purchased
+                </Badge>
+              )}
             </div>
           </div>
         </div>
@@ -151,6 +168,39 @@ export default function PollDetailPage({ params }: PageProps) {
               ))}
             </CardContent>
           </Card>
+
+          {/* Quadratic Voting Panel */}
+          {isQuadraticVoting && !hasEnded && isConnected && (
+            <QuadraticVotePanel
+              pollId={pollId}
+              options={options as string[]}
+              votes={votes as bigint[]}
+              onVoteSuccess={() => {
+                // Optionally refresh poll data
+              }}
+            />
+          )}
+
+          {/* Quadratic Voting Info for non-connected users */}
+          {isQuadraticVoting && !hasEnded && !isConnected && (
+            <Card className="border-primary/50 bg-primary/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Vote className="h-5 w-5 text-primary" />
+                  Quadratic Voting Poll
+                </CardTitle>
+                <CardDescription>
+                  This poll uses quadratic voting. Connect your wallet to buy votes with PULSE tokens.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  In quadratic voting, the cost of each vote increases quadratically (1, 4, 9, 16...).
+                  This helps balance voting power and encourages more thoughtful participation.
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Reward Claim Section */}
           {hasEnded && hasVoted && totalReward > 0 && (
@@ -210,11 +260,29 @@ export default function PollDetailPage({ params }: PageProps) {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-muted-foreground">
+                  <Vote className="h-4 w-4" />
+                  <span className="text-sm">Voting Type</span>
+                </div>
+                <Badge variant={isQuadraticVoting ? "default" : "secondary"}>
+                  {isQuadraticVoting ? "Quadratic" : "Linear"}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-muted-foreground">
                   <Users className="h-4 w-4" />
                   <span className="text-sm">Total Votes</span>
                 </div>
                 <span className="font-semibold">{totalVotes}</span>
               </div>
+              {isQuadraticVoting && userVotesInPoll !== undefined && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Sparkles className="h-4 w-4" />
+                    <span className="text-sm">Your Votes</span>
+                  </div>
+                  <span className="font-semibold">{String(Number(userVotesInPoll))}</span>
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Coins className="h-4 w-4" />

@@ -82,13 +82,13 @@ export function PremiumBadge({ size = "md", showTooltip = true, className = "" }
     <Badge
       className={`${sizeClasses[size]} bg-gradient-to-r from-amber-500 to-yellow-500 text-white border-none ${className}`}
     >
-      {isPremiumByStaking ? (
+      {isPremiumByStaking as boolean ? (
         <Coins className={`${iconSize[size]} mr-1`} />
       ) : (
         <Crown className={`${iconSize[size]} mr-1`} />
       )}
       Premium
-      {isPremiumByStaking && (
+      {(isPremiumByStaking as boolean) && (
         <Sparkles className={`${iconSize[size]} ml-1`} />
       )}
     </Badge>

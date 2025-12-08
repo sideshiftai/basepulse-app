@@ -234,7 +234,12 @@ export function SubscriptionTiers() {
   const handleSubscribe = async (tier: SubscriptionTier) => {
     setSelectedTier(tier)
 
-    const price = tierPrices[tier]
+    if (tier === SubscriptionTier.NONE) {
+      toast.error("Invalid subscription tier")
+      return
+    }
+
+    const price = tierPrices[tier as keyof typeof tierPrices]
     if (!price) {
       toast.error("Price not available")
       return
