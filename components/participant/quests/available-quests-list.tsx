@@ -185,8 +185,9 @@ export function AvailableQuestsList() {
   }
 
   const handleProgressUpdate = () => {
-    // Refetch quests to update progress
+    // Refetch quests to update progress and close dialog
     refetch()
+    setDialogOpen(false)
   }
 
   const filteredQuests = quests?.filter((quest) => {

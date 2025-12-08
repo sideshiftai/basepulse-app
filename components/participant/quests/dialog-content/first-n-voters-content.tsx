@@ -139,6 +139,7 @@ export function FirstNVotersContent({ quest, onProgressUpdate }: FirstNVotersCon
               </Badge>
               <InlineVotingCard
                 poll={poll}
+                questId={quest.id}
                 onVoteSuccess={handleVoteSuccess}
               />
             </div>
@@ -157,6 +158,7 @@ export function FirstNVotersContent({ quest, onProgressUpdate }: FirstNVotersCon
             <div key={poll.id} className="opacity-60">
               <InlineVotingCard
                 poll={poll}
+                questId={quest.id}
                 onVoteSuccess={handleVoteSuccess}
               />
             </div>

@@ -19,14 +19,16 @@ import { Clock, Users, CheckCircle2, Loader2, Vote, ExternalLink } from 'lucide-
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
 import type { FormattedPoll } from '@/hooks/use-polls'
+import { updateQuestProgress } from '@/lib/api/creator-quests-client'
 
 interface InlineVotingCardProps {
   poll: FormattedPoll
+  questId?: string
   onVoteSuccess?: () => void
   showResults?: boolean
 }
 
-export function InlineVotingCard({ poll, onVoteSuccess, showResults = true }: InlineVotingCardProps) {
+export function InlineVotingCard({ poll, questId, onVoteSuccess, showResults = true }: InlineVotingCardProps) {
   const { address, isConnected } = useAccount()
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
   const [hasVotedLocally, setHasVotedLocally] = useState(false)
@@ -42,7 +44,7 @@ export function InlineVotingCard({ poll, onVoteSuccess, showResults = true }: In
   const isVoting = isPending || isConfirming
 
   const handleVote = async () => {
-    if (!selectedOption || !isConnected) return
+    if (!selectedOption || !isConnected || !address) return
 
     const optionIndex = poll.options.findIndex(opt => opt.id === selectedOption)
     if (optionIndex === -1) return
@@ -50,6 +52,17 @@ export function InlineVotingCard({ poll, onVoteSuccess, showResults = true }: In
     try {
       await vote(parseInt(poll.id), optionIndex)
       setHasVotedLocally(true)
+
+      // Update quest progress if this is part of a quest
+      if (questId) {
+        try {
+          await updateQuestProgress(questId, address, { increment: true })
+        } catch (err) {
+          console.error('Failed to update quest progress:', err)
+          // Don't block the vote success - quest progress can be retried
+        }
+      }
+
       onVoteSuccess?.()
     } catch (err) {
       console.error('Vote failed:', err)
