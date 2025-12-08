@@ -509,7 +509,7 @@ export function AIChatbox({ className }: AIChatboxProps) {
                 {isConnected && (
                   <div className="text-xs text-muted-foreground pt-2 space-y-1">
                     <p>Try saying:</p>
-                    <p className="italic">"Create a poll about favorite programming languages"</p>
+                    <p className="italic">"Create for me a poll about what features to build next for Base Pulse. Collect responses for 1 week. Fund the poll with 0.01 ETH using SideShift and split the rewards equally to max of 10 respondents."</p>
                   </div>
                 )}
               </div>
