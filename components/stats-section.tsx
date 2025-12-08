@@ -3,7 +3,7 @@
 import { Card } from "@/components/ui/card"
 import { ScrollReveal } from "@/components/scroll-reveal"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useSubgraphGlobalStats } from "@/hooks/subgraph/use-subgraph-stats"
+import { useGlobalStats } from "@/hooks/use-global-stats"
 import { formatEther } from "viem"
 
 function formatNumber(num: number): string {
@@ -43,7 +43,7 @@ function StatCardSkeleton() {
 }
 
 export function StatsSection() {
-  const { stats, loading } = useSubgraphGlobalStats()
+  const { stats, loading } = useGlobalStats()
 
   const displayStats = [
     {

@@ -126,7 +126,7 @@ export const useCreatePoll = () => {
   const contractAddress = usePollsContractAddress()
   const { writeContract, data: hash, isPending, error } = useWriteContract()
 
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+  const { isLoading: isConfirming, isSuccess, data: receipt } = useWaitForTransactionReceipt({
     hash,
   })
 
@@ -150,6 +150,7 @@ export const useCreatePoll = () => {
     isConfirming,
     isSuccess,
     error,
+    receipt,
   }
 }
 

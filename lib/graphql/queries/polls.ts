@@ -82,10 +82,11 @@ export const GET_ACTIVE_POLLS = gql`
 
 /**
  * Get global statistics
+ * Note: The ID is "global" encoded as hex bytes (0x676c6f62616c)
  */
 export const GET_GLOBAL_STATS = gql`
   query GetGlobalStats {
-    globalStats(id: "global") {
+    globalStats(id: "0x676c6f62616c") {
       totalPolls
       totalVotes
       totalFunding
