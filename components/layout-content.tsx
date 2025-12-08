@@ -8,6 +8,7 @@
 import { usePathname } from "next/navigation"
 import { FixedHeader } from "@/components/fixed-header"
 import { NewSidebar } from "@/components/new-sidebar"
+import { AIChatbox } from "@/components/ai-chatbox/ai-chatbox"
 import { useSidebar } from "@/contexts/sidebar-context"
 import { cn } from "@/lib/utils"
 
@@ -46,6 +47,9 @@ export function LayoutContent({ children }: LayoutContentProps) {
           {children}
         </main>
       </div>
+
+      {/* AI Chatbox - Floating component */}
+      <AIChatbox />
     </div>
   )
 }

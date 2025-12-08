@@ -99,6 +99,110 @@ export function getNetworkForChain(chainId: number): string {
 }
 
 /**
+ * Map chain ID to SideShift network identifier for source deposits
+ * Includes all major EVM chains that SideShift supports
+ * @param chainId - EVM chain ID
+ * @returns SideShift network identifier for deposit (e.g., 'ethereum', 'polygon')
+ */
+export function getSourceNetworkForChain(chainId: number): string {
+  const networkMap: Record<number, string> = {
+    // Mainnets
+    1: 'ethereum',          // Ethereum Mainnet
+    8453: 'base',           // Base Mainnet
+    137: 'polygon',         // Polygon Mainnet
+    56: 'bsc',              // BSC Mainnet
+    42161: 'arbitrum',      // Arbitrum One
+    10: 'optimism',         // Optimism
+    43114: 'avalanche',     // Avalanche C-Chain
+    250: 'fantom',          // Fantom
+    // Testnets
+    84532: 'baseSepolia',   // Base Sepolia
+    11155111: 'sepolia',    // Ethereum Sepolia
+    80001: 'polygonMumbai', // Polygon Mumbai
+    97: 'bscTestnet',       // BSC Testnet
+    421614: 'arbitrumSepolia', // Arbitrum Sepolia
+  };
+  return networkMap[chainId] || 'ethereum'; // Default to ethereum
+}
+
+/**
+ * Get display name for a chain ID
+ * @param chainId - EVM chain ID
+ * @returns Human-readable network name
+ */
+export function getNetworkDisplayName(chainId: number): string {
+  const nameMap: Record<number, string> = {
+    1: 'Ethereum',
+    8453: 'Base',
+    137: 'Polygon',
+    56: 'BSC',
+    42161: 'Arbitrum',
+    10: 'Optimism',
+    43114: 'Avalanche',
+    250: 'Fantom',
+    84532: 'Base Sepolia',
+    11155111: 'Sepolia',
+    80001: 'Mumbai',
+    97: 'BSC Testnet',
+  };
+  return nameMap[chainId] || `Chain ${chainId}`;
+}
+
+/**
+ * Get the default network for a cryptocurrency
+ * Used when user doesn't specify which network to deposit from
+ * @param coin - Coin symbol (e.g., 'ETH', 'BTC', 'USDC')
+ * @returns Default network identifier for SideShift
+ */
+export function getDefaultNetworkForCoin(coin: string): string {
+  const networkMap: Record<string, string> = {
+    // Native coins - use their native network
+    BTC: 'bitcoin',
+    ETH: 'ethereum',
+    SOL: 'solana',
+    MATIC: 'polygon',
+    BNB: 'bsc',
+    AVAX: 'avalanche',
+    TRX: 'tron',
+    LTC: 'litecoin',
+    DOGE: 'dogecoin',
+    XRP: 'ripple',
+    ADA: 'cardano',
+    DOT: 'polkadot',
+    ATOM: 'cosmos',
+    // Stablecoins - default to Ethereum (most liquidity)
+    USDC: 'ethereum',
+    USDT: 'ethereum',
+    DAI: 'ethereum',
+    // Default for unknown coins
+  };
+  return networkMap[coin.toUpperCase()] || 'ethereum';
+}
+
+/**
+ * List of testnet chain IDs
+ * SideShift does not support testnets
+ */
+const TESTNET_CHAIN_IDS = [
+  84532,    // Base Sepolia
+  11155111, // Ethereum Sepolia
+  80001,    // Polygon Mumbai
+  97,       // BSC Testnet
+  421614,   // Arbitrum Sepolia
+  11155420, // Optimism Sepolia
+  43113,    // Avalanche Fuji
+] as const;
+
+/**
+ * Check if a chain is a testnet
+ * @param chainId - EVM chain ID
+ * @returns True if the chain is a testnet
+ */
+export function isTestnet(chainId: number): boolean {
+  return TESTNET_CHAIN_IDS.includes(chainId as any);
+}
+
+/**
  * List of native tokens that don't have contract addresses
  * These are the blockchain's native currency
  */

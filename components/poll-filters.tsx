@@ -26,7 +26,13 @@ const statuses = ["All Status", "Active", "Ended", "Upcoming"]
 
 const fundingTypes = ["All Funding", "Self-funded", "Community", "No rewards"]
 
-const sortOptions = ["Latest", "Most Voted", "Highest Reward", "Ending Soon"]
+const sortOptions = [
+  { value: "newest", label: "Newest" },
+  { value: "oldest", label: "Oldest" },
+  { value: "most-votes", label: "Most Votes" },
+  { value: "highest-reward", label: "Highest Reward" },
+  { value: "ending-soon", label: "Ending Soon" },
+]
 
 export function PollFilters({ filters, onFiltersChange }: PollFiltersProps) {
   const [showAdvanced, setShowAdvanced] = useState(false)
@@ -41,7 +47,7 @@ export function PollFilters({ filters, onFiltersChange }: PollFiltersProps) {
       status: "All Status",
       category: "All Categories",
       fundingType: "All Funding",
-      sortBy: "Latest",
+      sortBy: "newest",
     })
   }
 
@@ -64,6 +70,19 @@ export function PollFilters({ filters, onFiltersChange }: PollFiltersProps) {
           />
         </div>
         <div className="flex gap-2">
+          {/* Sort dropdown - always visible */}
+          <Select value={filters.sortBy} onValueChange={(value) => updateFilter("sortBy", value)}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              {sortOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button variant="outline" size="sm" onClick={() => setShowAdvanced(!showAdvanced)}>
             <Filter className="h-4 w-4 mr-2" />
             Filters
@@ -78,7 +97,7 @@ export function PollFilters({ filters, onFiltersChange }: PollFiltersProps) {
       </div>
 
       {showAdvanced && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 border rounded-lg bg-muted/30">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 border rounded-lg bg-muted/30">
           <div className="space-y-2">
             <label className="text-sm font-medium">Status</label>
             <Select value={filters.status} onValueChange={(value) => updateFilter("status", value)}>
@@ -121,22 +140,6 @@ export function PollFilters({ filters, onFiltersChange }: PollFiltersProps) {
                 {fundingTypes.map((type) => (
                   <SelectItem key={type} value={type}>
                     {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Sort by</label>
-            <Select value={filters.sortBy} onValueChange={(value) => updateFilter("sortBy", value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {sortOptions.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {option}
                   </SelectItem>
                 ))}
               </SelectContent>
