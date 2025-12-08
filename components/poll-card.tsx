@@ -49,7 +49,7 @@ interface Poll {
 
 interface PollCardProps {
   poll: Poll
-  onVote?: (pollId: string, optionId: string) => void
+  onVote?: (pollId: string, optionId: string) => Promise<void> | void
   onViewDetails?: (pollId: string) => void
 }
 
@@ -249,7 +249,7 @@ export function PollCard({ poll, onVote, onViewDetails }: PollCardProps) {
         poll={poll}
         open={isVoteDialogOpen}
         onOpenChange={setIsVoteDialogOpen}
-        onVote={onVote || (() => {})}
+        onVote={onVote || (async () => {})}
       />
 
       <FundWithTokenDialog

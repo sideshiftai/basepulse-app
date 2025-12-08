@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
-import { Vote, Clock, Users, Coins } from "lucide-react"
+import { Vote, Clock, Users, Coins, Loader2 } from "lucide-react"
 
 interface VoteDialogProps {
   poll: {
@@ -24,26 +24,55 @@ interface VoteDialogProps {
   }
   open: boolean
   onOpenChange: (open: boolean) => void
-  onVote: (pollId: string, optionId: string) => void
+  onVote: (pollId: string, optionId: string) => Promise<void> | void
   isVoting?: boolean
 }
 
 export function VoteDialog({ poll, open, onOpenChange, onVote, isVoting }: VoteDialogProps) {
   const [selectedOption, setSelectedOption] = useState<string>("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleVote = () => {
-    if (selectedOption) {
-      onVote(poll.id, selectedOption)
+  const handleVote = async () => {
+    if (!selectedOption) return
+
+    setIsSubmitting(true)
+    setError(null)
+
+    try {
+      await onVote(poll.id, selectedOption)
+      // Only close dialog and reset after successful vote
       onOpenChange(false)
       setSelectedOption("")
+    } catch (err) {
+      // Show error but keep dialog open
+      setError(err instanceof Error ? err.message : "Failed to submit vote")
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
+  // Determine if we're in a voting state (either from prop or local state)
+  const voting = isVoting || isSubmitting
+
   const daysRemaining = Math.ceil((new Date(poll.endsAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
 
+  // Prevent closing dialog while voting is in progress
+  const handleOpenChange = (newOpen: boolean) => {
+    if (voting && !newOpen) {
+      // Don't allow closing while voting
+      return
+    }
+    onOpenChange(newOpen)
+    // Reset error when dialog is closed
+    if (!newOpen) {
+      setError(null)
+    }
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-w-md" onPointerDownOutside={(e) => voting && e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="text-left">{poll.title}</DialogTitle>
           <DialogDescription className="text-left">
@@ -76,13 +105,32 @@ export function VoteDialog({ poll, open, onOpenChange, onVote, isVoting }: VoteD
             </div>
           </div>
 
+          {/* Error message */}
+          {error && (
+            <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-lg">
+              {error}
+            </div>
+          )}
+
+          {/* Voting status message */}
+          {voting && (
+            <div className="p-3 text-sm text-blue-600 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Please confirm the transaction in your wallet...</span>
+            </div>
+          )}
+
           <div className="space-y-3">
             <Label className="text-sm font-medium">Choose your option:</Label>
-            <RadioGroup value={selectedOption} onValueChange={setSelectedOption}>
+            <RadioGroup
+              value={selectedOption}
+              onValueChange={setSelectedOption}
+              disabled={voting}
+            >
               {poll.options.map((option) => (
-                <div key={option.id} className="flex items-center space-x-2 p-3 border rounded-lg">
-                  <RadioGroupItem value={option.id} id={option.id} />
-                  <Label htmlFor={option.id} className="flex-1 cursor-pointer">
+                <div key={option.id} className={`flex items-center space-x-2 p-3 border rounded-lg ${voting ? 'opacity-50' : ''}`}>
+                  <RadioGroupItem value={option.id} id={option.id} disabled={voting} />
+                  <Label htmlFor={option.id} className={`flex-1 ${voting ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                     <div className="flex justify-between items-center">
                       <span>{option.text}</span>
                       <span className="text-sm text-muted-foreground">{option.percentage}%</span>
@@ -95,15 +143,24 @@ export function VoteDialog({ poll, open, onOpenChange, onVote, isVoting }: VoteD
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={voting}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleVote} 
-            disabled={!selectedOption || isVoting}
+          <Button
+            onClick={handleVote}
+            disabled={!selectedOption || voting}
           >
-            <Vote className="h-4 w-4 mr-2" />
-            {isVoting ? "Voting..." : "Submit Vote"}
+            {voting ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Confirming...
+              </>
+            ) : (
+              <>
+                <Vote className="h-4 w-4 mr-2" />
+                Submit Vote
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

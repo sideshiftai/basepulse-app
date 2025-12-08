@@ -3,6 +3,7 @@
 /**
  * Unified polls data hook that respects data source selection
  * Uses subgraph when selected, falls back to contract when "contract" is selected
+ * Implements incremental loading - appends new polls on "Load More"
  */
 
 import { useDataSource } from '@/contexts/data-source-context'
@@ -17,6 +18,7 @@ interface UsePollsDataOptions {
 interface UsePollsDataReturn {
   polls: FormattedPoll[]
   loading: boolean
+  loadingMore: boolean
   error: Error | null | undefined
   hasMore: boolean
   loadMore: () => void
@@ -29,6 +31,8 @@ interface UsePollsDataReturn {
  * Hook that provides polls data based on user's data source preference
  * - When data source is "subgraph": uses The Graph subgraph
  * - When data source is "contract": uses direct contract reads via multicall
+ *
+ * Both sources support incremental loading (Load More appends results)
  */
 export function usePollsData(options: UsePollsDataOptions = {}): UsePollsDataReturn {
   const { pageSize = 6 } = options
@@ -43,6 +47,7 @@ export function usePollsData(options: UsePollsDataOptions = {}): UsePollsDataRet
     return {
       polls: subgraphResult.polls,
       loading: subgraphResult.loading,
+      loadingMore: subgraphResult.loadingMore,
       error: subgraphResult.error,
       hasMore: subgraphResult.hasMore,
       loadMore: subgraphResult.loadMore,
@@ -56,6 +61,7 @@ export function usePollsData(options: UsePollsDataOptions = {}): UsePollsDataRet
   return {
     polls: contractResult.polls,
     loading: contractResult.loading,
+    loadingMore: contractResult.loadingMore,
     error: contractResult.error,
     hasMore: contractResult.hasMore,
     loadMore: contractResult.loadMore,

@@ -1,10 +1,11 @@
 /**
  * Hook to fetch polls from The Graph subgraph
+ * Implements incremental loading - appends new polls instead of refetching all
  */
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useQuery } from '@apollo/client/react'
 import { apolloClient } from '@/lib/graphql/apollo-client'
 import { GET_POLLS, GET_ACTIVE_POLLS } from '@/lib/graphql/queries/polls'
@@ -29,6 +30,7 @@ export function useSubgraphPolls(options: UseSubgraphPollsOptions = {}) {
 
   // Client-side only flag to prevent SSR issues
   const [isClient, setIsClient] = useState(false)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
 
   useEffect(() => {
     setIsClient(true)
@@ -55,21 +57,29 @@ export function useSubgraphPolls(options: UseSubgraphPollsOptions = {}) {
     ? mapSubgraphPollsToFormattedPolls(data.polls)
     : []
 
-  const hasMore = data?.polls && data.polls.length === first
+  // hasMore is true if the total polls fetched equals a multiple of `first`
+  // (meaning there could be more pages)
+  const hasMore = data?.polls && data.polls.length > 0 && data.polls.length % first === 0
 
-  const loadMore = async () => {
-    if (!hasMore || loading) return
+  const loadMore = useCallback(async () => {
+    if (!hasMore || loading || isLoadingMore) return
 
-    await fetchMore({
-      variables: {
-        skip: skip + first,
-      },
-    })
-  }
+    setIsLoadingMore(true)
+    try {
+      await fetchMore({
+        variables: {
+          skip: polls.length, // Use current polls length as offset
+        },
+      })
+    } finally {
+      setIsLoadingMore(false)
+    }
+  }, [hasMore, loading, isLoadingMore, fetchMore, polls.length])
 
   return {
     polls,
-    loading,
+    loading: loading && polls.length === 0, // Only show loading for initial fetch
+    loadingMore: isLoadingMore,
     error,
     hasMore,
     loadMore,

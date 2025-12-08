@@ -21,7 +21,7 @@ export default function DappPage() {
     status: "All Status",
     category: "All Categories",
     fundingType: "All Funding",
-    sortBy: "Latest",
+    sortBy: "newest",
   })
   const [mounted, setMounted] = useState(false)
 
@@ -42,6 +42,7 @@ export default function DappPage() {
   const {
     polls,
     loading: isLoading,
+    loadingMore,
     error: pollsError,
     hasMore,
     loadMore,
@@ -55,65 +56,86 @@ export default function DappPage() {
 
   const handleVote = async (pollId: string, optionId: string) => {
     if (!isConnected) {
-      alert("Please connect your wallet to vote")
-      return
+      throw new Error("Please connect your wallet to vote")
+    }
+
+    // Extract option index from optionId (format: "pollId-optionIndex")
+    const optionIndex = parseInt(optionId.split('-')[1])
+
+    if (isNaN(optionIndex) || isNaN(parseInt(pollId))) {
+      throw new Error("Invalid poll ID or option index")
     }
 
     try {
-      // Extract option index from optionId (format: "pollId-optionIndex")
-      const optionIndex = parseInt(optionId.split('-')[1])
-
-      if (isNaN(optionIndex) || isNaN(parseInt(pollId))) {
-        throw new Error("Invalid poll ID or option index")
-      }
-
       await vote(parseInt(pollId), optionIndex)
-
     } catch (error) {
       console.error("Vote failed:", error)
 
+      // Transform error messages to user-friendly versions
       if (error instanceof Error) {
-        if (error.message.includes("User rejected")) {
-          alert("Transaction was rejected by user")
+        if (error.message.includes("User rejected") || error.message.includes("rejected")) {
+          throw new Error("Transaction was rejected")
         } else if (error.message.includes("insufficient funds")) {
-          alert("Insufficient funds for transaction")
+          throw new Error("Insufficient funds for transaction")
         } else if (error.message.includes("already voted")) {
-          alert("You have already voted on this poll")
+          throw new Error("You have already voted on this poll")
         } else {
-          alert(`Vote failed: ${error.message}`)
+          throw error
         }
       } else {
-        alert("Vote failed. Please try again.")
+        throw new Error("Vote failed. Please try again.")
       }
     }
   }
 
-  const filteredPolls = polls.filter((poll) => {
-    if (
-      filters.search &&
-      !poll.title.toLowerCase().includes(filters.search.toLowerCase()) &&
-      !poll.description?.toLowerCase().includes(filters.search.toLowerCase())
-    ) {
-      return false
-    }
-    if (filters.status !== "All Status" && poll.status !== filters.status.toLowerCase()) {
-      return false
-    }
-    if (filters.category !== "All Categories" && poll.category !== filters.category) {
-      return false
-    }
-    if (filters.fundingType !== "All Funding") {
-      const fundingMap = {
-        "Self-funded": "self",
-        Community: "community",
-        "No rewards": "none",
-      }
-      if (poll.fundingType !== fundingMap[filters.fundingType as keyof typeof fundingMap]) {
+  // Filter polls
+  const filteredPolls = polls
+    .filter((poll) => {
+      if (
+        filters.search &&
+        !poll.title.toLowerCase().includes(filters.search.toLowerCase()) &&
+        !poll.description?.toLowerCase().includes(filters.search.toLowerCase())
+      ) {
         return false
       }
-    }
-    return true
-  })
+      if (filters.status !== "All Status" && poll.status !== filters.status.toLowerCase()) {
+        return false
+      }
+      if (filters.category !== "All Categories" && poll.category !== filters.category) {
+        return false
+      }
+      if (filters.fundingType !== "All Funding") {
+        const fundingMap = {
+          "Self-funded": "self",
+          Community: "community",
+          "No rewards": "none",
+        }
+        if (poll.fundingType !== fundingMap[filters.fundingType as keyof typeof fundingMap]) {
+          return false
+        }
+      }
+      return true
+    })
+    // Sort polls
+    .sort((a, b) => {
+      switch (filters.sortBy) {
+        case "newest":
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        case "oldest":
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        case "most-votes":
+          return b.totalVotes - a.totalVotes
+        case "highest-reward":
+          return b.totalReward - a.totalReward
+        case "ending-soon":
+          // Active polls first, then sort by end time (soonest first)
+          if (a.status === "active" && b.status !== "active") return -1
+          if (a.status !== "active" && b.status === "active") return 1
+          return new Date(a.endsAt).getTime() - new Date(b.endsAt).getTime()
+        default:
+          return 0
+      }
+    })
 
   const totalPolls = Number(nextPollId || 0n)
   const activePolls = totalCount
@@ -253,11 +275,11 @@ export default function DappPage() {
                 <div className="flex justify-center mt-8">
                   <Button
                     onClick={loadMore}
-                    disabled={isLoading}
+                    disabled={loadingMore}
                     variant="outline"
                     size="lg"
                   >
-                    {isLoading ? (
+                    {loadingMore ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         Loading...
