@@ -27,10 +27,17 @@ export const CONTRACT_FUNCTIONS = {
   GET_USER_FUNDING: 'getUserFunding',
   IS_POLL_ACTIVE: 'isPollActive',
   NEXT_POLL_ID: 'nextPollId',
+  GET_VOTING_TYPE: 'getVotingType',
+  GET_TOTAL_VOTES_BOUGHT: 'getTotalVotesBought',
+  GET_USER_VOTES_IN_POLL: 'getUserVotesInPoll',
+  PREVIEW_VOTE_COST: 'previewVoteCost',
+  CALCULATE_QUADRATIC_COST: 'calculateQuadraticCost',
 
   // Write functions
   CREATE_POLL: 'createPoll',
+  CREATE_POLL_WITH_VOTING_TYPE: 'createPollWithVotingType',
   VOTE: 'vote',
+  BUY_VOTES: 'buyVotes',
   FUND_POLL_WITH_ETH: 'fundPollWithETH',
   FUND_POLL_WITH_TOKEN: 'fundPollWithToken',
   WITHDRAW_FUNDS: 'withdrawFunds',
@@ -48,6 +55,7 @@ export const CONTRACT_EVENTS = {
   POLL_FUNDED: 'PollFunded',
   TOKEN_WHITELISTED: 'TokenWhitelisted',
   FUNDS_WITHDRAWN: 'FundsWithdrawn',
+  VOTES_BOUGHT: 'VotesBought',
 } as const
 
 // Enums based on the smart contract
@@ -70,6 +78,11 @@ export enum PollStatus {
   PAUSED = 3         // Temporarily suspended
 }
 
+export enum VotingType {
+  LINEAR = 0,        // One person, one vote (default)
+  QUADRATIC = 1      // Pay-per-vote with quadratic cost (premium feature)
+}
+
 // Types based on the smart contract
 export interface Poll {
   id: bigint
@@ -85,6 +98,8 @@ export interface Poll {
   distributionMode: DistributionMode
   status: PollStatus
   previousStatus: PollStatus
+  votingType: VotingType
+  totalVotesBought: bigint
 }
 
 export interface Funding {
