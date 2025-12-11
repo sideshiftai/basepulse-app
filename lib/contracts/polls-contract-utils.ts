@@ -143,11 +143,22 @@ export const useCreatePoll = () => {
 
     const durationInSeconds = BigInt(durationInHours * 3600) // Convert hours to seconds
 
+    // Use createPollWithVotingType if votingType is specified (non-linear)
+    // Otherwise use the simpler createPoll function
+    if (votingType !== VotingType.LINEAR) {
+      return writeContract({
+        address: contractAddress,
+        abi: POLLS_CONTRACT_ABI,
+        functionName: CONTRACT_FUNCTIONS.CREATE_POLL_WITH_VOTING_TYPE,
+        args: [question, options, durationInSeconds, fundingToken, fundingType, votingType],
+      })
+    }
+
     return writeContract({
       address: contractAddress,
       abi: POLLS_CONTRACT_ABI,
       functionName: CONTRACT_FUNCTIONS.CREATE_POLL,
-      args: [question, options, durationInSeconds, fundingToken, fundingType, votingType],
+      args: [question, options, durationInSeconds, fundingToken, fundingType],
     })
   }
 

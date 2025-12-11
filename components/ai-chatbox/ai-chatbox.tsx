@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import { useAccount, useChainId } from "wagmi"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChatMessage } from "./chat-message"
@@ -43,7 +43,7 @@ export function AIChatbox({ className }: AIChatboxProps) {
   const [size, setSize] = useState({ width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT })
   const [isResizing, setIsResizing] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   const cardRef = useRef<HTMLDivElement>(null)
   const { address, isConnected } = useAccount()
   const chainId = useChainId()
@@ -595,8 +595,8 @@ export function AIChatbox({ className }: AIChatboxProps) {
 
       {/* Input */}
       <div className="p-4 border-t shrink-0">
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <Input
+        <form onSubmit={handleSubmit} className="flex gap-2 items-end">
+          <Textarea
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -607,11 +607,13 @@ export function AIChatbox({ className }: AIChatboxProps) {
                 : "Connect wallet first"
             }
             disabled={!isConnected || isLoading || isPollCreationInProgress}
-            className="flex-1"
+            className="flex-1 min-h-[40px] max-h-[200px] resize-y"
+            rows={1}
           />
           <Button
             type="submit"
             size="icon"
+            className="shrink-0"
             disabled={!isConnected || isLoading || !input.trim() || isPollCreationInProgress}
           >
             <Send className="h-4 w-4" />

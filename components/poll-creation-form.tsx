@@ -28,7 +28,7 @@ import { useRouter } from "next/navigation"
 import { TOKEN_INFO, getSupportedTokens, getTokenAddress } from "@/lib/contracts/token-config"
 
 const pollSchema = z.object({
-  title: z.string(),
+  title: z.string().min(1, "Poll title is required"),
   description: z.string().optional(),
   category: z.string().optional(),
   options: z
@@ -127,10 +127,12 @@ export function PollCreationForm() {
   }
 
   // Validate current step before proceeding
-  const validateStep = (step: number): boolean => {
-    const data = getValues()
-
+  const validateStep = async (step: number): Promise<boolean> => {
     if (step === 1) {
+      // Trigger validation for step 1 fields
+      await trigger(["title", "endDate"])
+      const data = getValues()
+
       if (!data.title?.trim()) {
         toast.error("Poll title is required")
         return false
@@ -159,8 +161,8 @@ export function PollCreationForm() {
     return true
   }
 
-  const handleNext = () => {
-    if (validateStep(currentStep)) {
+  const handleNext = async () => {
+    if (await validateStep(currentStep)) {
       setCurrentStep(prev => Math.min(prev + 1, STEPS.length))
     }
   }
@@ -177,6 +179,7 @@ export function PollCreationForm() {
   }
 
   const onSubmit = async (data: PollFormData) => {
+
     if (!isConnected) {
       toast.error("Please connect your wallet to create a poll")
       return
@@ -188,10 +191,11 @@ export function PollCreationForm() {
     }
 
     // Validate all steps
-    if (!validateStep(1) || !validateStep(2)) {
+    if (!(await validateStep(1)) || !(await validateStep(2))) {
       return
     }
 
+    console.log("Passed all validations, about to call createPoll...")
     const validOptions = options.filter(opt => opt && opt.trim() !== "")
 
     try {
@@ -309,7 +313,9 @@ export function PollCreationForm() {
           <Input
             id="title"
             placeholder="What should we decide on?"
-            {...register("title")}
+            value={watch("title") || ""}
+            onChange={(e) => setValue("title", e.target.value, { shouldValidate: true })}
+            onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
             className={errors.title ? "border-destructive" : ""}
           />
           {errors.title && <p className="text-sm text-destructive">{errors.title.message}</p>}
@@ -321,7 +327,8 @@ export function PollCreationForm() {
             id="description"
             placeholder="Provide more context about what this poll is about and why it matters..."
             rows={4}
-            {...register("description")}
+            value={watch("description") || ""}
+            onChange={(e) => setValue("description", e.target.value, { shouldValidate: true })}
             className={errors.description ? "border-destructive" : ""}
           />
           {errors.description && <p className="text-sm text-destructive">{errors.description.message}</p>}
@@ -399,6 +406,7 @@ export function PollCreationForm() {
                 placeholder={`Option ${index + 1}`}
                 value={option}
                 onChange={(e) => updateOption(index, e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
                 className={errors.options?.[index] ? "border-destructive" : ""}
               />
               {errors.options?.[index] && (
@@ -461,7 +469,7 @@ export function PollCreationForm() {
             className="space-y-4"
           >
             <div className="flex items-start space-x-3 p-4 border rounded-lg">
-              <RadioGroupItem value="linear" id="linear" className="mt-1" />
+              <RadioGroupItem value="linear" id="linear" className="mt-1" type="button" />
               <div className="flex-1">
                 <Label htmlFor="linear" className="font-medium cursor-pointer">
                   Linear Voting (Default)
@@ -486,6 +494,7 @@ export function PollCreationForm() {
                 value="quadratic"
                 id="quadratic"
                 className="mt-1"
+                type="button"
                 disabled={!isPremium && !isPremiumLoading}
               />
               <div className="flex-1">
@@ -553,7 +562,7 @@ export function PollCreationForm() {
             className="space-y-4"
           >
             <div className="flex items-start space-x-3 p-4 border rounded-lg">
-              <RadioGroupItem value="none" id="none" className="mt-1" />
+              <RadioGroupItem value="none" id="none" className="mt-1" type="button" />
               <div className="flex-1">
                 <Label htmlFor="none" className="font-medium cursor-pointer">
                   No Rewards
@@ -569,7 +578,7 @@ export function PollCreationForm() {
             </div>
 
             <div className="flex items-start space-x-3 p-4 border rounded-lg">
-              <RadioGroupItem value="self" id="self" className="mt-1" />
+              <RadioGroupItem value="self" id="self" className="mt-1" type="button" />
               <div className="flex-1">
                 <Label htmlFor="self" className="font-medium cursor-pointer">
                   Self-Funded
@@ -585,7 +594,7 @@ export function PollCreationForm() {
             </div>
 
             <div className="flex items-start space-x-3 p-4 border rounded-lg">
-              <RadioGroupItem value="community" id="community" className="mt-1" />
+              <RadioGroupItem value="community" id="community" className="mt-1" type="button" />
               <div className="flex-1">
                 <Label htmlFor="community" className="font-medium cursor-pointer">
                   Community Fund
@@ -673,7 +682,7 @@ export function PollCreationForm() {
         className="mb-8"
       />
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={(e) => e.preventDefault()} className="space-y-8">
         {/* Render current step */}
         {currentStep === 1 && renderStep1()}
         {currentStep === 2 && renderStep2()}
@@ -722,9 +731,10 @@ export function PollCreationForm() {
               </Button>
             ) : (
               <Button
-                type="submit"
+                type="button"
                 size="lg"
                 disabled={isSubmitting || !isConnected || !contractAddress}
+                onClick={handleSubmit(onSubmit)}
               >
                 {isPending && "Preparing transaction..."}
                 {isConfirming && "Confirming transaction..."}
