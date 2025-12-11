@@ -223,3 +223,61 @@ export const GET_POLL_VOTERS = gql`
     }
   }
 `
+
+/**
+ * Get user statistics by address
+ * Used for creator dashboard and user profile
+ */
+export const GET_USER_STATS = gql`
+  query GetUserStats($id: ID!) {
+    user(id: $id) {
+      id
+      address
+      pollsCreatedCount
+      totalVotes
+      pollsParticipated
+      totalRewards
+      totalFunded
+      firstSeenAt
+      lastSeenAt
+    }
+  }
+`
+
+/**
+ * Get polls created by a specific address
+ * Used for creator dashboard
+ */
+export const GET_POLLS_BY_CREATOR = gql`
+  query GetPollsByCreator(
+    $creator: Bytes!
+    $first: Int = 100
+    $skip: Int = 0
+    $orderBy: Poll_orderBy = createdAt
+    $orderDirection: OrderDirection = desc
+  ) {
+    polls(
+      where: { creator: $creator }
+      first: $first
+      skip: $skip
+      orderBy: $orderBy
+      orderDirection: $orderDirection
+    ) {
+      id
+      pollId
+      question
+      options
+      votes
+      endTime
+      isActive
+      totalFunding
+      totalFundingAmount
+      voteCount
+      voterCount
+      distributionMode
+      fundingType
+      status
+      createdAt
+    }
+  }
+`

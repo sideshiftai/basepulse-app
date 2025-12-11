@@ -23,6 +23,7 @@ interface UsePollsDataReturn {
   hasMore: boolean
   loadMore: () => void
   refetch: () => void
+  refetchPoll: (pollId: number) => void
   totalCount: number
   source: 'subgraph' | 'contract'
 }
@@ -52,6 +53,7 @@ export function usePollsData(options: UsePollsDataOptions = {}): UsePollsDataRet
       hasMore: subgraphResult.hasMore,
       loadMore: subgraphResult.loadMore,
       refetch: subgraphResult.refetch,
+      refetchPoll: subgraphResult.refetchPoll,
       totalCount: subgraphResult.polls.length + (subgraphResult.hasMore ? pageSize : 0),
       source: 'subgraph',
     }
@@ -66,6 +68,7 @@ export function usePollsData(options: UsePollsDataOptions = {}): UsePollsDataRet
     hasMore: contractResult.hasMore,
     loadMore: contractResult.loadMore,
     refetch: contractResult.refetch,
+    refetchPoll: contractResult.refetchPoll,
     totalCount: contractResult.totalCount,
     source: 'contract',
   }

@@ -29,6 +29,7 @@ interface UseContractPollsPaginatedReturn {
   hasMore: boolean
   loadMore: () => void
   refetch: () => void
+  refetchPoll: (pollId: number) => void
   totalCount: number
 }
 
@@ -237,6 +238,113 @@ export function useContractPollsPaginated(
     refetchPolls()
   }, [refetchIds, refetchPolls])
 
+  // Refetch a single poll by ID and update it in the accumulated polls
+  const refetchPoll = useCallback(async (pollId: number) => {
+    if (!contractAddress) return
+
+    try {
+      // Use viem's readContract directly for a single poll fetch
+      const { readContract } = await import('viem/actions')
+      const { getPublicClient } = await import('wagmi/actions')
+      const { config } = await import('@/lib/wagmi')
+
+      const publicClient = getPublicClient(config, { chainId })
+      if (!publicClient) return
+
+      // Fetch the poll data
+      const pollData = await readContract(publicClient, {
+        address: contractAddress,
+        abi: POLLS_CONTRACT_ABI,
+        functionName: 'getPoll',
+        args: [BigInt(pollId)],
+      }) as any[]
+
+      // Fetch hasUserVoted if user is connected
+      let hasVoted = false
+      if (userAddress) {
+        hasVoted = await readContract(publicClient, {
+          address: contractAddress,
+          abi: POLLS_CONTRACT_ABI,
+          functionName: 'hasUserVoted',
+          args: [BigInt(pollId), userAddress],
+        }) as boolean
+      }
+
+      // Extract poll fields from contract response
+      const [
+        id,
+        question,
+        options,
+        votes,
+        endTime,
+        isActive,
+        creator,
+        totalFunding,
+        distributionMode,
+        fundingToken,
+        fundingType,
+      ] = pollData
+
+      // Calculate total votes
+      const votesArray = votes as bigint[]
+      const totalVotes = votesArray.reduce(
+        (sum: number, vote: bigint) => sum + Number(vote),
+        0
+      )
+
+      // Determine funding type string
+      let fundingTypeString: 'none' | 'self' | 'community'
+      if (fundingType === FundingType.NONE) {
+        fundingTypeString = 'none'
+      } else if (fundingType === FundingType.SELF) {
+        fundingTypeString = 'self'
+      } else {
+        fundingTypeString = 'community'
+      }
+
+      // Get token symbol
+      const tokenSymbol = getTokenSymbol(chainId, fundingToken as Address) || 'ETH'
+
+      // Determine status
+      const endTimeMs = Number(endTime) * 1000
+      const isEnded = Date.now() >= endTimeMs
+      const status: 'active' | 'ended' = isActive && !isEnded ? 'active' : 'ended'
+
+      const updatedPoll: FormattedPoll = {
+        id: pollId.toString(),
+        title: question,
+        description: `Poll created by ${creator}`,
+        creator: creator as Address,
+        createdAt: new Date().toISOString(),
+        endsAt: new Date(endTimeMs).toISOString(),
+        totalVotes,
+        totalReward: Number(totalFunding) / 1e18,
+        status,
+        category: 'General',
+        fundingType: fundingTypeString,
+        fundingToken: tokenSymbol,
+        chainId,
+        hasVoted,
+        options: (options as string[]).map((option: string, optIndex: number) => ({
+          id: `${pollId}-${optIndex}`,
+          text: option,
+          votes: Number(votesArray[optIndex]),
+          percentage:
+            totalVotes > 0
+              ? Math.round((Number(votesArray[optIndex]) / totalVotes) * 100)
+              : 0,
+        })),
+      }
+
+      // Update the poll in accumulated polls
+      setAccumulatedPolls(prev =>
+        prev.map(poll => poll.id === pollId.toString() ? updatedPoll : poll)
+      )
+    } catch (error) {
+      console.error('Failed to refetch poll:', error)
+    }
+  }, [contractAddress, chainId, userAddress])
+
   // Calculate hasMore
   const totalPolls = allActivePollIds?.length || 0
   const hasMore = accumulatedPolls.length < totalPolls
@@ -252,6 +360,7 @@ export function useContractPollsPaginated(
     hasMore,
     loadMore,
     refetch,
+    refetchPoll,
     totalCount: totalPolls,
   }
 }

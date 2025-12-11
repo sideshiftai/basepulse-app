@@ -3,15 +3,13 @@
 import { useState, useEffect, useMemo } from "react"
 import { AlertCircle } from "lucide-react"
 import { useAccount, useChainId } from "wagmi"
-import { useActivePolls, usePoll } from "@/lib/contracts/polls-contract-utils"
-import { formatEther } from "viem"
 import { DashboardStats } from "@/components/creator/dashboard-stats"
 import { ResponsesOverviewChart } from "@/components/creator/responses-overview-chart"
 import { ResponsesTimelineChart } from "@/components/creator/responses-timeline-chart"
 import { PendingDistributionsCard } from "@/components/creator/pending-distributions-card"
 import { fetchAnalyticsTrends } from "@/lib/api/analytics"
 import { CreatorBreadcrumb } from "@/components/creator/creator-breadcrumb"
-import { usePendingDistributionsCount } from "@/lib/hooks/use-pending-distributions"
+import { useCreatorDashboardData } from "@/hooks/use-creator-dashboard-data"
 
 export default function CreatorPage() {
   const [timelineData, setTimelineData] = useState<any[]>([])
@@ -20,88 +18,36 @@ export default function CreatorPage() {
 
   const { address, isConnected } = useAccount()
   const chainId = useChainId()
-  const { data: activePollIds, isLoading: pollsLoading } = useActivePolls()
 
-  // Fetch all polls (we'll get up to 10 to have more data)
-  const pollQueries = Array.from({ length: 10 }, (_, i) =>
-    usePoll(activePollIds?.[i] ? Number(activePollIds[i]) : 0)
-  )
+  // Use the new subgraph-powered hook for creator dashboard data
+  const {
+    stats,
+    polls,
+    loading: pollsLoading,
+    error: pollsError,
+  } = useCreatorDashboardData(address)
 
-  // Filter and format polls created by current user
-  const myPolls = useMemo(() => {
-    if (!activePollIds || !address) return []
-
-    return activePollIds
-      .slice(0, 10)
-      .map((pollId: bigint, index: number) => {
-        const pollData = pollQueries[index]
-        if (!pollData.data) return null
-
-        const [id, question, options, votes, endTime, isActive, creator, totalFunding, distributionMode] = pollData.data
-
-        // Only include polls created by current user
-        if (creator.toLowerCase() !== address.toLowerCase()) return null
-
-        return {
-          id,
-          question,
-          isActive,
-          totalVotes: votes.reduce((sum: bigint, vote: bigint) => sum + vote, BigInt(0)),
-          totalFunding,
-          endTime,
-          distributionMode: distributionMode as 0 | 1 | 2,
-          options: options.map((option: string, idx: number) => ({
-            text: option,
-            votes: votes[idx],
-          })),
-        }
-      })
-      .filter(Boolean)
-  }, [activePollIds, address, pollQueries])
-
-  // Calculate dashboard stats
-  const dashboardStats = useMemo(() => {
-    const totalPolls = myPolls.length
-    const activePolls = myPolls.filter((p) => p.isActive).length
-    const totalResponses = myPolls.reduce(
-      (sum, poll) => sum + Number(poll.totalVotes),
-      0
-    )
-    const totalFunded = myPolls.reduce(
-      (sum, poll) => sum + Number(formatEther(poll.totalFunding)),
-      0
-    )
-
-    return {
-      totalPolls,
-      activePolls,
-      totalResponses,
-      totalFunded: `${totalFunded.toFixed(4)} ETH`,
-    }
-  }, [myPolls])
-
-  // Calculate pending distributions count
-  const pendingDistributionsCount = usePendingDistributionsCount(myPolls)
-
-  // Calculate responses overview data
+  // Calculate responses overview data from polls
   const responsesOverviewData = useMemo(() => {
     const optionVotes: { [key: string]: number } = {}
 
-    myPolls.forEach((poll) => {
+    polls.forEach((poll) => {
       if (poll.isActive) {
-        poll.options.forEach((option) => {
-          const optionText = option.text.slice(0, 20) // Truncate long options
-          optionVotes[optionText] = (optionVotes[optionText] || 0) + Number(option.votes)
+        poll.options.forEach((optionText, idx) => {
+          const truncatedOption = optionText.slice(0, 20) // Truncate long options
+          const voteCount = Number(poll.votes[idx] || BigInt(0))
+          optionVotes[truncatedOption] = (optionVotes[truncatedOption] || 0) + voteCount
         })
       }
     })
 
     return Object.entries(optionVotes)
       .map(([option, responses]) => ({ option, responses }))
+      .sort((a, b) => b.responses - a.responses)
       .slice(0, 10) // Top 10 options
-  }, [myPolls])
+  }, [polls])
 
-  // Fetch timeline data
+  // Fetch timeline data from backend API
   useEffect(() => {
     const loadTrends = async () => {
       setIsLoadingTrends(true)
@@ -162,20 +108,26 @@ export default function CreatorPage() {
           <p className="text-muted-foreground">
             Analytics and insights for your polls
           </p>
+          {pollsError && (
+            <div className="flex items-center gap-2 text-red-600 mt-2">
+              <AlertCircle className="h-4 w-4" />
+              <span className="text-sm">Error loading data: {pollsError.message}</span>
+            </div>
+          )}
         </div>
 
         {/* Dashboard Stats */}
         <DashboardStats
-          totalPolls={dashboardStats.totalPolls}
-          totalResponses={dashboardStats.totalResponses}
-          activePolls={dashboardStats.activePolls}
-          totalFunded={dashboardStats.totalFunded}
+          totalPolls={stats.totalPolls}
+          totalResponses={stats.totalResponses}
+          activePolls={stats.activePolls}
+          totalFunded={stats.totalFunded}
           isLoading={pollsLoading}
         />
 
         {/* Pending Distributions */}
         <PendingDistributionsCard
-          pendingCount={pendingDistributionsCount}
+          pendingCount={stats.pendingDistributions}
           isLoading={pollsLoading}
         />
 

@@ -46,6 +46,7 @@ export default function DappPage() {
     error: pollsError,
     hasMore,
     loadMore,
+    refetchPoll,
     totalCount,
     source: dataSourceUsed,
   } = usePollsData({ pageSize: 6 })
@@ -266,6 +267,7 @@ export default function DappPage() {
                     onViewDetails={(pollId) => {
                       router.push(`/dapp/poll/${pollId}`)
                     }}
+                    onFundSuccess={refetchPoll}
                   />
                 ))}
               </div>
