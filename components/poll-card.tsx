@@ -51,9 +51,10 @@ interface PollCardProps {
   poll: Poll
   onVote?: (pollId: string, optionId: string) => Promise<void> | void
   onViewDetails?: (pollId: string) => void
+  onFundSuccess?: (pollId: number) => void
 }
 
-export function PollCard({ poll, onVote, onViewDetails }: PollCardProps) {
+export function PollCard({ poll, onVote, onViewDetails, onFundSuccess }: PollCardProps) {
   const [isVoteDialogOpen, setIsVoteDialogOpen] = useState(false)
   const [isFundDialogOpen, setIsFundDialogOpen] = useState(false)
   const [isCryptoFundDialogOpen, setIsCryptoFundDialogOpen] = useState(false)
@@ -258,6 +259,7 @@ export function PollCard({ poll, onVote, onViewDetails }: PollCardProps) {
         pollId={parseInt(poll.id)}
         pollTitle={poll.title}
         pollFundingToken={poll.fundingToken}
+        onSuccess={onFundSuccess}
       />
 
       <FundPollDialog

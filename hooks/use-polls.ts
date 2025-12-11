@@ -17,6 +17,7 @@ export interface FormattedPoll {
   fundingType: 'community' | 'self' | 'none'
   fundingToken?: string // Token symbol (ETH, USDC, PULSE)
   chainId?: number // Network where poll was created (8453 = Base Mainnet, 84532 = Base Sepolia)
+  hasVoted?: boolean // Whether the current user has voted on this poll
   options: Array<{
     id: string
     text: string

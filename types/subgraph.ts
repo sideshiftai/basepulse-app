@@ -147,3 +147,53 @@ export interface SimplifiedFunding {
   amount: number
   timestamp: Date
 }
+
+/**
+ * User entity from subgraph
+ */
+export interface SubgraphUser {
+  id: string
+  address: string
+  pollsCreatedCount: number
+  totalVotes: number
+  pollsParticipated: number
+  totalRewards: string
+  totalFunded: string
+  firstSeenAt: string
+  lastSeenAt: string
+}
+
+/**
+ * Extended poll entity with creator dashboard fields
+ */
+export interface SubgraphCreatorPoll {
+  id: string
+  pollId: string
+  question: string
+  options: string[]
+  votes: string[]
+  endTime: string
+  isActive: boolean
+  totalFunding: string
+  totalFundingAmount: string
+  voteCount: string
+  voterCount: string
+  distributionMode: 'MANUAL_PULL' | 'MANUAL_PUSH' | 'AUTOMATED'
+  fundingType: 'NONE' | 'SELF' | 'COMMUNITY'
+  status: 'ACTIVE' | 'CLOSED' | 'FOR_CLAIMING' | 'PAUSED'
+  createdAt: string
+}
+
+/**
+ * Query response for user stats
+ */
+export interface GetUserStatsResponse {
+  user: SubgraphUser | null
+}
+
+/**
+ * Query response for polls by creator
+ */
+export interface GetPollsByCreatorResponse {
+  polls: SubgraphCreatorPoll[]
+}

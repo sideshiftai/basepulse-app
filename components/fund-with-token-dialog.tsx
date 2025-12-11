@@ -35,6 +35,7 @@ interface FundWithTokenDialogProps {
   pollId: number
   pollTitle: string
   pollFundingToken?: string // The token symbol this poll accepts (ETH, USDC, PULSE)
+  onSuccess?: (pollId: number) => void // Callback when funding succeeds with the poll ID
 }
 
 export function FundWithTokenDialog({
@@ -43,6 +44,7 @@ export function FundWithTokenDialog({
   pollId,
   pollTitle,
   pollFundingToken = "ETH", // Default to ETH if not provided
+  onSuccess,
 }: FundWithTokenDialogProps) {
   const { address } = useAccount()
   const chainId = useChainId()
@@ -136,8 +138,7 @@ export function FundWithTokenDialog({
         if (!selectedTokenAddress || !tokenInfo) return
         await fundPollWithToken(pollId, selectedTokenAddress, amount, tokenInfo.decimals)
       }
-
-      toast.success("Poll funded successfully!")
+      // Success toast is shown in useEffect when isFundSuccess becomes true
     } catch (error: any) {
       console.error("Funding error:", error)
       toast.error(error.message || "Failed to fund poll")
@@ -166,11 +167,13 @@ export function FundWithTokenDialog({
   // Reset when funding succeeds
   useEffect(() => {
     if (isFundSuccess && step === "fund") {
+      toast.success("Poll funded successfully!")
       setAmount("")
       setStep("input")
       onOpenChange(false)
+      onSuccess?.(pollId)
     }
-  }, [isFundSuccess, step, onOpenChange])
+  }, [isFundSuccess, step, onOpenChange, onSuccess, pollId])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
