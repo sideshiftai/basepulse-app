@@ -236,8 +236,8 @@ npm run lint         # Run ESLint
 
 ## Live URLs
 
-- **App:** https://pulse.sideshift.ai
-- **API:** https://api.pulse.sideshift.ai
+- **App:** https://sspulse.vercel.app
+- **API:** https://basepulse-api.onrender.com
 
 ## Contributing
 
