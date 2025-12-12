@@ -12,11 +12,13 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Wallet, LogOut, User, Copy, ExternalLink, Network, CheckCircle2 } from "lucide-react"
+import { Wallet, LogOut, User, Copy, ExternalLink, Network, CheckCircle2, Crown } from "lucide-react"
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { base, baseSepolia } from "wagmi/chains"
 import { usePollsContractAddress } from "@/lib/contracts/polls-contract-utils"
+import { useIsPremiumOrStaked } from "@/lib/contracts/premium-contract-utils"
+import Link from "next/link"
 
 export function ConnectWalletButton() {
   const { open } = useAppKit()
@@ -25,6 +27,8 @@ export function ConnectWalletButton() {
   const { switchChain } = useSwitchChain()
   const chainId = useChainId()
   const contractAddress = usePollsContractAddress()
+  const { data: isPremiumData } = useIsPremiumOrStaked(address)
+  const isPremium = isPremiumData as boolean | undefined
   const [isLoading, setIsLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
 
@@ -186,7 +190,24 @@ export function ConnectWalletButton() {
         ))}
         
         <DropdownMenuSeparator />
-        
+
+        {/* Premium Status */}
+        {isPremium ? (
+          <div className="px-2 py-2 flex items-center gap-2">
+            <Crown className="h-4 w-4 text-amber-500" />
+            <span className="text-sm font-medium text-amber-600 dark:text-amber-400">Premium</span>
+          </div>
+        ) : (
+          <DropdownMenuItem asChild>
+            <Link href="/upgrade" className="flex items-center gap-2">
+              <Crown className="h-4 w-4" />
+              <span>Upgrade to Premium</span>
+            </Link>
+          </DropdownMenuItem>
+        )}
+
+        <DropdownMenuSeparator />
+
         <DropdownMenuItem onClick={() => open({ view: "Account" })}>
           <User className="h-4 w-4 mr-2" />
           Account

@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Coins, TrendingUp, Users, ShoppingCart, AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
-import { useAccount, useChainId } from "wagmi"
+import { useAccount, useChainId, useBalance } from "wagmi"
+import { formatEther, formatUnits } from "viem"
 import {
   useSaleStats,
   useRemainingAllowance,
@@ -26,18 +27,40 @@ import {
   formatETHAmount,
   useDirectSaleAddress,
 } from "@/lib/contracts/direct-sale-utils"
-import { DIRECT_SALE_CONFIG } from "@/lib/contracts/direct-sale-config"
+import { DIRECT_SALE_CONFIG, getUSDCAddress } from "@/lib/contracts/direct-sale-config"
+import { useReadContract } from "wagmi"
 
 export default function BuyPulsePage() {
   const [paymentMethod, setPaymentMethod] = useState<"eth" | "usdc">("usdc")
   const [tokenAmount, setTokenAmount] = useState("")
   const [paymentAmount, setPaymentAmount] = useState("")
+  const [inputMode, setInputMode] = useState<"payment" | "token">("payment") // Track which field user is editing
   const [needsApproval, setNeedsApproval] = useState(false)
   const [mounted, setMounted] = useState(false)
 
   const { isConnected, address } = useAccount()
   const chainId = useChainId()
   const contractAddress = useDirectSaleAddress()
+
+  // Wallet balances
+  const { data: ethBalance, isLoading: ethBalanceLoading } = useBalance({ address })
+  const usdcAddress = getUSDCAddress(chainId)
+  const { data: usdcBalanceData, isLoading: usdcBalanceLoading } = useReadContract({
+    address: usdcAddress as `0x${string}`,
+    abi: [
+      {
+        name: "balanceOf",
+        type: "function",
+        stateMutability: "view",
+        inputs: [{ name: "account", type: "address" }],
+        outputs: [{ name: "", type: "uint256" }],
+      },
+    ] as const,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    query: { enabled: !!address && !!usdcAddress },
+  })
+  const usdcBalance = usdcBalanceData as bigint | undefined
 
   // Contract read hooks
   const { data: saleStats } = useSaleStats()
@@ -59,6 +82,40 @@ export default function BuyPulsePage() {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Sync token amount when payment changes (and user is editing payment field)
+  useEffect(() => {
+    if (inputMode === "payment" && paymentAmount) {
+      if (paymentMethod === "eth" && tokensForETH) {
+        const tokens = formatTokenAmount(tokensForETH as bigint)
+        if (tokens !== tokenAmount) {
+          setTokenAmount(tokens)
+        }
+      } else if (paymentMethod === "usdc" && tokensForUSDC) {
+        const tokens = formatTokenAmount(tokensForUSDC as bigint)
+        if (tokens !== tokenAmount) {
+          setTokenAmount(tokens)
+        }
+      }
+    }
+  }, [inputMode, paymentMethod, paymentAmount, tokensForETH, tokensForUSDC])
+
+  // Sync payment amount when token amount changes (and user is editing token field)
+  useEffect(() => {
+    if (inputMode === "token" && tokenAmount) {
+      if (paymentMethod === "eth" && ethCost) {
+        const cost = formatETHAmount(ethCost as bigint)
+        if (cost !== paymentAmount) {
+          setPaymentAmount(cost)
+        }
+      } else if (paymentMethod === "usdc" && usdcCost) {
+        const cost = formatUSDCAmount(usdcCost as bigint)
+        if (cost !== paymentAmount) {
+          setPaymentAmount(cost)
+        }
+      }
+    }
+  }, [inputMode, paymentMethod, tokenAmount, ethCost, usdcCost])
 
   // Parse sale stats
   const stats = saleStats as readonly [bigint, bigint, bigint, bigint, bigint] | undefined
@@ -95,28 +152,36 @@ export default function BuyPulsePage() {
   }
 
   const handleTokenAmountChange = (value: string) => {
+    setInputMode("token")
     setTokenAmount(value)
-    if (value && !isNaN(Number(value))) {
-      if (paymentMethod === "eth") {
-        const cost = formatETHAmount(ethCost)
-        setPaymentAmount(cost)
-      } else {
-        const cost = formatUSDCAmount(usdcCost)
-        setPaymentAmount(cost)
-      }
+    // Clear payment amount when entering token amount directly
+    // The useEffect will calculate the correct payment amount
+    if (!value || value === "0") {
+      setPaymentAmount("")
     }
   }
 
   const handlePaymentAmountChange = (value: string) => {
+    setInputMode("payment")
     setPaymentAmount(value)
-    if (value && !isNaN(Number(value))) {
-      if (paymentMethod === "eth") {
-        const tokens = formatTokenAmount(tokensForETH)
-        setTokenAmount(tokens)
-      } else {
-        const tokens = formatTokenAmount(tokensForUSDC)
-        setTokenAmount(tokens)
-      }
+    // Clear token amount when entering payment amount directly
+    // The useEffect will calculate the correct token amount
+    if (!value || value === "0") {
+      setTokenAmount("")
+    }
+  }
+
+  // Handle max button click
+  const handleMaxPayment = () => {
+    setInputMode("payment")
+    if (paymentMethod === "eth" && ethBalance) {
+      // Leave some ETH for gas (0.01 ETH)
+      const maxEth = ethBalance.value > BigInt("10000000000000000")
+        ? formatEther(ethBalance.value - BigInt("10000000000000000"))
+        : "0"
+      setPaymentAmount(maxEth)
+    } else if (paymentMethod === "usdc" && usdcBalance) {
+      setPaymentAmount(formatUnits(usdcBalance, 6))
     }
   }
 
@@ -233,7 +298,12 @@ export default function BuyPulsePage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Payment Method Tabs */}
-              <Tabs value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as "eth" | "usdc")}>
+              <Tabs value={paymentMethod} onValueChange={(v) => {
+                setPaymentMethod(v as "eth" | "usdc")
+                // Clear amounts when switching payment method
+                setPaymentAmount("")
+                setTokenAmount("")
+              }}>
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="eth">Pay with ETH</TabsTrigger>
                   <TabsTrigger value="usdc">Pay with USDC</TabsTrigger>
@@ -241,15 +311,36 @@ export default function BuyPulsePage() {
 
                 <TabsContent value="eth" className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="eth-amount">ETH Amount</Label>
-                    <Input
-                      id="eth-amount"
-                      type="number"
-                      placeholder="0.0"
-                      value={paymentAmount}
-                      onChange={(e) => handlePaymentAmountChange(e.target.value)}
-                      disabled={!isConnected || !isSaleActive}
-                    />
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="eth-amount">ETH Amount</Label>
+                      {isConnected && (
+                        <span className="text-xs text-muted-foreground">
+                          Balance: {ethBalanceLoading ? "..." : ethBalance ? parseFloat(formatEther(ethBalance.value)).toFixed(4) : "0"} ETH
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        id="eth-amount"
+                        type="number"
+                        placeholder="0.0"
+                        value={paymentAmount}
+                        onChange={(e) => handlePaymentAmountChange(e.target.value)}
+                        disabled={!isConnected || !isSaleActive}
+                        className="flex-1"
+                      />
+                      {isConnected && ethBalance && ethBalance.value > BigInt(0) && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleMaxPayment}
+                          disabled={!isSaleActive}
+                          className="shrink-0"
+                        >
+                          Max
+                        </Button>
+                      )}
+                    </div>
                     <p className="text-sm text-muted-foreground">
                       1 ETH = 100,000 PULSE (at ~$1000/ETH)
                     </p>
@@ -258,15 +349,36 @@ export default function BuyPulsePage() {
 
                 <TabsContent value="usdc" className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="usdc-amount">USDC Amount</Label>
-                    <Input
-                      id="usdc-amount"
-                      type="number"
-                      placeholder="0.0"
-                      value={paymentAmount}
-                      onChange={(e) => handlePaymentAmountChange(e.target.value)}
-                      disabled={!isConnected || !isSaleActive}
-                    />
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="usdc-amount">USDC Amount</Label>
+                      {isConnected && (
+                        <span className="text-xs text-muted-foreground">
+                          Balance: {usdcBalanceLoading ? "..." : usdcBalance ? parseFloat(formatUnits(usdcBalance, 6)).toFixed(2) : "0"} USDC
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        id="usdc-amount"
+                        type="number"
+                        placeholder="0.0"
+                        value={paymentAmount}
+                        onChange={(e) => handlePaymentAmountChange(e.target.value)}
+                        disabled={!isConnected || !isSaleActive}
+                        className="flex-1"
+                      />
+                      {isConnected && usdcBalance && usdcBalance > BigInt(0) && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleMaxPayment}
+                          disabled={!isSaleActive}
+                          className="shrink-0"
+                        >
+                          Max
+                        </Button>
+                      )}
+                    </div>
                     <p className="text-sm text-muted-foreground">
                       1 USDC = 100 PULSE (0.01 USDC per PULSE)
                     </p>
