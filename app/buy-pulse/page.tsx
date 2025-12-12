@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Coins, TrendingUp, Users, ShoppingCart, AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
 import { useAccount, useChainId, useBalance } from "wagmi"
-import { formatEther, formatUnits } from "viem"
+import { formatEther, formatUnits, parseUnits } from "viem"
 import {
   useSaleStats,
   useRemainingAllowance,
@@ -62,6 +62,27 @@ export default function BuyPulsePage() {
   })
   const usdcBalance = usdcBalanceData as bigint | undefined
 
+  // USDC allowance for DirectTokenSale contract
+  const { data: usdcAllowanceData, refetch: refetchAllowance } = useReadContract({
+    address: usdcAddress as `0x${string}`,
+    abi: [
+      {
+        name: "allowance",
+        type: "function",
+        stateMutability: "view",
+        inputs: [
+          { name: "owner", type: "address" },
+          { name: "spender", type: "address" },
+        ],
+        outputs: [{ name: "", type: "uint256" }],
+      },
+    ] as const,
+    functionName: "allowance",
+    args: address && contractAddress ? [address, contractAddress as `0x${string}`] : undefined,
+    query: { enabled: !!address && !!usdcAddress && !!contractAddress },
+  })
+  const usdcAllowance = usdcAllowanceData as bigint | undefined
+
   // Contract read hooks
   const { data: saleStats } = useSaleStats()
   const { data: isSaleActive } = useIsSaleActive()
@@ -110,6 +131,24 @@ export default function BuyPulsePage() {
       }
     }
   }, [inputMode, paymentMethod, ethCost, usdcCost])
+
+  // Check if USDC approval is needed
+  useEffect(() => {
+    if (paymentMethod === "usdc" && paymentAmount && parseFloat(paymentAmount) > 0) {
+      const paymentAmountWei = parseUnits(paymentAmount, 6) // USDC has 6 decimals
+      const needsApprove = !usdcAllowance || usdcAllowance < paymentAmountWei
+      setNeedsApproval(needsApprove)
+    } else {
+      setNeedsApproval(false)
+    }
+  }, [paymentMethod, paymentAmount, usdcAllowance])
+
+  // Refetch allowance after successful approval
+  useEffect(() => {
+    if (isSuccessApproval) {
+      refetchAllowance()
+    }
+  }, [isSuccessApproval, refetchAllowance])
 
   // Parse sale stats
   const stats = saleStats as readonly [bigint, bigint, bigint, bigint, bigint] | undefined
@@ -346,9 +385,14 @@ export default function BuyPulsePage() {
                     <div className="flex items-center justify-between">
                       <Label htmlFor="usdc-amount">USDC Amount</Label>
                       {isConnected && (
-                        <span className="text-xs text-muted-foreground">
-                          Balance: {usdcBalanceLoading ? "..." : usdcBalance ? parseFloat(formatUnits(usdcBalance, 6)).toFixed(2) : "0"} USDC
-                        </span>
+                        <div className="flex flex-col items-end gap-0.5">
+                          <span className="text-xs text-muted-foreground">
+                            Balance: {usdcBalanceLoading ? "..." : usdcBalance ? parseFloat(formatUnits(usdcBalance, 6)).toFixed(2) : "0"} USDC
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            Allowance: {usdcAllowance !== undefined ? parseFloat(formatUnits(usdcAllowance, 6)).toFixed(2) : "0"} USDC
+                          </span>
+                        </div>
                       )}
                     </div>
                     <div className="flex gap-2">
@@ -376,6 +420,15 @@ export default function BuyPulsePage() {
                     <p className="text-sm text-muted-foreground">
                       1 USDC = 100 PULSE (0.01 USDC per PULSE)
                     </p>
+                    {/* Approval Warning */}
+                    {needsApproval && paymentAmount && parseFloat(paymentAmount) > 0 && (
+                      <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
+                        <AlertCircle className="h-4 w-4 text-amber-600" />
+                        <AlertDescription className="text-amber-700 dark:text-amber-300">
+                          You need to approve {paymentAmount} USDC before purchasing. Click "Approve USDC" below.
+                        </AlertDescription>
+                      </Alert>
+                    )}
                   </div>
                 </TabsContent>
               </Tabs>
