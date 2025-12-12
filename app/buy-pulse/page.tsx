@@ -73,11 +73,13 @@ export default function BuyPulsePage() {
   const { buyWithUSDC, isPending: isBuyingUSDC, isConfirming: isConfirmingUSDC, isSuccess: isSuccessUSDC, error: errorUSDC } = useBuyWithUSDC()
   const { approveUSDC, isPending: isApproving, isConfirming: isConfirmingApproval, isSuccess: isSuccessApproval } = useApproveUSDC()
 
-  // Calculation hooks
-  const { data: tokensForETH } = useCalculateTokensForETH(paymentMethod === "eth" ? paymentAmount : "0")
-  const { data: tokensForUSDC } = useCalculateTokensForUSDC(paymentMethod === "usdc" ? paymentAmount : "0")
-  const { data: ethCost } = useCalculateETHCost(paymentMethod === "eth" ? tokenAmount : "0")
-  const { data: usdcCost } = useCalculateUSDCCost(paymentMethod === "usdc" ? tokenAmount : "0")
+  // Calculation hooks - always calculate based on current values
+  // Calculate tokens for payment amount (payment → tokens)
+  const { data: tokensForETH } = useCalculateTokensForETH(paymentMethod === "eth" && inputMode === "payment" ? paymentAmount : "0")
+  const { data: tokensForUSDC } = useCalculateTokensForUSDC(paymentMethod === "usdc" && inputMode === "payment" ? paymentAmount : "0")
+  // Calculate cost for token amount (tokens → payment)
+  const { data: ethCost } = useCalculateETHCost(paymentMethod === "eth" && inputMode === "token" ? tokenAmount : "0")
+  const { data: usdcCost } = useCalculateUSDCCost(paymentMethod === "usdc" && inputMode === "token" ? tokenAmount : "0")
 
   useEffect(() => {
     setMounted(true)
@@ -85,37 +87,29 @@ export default function BuyPulsePage() {
 
   // Sync token amount when payment changes (and user is editing payment field)
   useEffect(() => {
-    if (inputMode === "payment" && paymentAmount) {
-      if (paymentMethod === "eth" && tokensForETH) {
+    if (inputMode === "payment" && paymentAmount && parseFloat(paymentAmount) > 0) {
+      if (paymentMethod === "eth" && tokensForETH !== undefined) {
         const tokens = formatTokenAmount(tokensForETH as bigint)
-        if (tokens !== tokenAmount) {
-          setTokenAmount(tokens)
-        }
-      } else if (paymentMethod === "usdc" && tokensForUSDC) {
+        setTokenAmount(tokens)
+      } else if (paymentMethod === "usdc" && tokensForUSDC !== undefined) {
         const tokens = formatTokenAmount(tokensForUSDC as bigint)
-        if (tokens !== tokenAmount) {
-          setTokenAmount(tokens)
-        }
+        setTokenAmount(tokens)
       }
     }
-  }, [inputMode, paymentMethod, paymentAmount, tokensForETH, tokensForUSDC])
+  }, [inputMode, paymentMethod, tokensForETH, tokensForUSDC])
 
   // Sync payment amount when token amount changes (and user is editing token field)
   useEffect(() => {
-    if (inputMode === "token" && tokenAmount) {
-      if (paymentMethod === "eth" && ethCost) {
+    if (inputMode === "token" && tokenAmount && parseFloat(tokenAmount) > 0) {
+      if (paymentMethod === "eth" && ethCost !== undefined) {
         const cost = formatETHAmount(ethCost as bigint)
-        if (cost !== paymentAmount) {
-          setPaymentAmount(cost)
-        }
-      } else if (paymentMethod === "usdc" && usdcCost) {
+        setPaymentAmount(cost)
+      } else if (paymentMethod === "usdc" && usdcCost !== undefined) {
         const cost = formatUSDCAmount(usdcCost as bigint)
-        if (cost !== paymentAmount) {
-          setPaymentAmount(cost)
-        }
+        setPaymentAmount(cost)
       }
     }
-  }, [inputMode, paymentMethod, tokenAmount, ethCost, usdcCost])
+  }, [inputMode, paymentMethod, ethCost, usdcCost])
 
   // Parse sale stats
   const stats = saleStats as readonly [bigint, bigint, bigint, bigint, bigint] | undefined
