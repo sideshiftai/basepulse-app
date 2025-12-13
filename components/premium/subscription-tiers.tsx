@@ -28,6 +28,7 @@ import {
 } from "@/lib/contracts/premium-contract-utils"
 import { usePulseTokenAddress, usePulseBalance } from "@/lib/contracts/premium-contract-utils"
 import { SubscriptionTier, TIER_NAMES } from "@/lib/contracts/premium-contract"
+import { SubscriptionSuccessDialog } from "./subscription-success-dialog"
 
 const tierFeatures = [
   "Create Quadratic Voting polls",
@@ -156,6 +157,8 @@ function TierCard({
 
 export function SubscriptionTiers() {
   const [selectedTier, setSelectedTier] = useState<SubscriptionTier | null>(null)
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false)
+  const [subscribedTier, setSubscribedTier] = useState<SubscriptionTier | null>(null)
 
   const { address } = useAccount()
   const premiumContract = usePremiumContractAddress()
@@ -208,9 +211,11 @@ export function SubscriptionTiers() {
   useEffect(() => {
     if (isSubSuccess || isExtSuccess) {
       toast.success("Subscription successful!")
+      setSubscribedTier(selectedTier)
+      setShowSuccessDialog(true)
       setSelectedTier(null)
     }
-  }, [isSubSuccess, isExtSuccess])
+  }, [isSubSuccess, isExtSuccess, selectedTier])
 
   useEffect(() => {
     if (isApproveSuccess) {
@@ -349,6 +354,13 @@ export function SubscriptionTiers() {
           <a href="/staking">Learn about Staking</a>
         </Button>
       </div>
+
+      {/* Success Dialog */}
+      <SubscriptionSuccessDialog
+        open={showSuccessDialog}
+        onOpenChange={setShowSuccessDialog}
+        tier={subscribedTier}
+      />
     </div>
   )
 }
