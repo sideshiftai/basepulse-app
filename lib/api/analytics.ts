@@ -29,20 +29,25 @@ export interface Funding {
   timestamp: Date;
 }
 
-export interface TrendDataPoint {
+export interface PollTrendItem {
   date: string;
   pollsCreated: number;
+}
+
+export interface DistributionTrendItem {
+  date: string;
   distributionCount: number;
-  totalDistributed: string;
+  totalAmount: string;
 }
 
 export interface AnalyticsTrends {
   period: {
-    startDate: string;
-    endDate: string;
+    start: Date;
+    end: Date;
     days: number;
   };
-  dailyData: TrendDataPoint[];
+  polls: PollTrendItem[];
+  distributions: DistributionTrendItem[];
 }
 
 export interface CreatorOverview {

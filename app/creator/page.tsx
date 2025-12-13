@@ -27,18 +27,16 @@ export default function CreatorPage() {
     error: pollsError,
   } = useCreatorDashboardData(address)
 
-  // Calculate responses overview data from polls
+  // Calculate responses overview data from polls (include all polls, not just active)
   const responsesOverviewData = useMemo(() => {
     const optionVotes: { [key: string]: number } = {}
 
     polls.forEach((poll) => {
-      if (poll.isActive) {
-        poll.options.forEach((optionText, idx) => {
-          const truncatedOption = optionText.slice(0, 20) // Truncate long options
-          const voteCount = Number(poll.votes[idx] || BigInt(0))
-          optionVotes[truncatedOption] = (optionVotes[truncatedOption] || 0) + voteCount
-        })
-      }
+      poll.options.forEach((optionText, idx) => {
+        const truncatedOption = optionText.slice(0, 20) // Truncate long options
+        const voteCount = Number(poll.votes[idx] || BigInt(0))
+        optionVotes[truncatedOption] = (optionVotes[truncatedOption] || 0) + voteCount
+      })
     })
 
     return Object.entries(optionVotes)
@@ -54,12 +52,32 @@ export default function CreatorPage() {
       try {
         const trends = await fetchAnalyticsTrends(chainId, timelineDays)
 
-        // Transform data for chart
-        const chartData = trends.dailyData.map((day) => ({
+        // Merge polls and distributions data by date
+        const dateMap = new Map<string, { pollsCreated: number; distributionCount: number }>()
+
+        // Add poll creation data
+        trends.polls?.forEach((item) => {
+          const existing = dateMap.get(item.date) || { pollsCreated: 0, distributionCount: 0 }
+          dateMap.set(item.date, { ...existing, pollsCreated: item.pollsCreated })
+        })
+
+        // Add distribution data
+        trends.distributions?.forEach((item) => {
+          const existing = dateMap.get(item.date) || { pollsCreated: 0, distributionCount: 0 }
+          dateMap.set(item.date, { ...existing, distributionCount: item.distributionCount })
+        })
+
+        // Convert to array and sort by date
+        const dailyData = Array.from(dateMap.entries())
+          .map(([date, data]) => ({ date, ...data }))
+          .sort((a, b) => a.date.localeCompare(b.date))
+
+        // Transform for chart
+        const chartData = dailyData.map((day, index) => ({
           date: day.date,
           responses: day.distributionCount,
-          cumulative: trends.dailyData
-            .filter((d) => d.date <= day.date)
+          cumulative: dailyData
+            .slice(0, index + 1)
             .reduce((sum, d) => sum + d.distributionCount, 0),
         }))
 
