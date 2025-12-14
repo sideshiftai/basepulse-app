@@ -241,22 +241,42 @@ A dedicated page for purchasing PULSE tokens using ETH or USDC.
 
 ## Smart Contract Deployments
 
-### Base Mainnet
-| Contract | Address | Status |
-|----------|---------|--------|
-| PollsContract | `0x...` | Verified |
-| PremiumContract | `0x...` | Verified |
-| StakingContract | `0x...` | Verified |
-| DirectTokenSale | `0x...` | Verified |
-| PULSE Token | `0x...` | Verified |
+### Base Mainnet (Chain ID: 8453)
 
-### Base Sepolia (Testnet)
-| Contract | Address |
-|----------|---------|
-| PollsContract | `0xdfb6881ad34F26D57c3146d335848EDba21dFb6f` |
-| PremiumContract | Deployed |
-| StakingContract | Deployed |
-| PULSE Token | Configured |
+| Contract | Type | Address | Status |
+|----------|------|---------|--------|
+| **PollsContract** | Proxy | `0x347523632Ae55D6Da81Da0799f9bd5b3FDd54C6B` | Verified |
+| PollsContract | Implementation | `0x7119eedad84c6a79ea7ab7cd1ea68fea6e0865ed` | Verified |
+| **PULSE Token** | ERC20 | `0x1b684A60309b0916C77834d62d117d306171FDFE` | Verified |
+| **StakingContract** | Proxy | `0xC84377d58747423E1a07505512Adf99A90F86051` | Verified |
+| StakingContract | Implementation | `0xde45219792494a130c707B426508Af4DAb4B93C8` | Verified |
+| **PremiumContract** | Proxy | `0x69353b25FdAE19d5Bb40D173193AFa34f02da97A` | Verified |
+| PremiumContract | Implementation | `0xDef4BA47F81AfFc6496C60ABf4F9E0DfF14FBa1B` | Verified |
+| **DirectTokenSale** | Standard | `0xba6Ae648738969A66e7Fc014fc871E41827e7734` | Verified |
+
+### Base Sepolia Testnet (Chain ID: 84532)
+
+| Contract | Type | Address | Status |
+|----------|------|---------|--------|
+| **PollsContract** | Proxy | `0xdfb6881ad34F26D57c3146d335848EDba21dFb6f` | Verified |
+| PollsContract | Implementation | `0xa90e4C8Ae9fcd13c2573bf96025aEF6cc6E63296` | Verified |
+| **PULSE Token** | ERC20 | `0x19821658D5798976152146d1c1882047670B898c` | Verified |
+| **StakingContract** | Proxy | `0xAc8BA012138c9e8bEdF7BbbeD408105EB195Daaf` | Verified |
+| StakingContract | Implementation | `0xa4B3164D632698fc1F7FE3e20B35c0b077c96817` | Verified |
+| **PremiumContract** | Proxy | `0xDC6E8482A3292BEd6e86b73B6a39abD60076165F` | Verified |
+| PremiumContract | Implementation | `0xBd2Dd8a7077D88CF32cB3536ee1a14a208B71D84` | Verified |
+| **DirectTokenSale** | Standard | `0x434d0fDd72AA670a229294E93D0933Ea685802fd` | Verified |
+
+### External Dependencies
+
+| Token | Network | Address |
+|-------|---------|---------|
+| USDC | Base Mainnet | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
+| USDC | Base Sepolia | `0x036CbD53842c5426634e7929541eC2318f3dCF7e` |
+
+**Notes:**
+- All proxy contracts use the UUPS (Universal Upgradeable Proxy Standard) pattern
+- Deployer address: `0x5F565baE36bd373797afc1682a627Cc05CC28600`
 
 ---
 
