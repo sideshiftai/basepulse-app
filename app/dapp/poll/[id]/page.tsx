@@ -11,6 +11,8 @@ import { ArrowLeft, Clock, Users, Coins, TrendingUp, Award, Sparkles, Vote } fro
 import { usePoll, useHasUserVoted, usePollsContractAddress, useUserVotesInPoll, formatPollData } from "@/lib/contracts/polls-contract-utils"
 import { VotingType } from "@/lib/contracts/polls-contract"
 import { useAccount, useChainId } from "wagmi"
+import { getTokenSymbol, TOKEN_INFO } from "@/lib/contracts/token-config"
+import { formatRewardDisplay } from "@/lib/utils/format-reward"
 import { ClaimRewardsDialog } from "@/components/sideshift/claim-rewards-dialog"
 import { FundingHistory } from "@/components/poll/funding-history"
 import { QuadraticVotePanel } from "@/components/poll/quadratic-vote-panel"
@@ -30,6 +32,8 @@ export default function PollDetailPage({ params }: PageProps) {
   const contractAddress = usePollsContractAddress()
   const { data: pollData, isLoading, error } = usePoll(pollId)
   const { data: hasVoted } = useHasUserVoted(pollId, address)
+  // Must call all hooks unconditionally before any early returns
+  const { data: userVotesInPoll } = useUserVotesInPoll(pollId, address)
 
   if (isLoading) {
     return (
@@ -56,18 +60,19 @@ export default function PollDetailPage({ params }: PageProps) {
     )
   }
 
-  const [id, question, options, votes, endTime, isActive, creator, totalFunding, , , votingType] = pollData
+  const [id, question, options, votes, endTime, isActive, creator, totalFunding, , fundingToken, , , , votingType] = pollData
   const isQuadraticVoting = votingType === VotingType.QUADRATIC
 
-  // Get user's votes in QV poll
-  const { data: userVotesInPoll } = useUserVotesInPoll(pollId, address)
+  // Get funding token symbol and decimals
+  const fundingTokenSymbol = chainId ? getTokenSymbol(chainId, fundingToken) || 'ETH' : 'ETH'
+  const tokenDecimals = TOKEN_INFO[fundingTokenSymbol]?.decimals || 18
 
   // Calculate poll stats
   const totalVotes = votes.reduce((sum: number, vote: bigint) => sum + Number(vote), 0)
   const timeRemaining = new Date(Number(endTime) * 1000).getTime() - new Date().getTime()
   const hasEnded = timeRemaining <= 0
   const daysRemaining = Math.max(0, Math.ceil(timeRemaining / (1000 * 60 * 60 * 24)))
-  const totalReward = Number(totalFunding) / 1e18
+  const totalReward = Number(totalFunding) / Math.pow(10, tokenDecimals)
 
   // Calculate user's potential reward (simplified - winner takes all for now)
   const userReward = hasEnded && hasVoted && totalReward > 0 ? totalReward / totalVotes : 0
@@ -219,11 +224,11 @@ export default function PollDetailPage({ params }: PageProps) {
                   <div className="flex items-center justify-between p-4 bg-background rounded-lg">
                     <span className="text-muted-foreground">Your Estimated Reward</span>
                     <span className="text-2xl font-bold text-primary">
-                      {userReward.toFixed(6)} ETH
+                      {formatRewardDisplay(userReward, fundingTokenSymbol)}
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Convert your ETH rewards to any cryptocurrency using SideShift.ai
+                    Convert your {fundingTokenSymbol} rewards to any cryptocurrency using SideShift.ai
                   </p>
                   <Button
                     onClick={() => setClaimDialogOpen(true)}
@@ -288,7 +293,7 @@ export default function PollDetailPage({ params }: PageProps) {
                   <Coins className="h-4 w-4" />
                   <span className="text-sm">Total Funding</span>
                 </div>
-                <span className="font-semibold">{totalReward.toFixed(4)} ETH</span>
+                <span className="font-semibold">{formatRewardDisplay(totalReward, fundingTokenSymbol)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-muted-foreground">

@@ -113,17 +113,25 @@ NEXT_PUBLIC_REOWN_PROJECT_ID=your_project_id
 
 ## Contract Addresses
 
-### Base Sepolia (Testnet)
-| Contract | Address |
-|----------|---------|
-| PollsContract | `0xdfb6881ad34F26D57c3146d335848EDba21dFb6f` |
-| PremiumContract | *Deployed* |
-| StakingContract | *Deployed* |
+### Base Mainnet (Chain ID: 8453)
+| Contract | Type | Address |
+|----------|------|---------|
+| PollsContract | Proxy | `0x347523632Ae55D6Da81Da0799f9bd5b3FDd54C6B` |
+| PULSE Token | ERC20 | `0x1b684A60309b0916C77834d62d117d306171FDFE` |
+| StakingContract | Proxy | `0xC84377d58747423E1a07505512Adf99A90F86051` |
+| PremiumContract | Proxy | `0x69353b25FdAE19d5Bb40D173193AFa34f02da97A` |
+| DirectTokenSale | Standard | `0xba6Ae648738969A66e7Fc014fc871E41827e7734` |
 
-### Base Mainnet
-| Contract | Address |
-|----------|---------|
-| PollsContract | `0xfc0323F3c5eD271564Ca8F3d4C5FfAD32D553893` |
+### Base Sepolia Testnet (Chain ID: 84532)
+| Contract | Type | Address |
+|----------|------|---------|
+| PollsContract | Proxy | `0xdfb6881ad34F26D57c3146d335848EDba21dFb6f` |
+| PULSE Token | ERC20 | `0x19821658D5798976152146d1c1882047670B898c` |
+| StakingContract | Proxy | `0xAc8BA012138c9e8bEdF7BbbeD408105EB195Daaf` |
+| PremiumContract | Proxy | `0xDC6E8482A3292BEd6e86b73B6a39abD60076165F` |
+| DirectTokenSale | Standard | `0x434d0fDd72AA670a229294E93D0933Ea685802fd` |
+
+> See [WAVE3_FINAL.md](./WAVE3_FINAL.md) for complete contract addresses including implementations.
 
 ## Documentation
 
@@ -144,6 +152,8 @@ NEXT_PUBLIC_REOWN_PROJECT_ID=your_project_id
 | [WAVE3_SUMMARY.md](./WAVE3_SUMMARY.md) | Wave 3: Creator quests, seasons, memberships |
 | [WAVE3_SUMMARY_part2.md](./WAVE3_SUMMARY_part2.md) | Wave 3 Part 2: Quadratic voting, premium, staking |
 | [WAVE3_DEMO.md](./WAVE3_DEMO.md) | Demo video script and key features |
+| [WAVE3_FINAL.md](./WAVE3_FINAL.md) | Wave 3 Final: Complete submission with all contract addresses |
+| [WAVE3_diff_logs.md](./WAVE3_diff_logs.md) | Wave 3 Git commit logs across all repositories |
 
 ### Feature Guides
 
@@ -236,7 +246,8 @@ npm run lint         # Run ESLint
 
 ## Live URLs
 
-- **App:** https://sspulse.vercel.app
+- **Demo Site:** https://sspulse.vercel.app/
+- **Demo IDO:** https://baseido.vercel.app/
 - **API:** https://basepulse-api.onrender.com
 
 ## Contributing

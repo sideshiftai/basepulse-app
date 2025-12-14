@@ -13,6 +13,7 @@ import { useAccount, useChainId, useSwitchChain } from "wagmi"
 import { baseSepolia } from "wagmi/chains"
 import { usePollsData } from "@/hooks/use-polls-data"
 import { useDataSource } from "@/contexts/data-source-context"
+import { formatRewardDisplay } from "@/lib/utils/format-reward"
 
 export default function DappPage() {
   const router = useRouter()
@@ -141,11 +142,35 @@ export default function DappPage() {
   const totalPolls = Number(nextPollId || 0n)
   const activePolls = totalCount
 
+  // Calculate total rewards grouped by token
+  const rewardsByToken = polls.reduce((acc, poll) => {
+    const token = poll.fundingToken?.toUpperCase() || 'ETH'
+    acc[token] = (acc[token] || 0) + poll.totalReward
+    return acc
+  }, {} as Record<string, number>)
+
+  // Format total rewards display string
+  const formatTotalRewardsDisplay = () => {
+    const parts: string[] = []
+    if (rewardsByToken['ETH'] && rewardsByToken['ETH'] > 0) {
+      parts.push(formatRewardDisplay(rewardsByToken['ETH'], 'ETH'))
+    }
+    if (rewardsByToken['USDC'] && rewardsByToken['USDC'] > 0) {
+      parts.push(formatRewardDisplay(rewardsByToken['USDC'], 'USDC'))
+    }
+    if (rewardsByToken['PULSE'] && rewardsByToken['PULSE'] > 0) {
+      parts.push(formatRewardDisplay(rewardsByToken['PULSE'], 'PULSE'))
+    }
+    // If no rewards, show 0 ETH
+    if (parts.length === 0) return '0.0 ETH'
+    return parts.join(' + ')
+  }
+
   const stats = {
     totalPolls,
     activePolls,
     totalVotes: polls.reduce((sum, poll) => sum + poll.totalVotes, 0),
-    totalRewards: polls.reduce((sum, poll) => sum + poll.totalReward, 0),
+    totalRewardsDisplay: formatTotalRewardsDisplay(),
   }
 
   return (
@@ -233,7 +258,7 @@ export default function DappPage() {
             </div>
             <div className="bg-card p-4 rounded-lg border">
               <div className="flex items-center gap-2">
-                <span className="text-2xl font-bold">{stats.totalRewards.toFixed(1)} ETH</span>
+                <span className="text-2xl font-bold">{stats.totalRewardsDisplay}</span>
               </div>
               <p className="text-sm text-muted-foreground">Total Rewards</p>
             </div>
