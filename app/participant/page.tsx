@@ -22,6 +22,8 @@ import { Progress } from "@/components/ui/progress"
 import { usePollsData } from "@/hooks/use-polls-data"
 import { useAvailableQuests } from "@/hooks/use-creator-quests"
 import { formatRewardDisplay } from "@/lib/utils/format-reward"
+import { QuestActionDialog } from "@/components/participant/quests/quest-action-dialog"
+import type { CreatorQuestWithParticipation } from "@/lib/api/creator-quests-client"
 import {
   fetchParticipantRewards,
   fetchParticipantStats,
@@ -47,8 +49,29 @@ export default function ParticipantPage() {
   const { polls: activePolls, loading: pollsLoading } = usePollsData({ pageSize: 3 })
 
   // Fetch available quests
-  const { data: quests, isLoading: questsLoading } = useAvailableQuests(true)
+  const { data: quests, isLoading: questsLoading, refetch: refetchQuests } = useAvailableQuests(true)
   const availableQuests = quests?.filter(q => !q.participation?.isCompleted).slice(0, 3) || []
+
+  // Quest dialog state
+  const [selectedQuest, setSelectedQuest] = useState<CreatorQuestWithParticipation | null>(null)
+  const [questDialogOpen, setQuestDialogOpen] = useState(false)
+
+  const handleQuestClick = (quest: CreatorQuestWithParticipation) => {
+    setSelectedQuest(quest)
+    setQuestDialogOpen(true)
+  }
+
+  const handleQuestDialogClose = (open: boolean) => {
+    setQuestDialogOpen(open)
+    if (!open) {
+      setSelectedQuest(null)
+    }
+  }
+
+  const handleQuestProgressUpdate = () => {
+    refetchQuests()
+    setQuestDialogOpen(false)
+  }
 
   useEffect(() => {
     async function loadData() {
@@ -243,7 +266,7 @@ export default function ParticipantPage() {
                   <Card
                     key={quest.id}
                     className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all"
-                    onClick={() => router.push('/participant/quests')}
+                    onClick={() => handleQuestClick(quest)}
                   >
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between">
@@ -268,7 +291,7 @@ export default function ParticipantPage() {
                           <Progress value={progressPercentage} className="h-2" />
                         </div>
                         <div className="flex items-center justify-between pt-2 border-t">
-                          <span className="text-xs text-muted-foreground">Click to view</span>
+                          <span className="text-xs text-muted-foreground">Click to start quest</span>
                           <ChevronRight className="w-4 h-4 text-muted-foreground" />
                         </div>
                       </div>
@@ -279,6 +302,14 @@ export default function ParticipantPage() {
             </div>
           )}
         </div>
+
+        {/* Quest Action Dialog */}
+        <QuestActionDialog
+          quest={selectedQuest}
+          open={questDialogOpen}
+          onOpenChange={handleQuestDialogClose}
+          onProgressUpdate={handleQuestProgressUpdate}
+        />
 
         {/* Claimable Rewards Section */}
         <div className="space-y-4">

@@ -1,8 +1,11 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { AlertCircle } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { AlertCircle, Plus, Vote, Sparkles, FolderKanban } from "lucide-react"
 import { useAccount, useChainId } from "wagmi"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { DashboardStats } from "@/components/creator/dashboard-stats"
 import { ResponsesOverviewChart } from "@/components/creator/responses-overview-chart"
 import { ResponsesTimelineChart } from "@/components/creator/responses-timeline-chart"
@@ -12,6 +15,7 @@ import { CreatorBreadcrumb } from "@/components/creator/creator-breadcrumb"
 import { useCreatorDashboardData } from "@/hooks/use-creator-dashboard-data"
 
 export default function CreatorPage() {
+  const router = useRouter()
   const [timelineData, setTimelineData] = useState<any[]>([])
   const [timelineDays, setTimelineDays] = useState(7)
   const [isLoadingTrends, setIsLoadingTrends] = useState(false)
@@ -120,18 +124,87 @@ export default function CreatorPage() {
         {/* Breadcrumb */}
         <CreatorBreadcrumb />
 
-        {/* Header */}
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold">Creator Dashboard</h1>
-          <p className="text-muted-foreground">
-            Analytics and insights for your polls
-          </p>
-          {pollsError && (
-            <div className="flex items-center gap-2 text-red-600 mt-2">
-              <AlertCircle className="h-4 w-4" />
-              <span className="text-sm">Error loading data: {pollsError.message}</span>
-            </div>
-          )}
+        {/* Header with Quick Actions */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold">Creator Dashboard</h1>
+            <p className="text-muted-foreground">
+              Analytics and insights for your polls
+            </p>
+            {pollsError && (
+              <div className="flex items-center gap-2 text-red-600 mt-2">
+                <AlertCircle className="h-4 w-4" />
+                <span className="text-sm">Error loading data: {pollsError.message}</span>
+              </div>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => router.push('/dapp/create')}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Poll
+            </Button>
+            <Button variant="outline" onClick={() => router.push('/creator/quests/create')}>
+              <Sparkles className="h-4 w-4 mr-2" />
+              Create Quest
+            </Button>
+          </div>
+        </div>
+
+        {/* Quick Actions Cards */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card
+            className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all"
+            onClick={() => router.push('/dapp/create')}
+          >
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Vote className="h-5 w-5 text-primary" />
+                </div>
+                <CardTitle className="text-lg">Create Poll</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>
+                Create a new poll to gather feedback and insights from your community
+              </CardDescription>
+            </CardContent>
+          </Card>
+
+          <Card
+            className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all"
+            onClick={() => router.push('/creator/quests/create')}
+          >
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-amber-500/10">
+                  <Sparkles className="h-5 w-5 text-amber-500" />
+                </div>
+                <CardTitle className="text-lg">Create Quest</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>
+                Design quests to incentivize participation and reward your community
+              </CardDescription>
+            </CardContent>
+          </Card>
+
+          <Card className="border-dashed opacity-60">
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-muted">
+                  <FolderKanban className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <CardTitle className="text-lg">Create Project</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>
+                Group polls into projects to organize and generate insights (Coming Soon)
+              </CardDescription>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Dashboard Stats */}
