@@ -14,6 +14,7 @@ import { useCreatePoll, usePollsContractAddress } from "@/lib/contracts/polls-co
 import { FundingType } from "@/lib/contracts/polls-contract"
 import { useSideshift, useShiftMonitor } from "@/hooks/use-sideshift"
 import { getDefaultDestinationCoin, getNetworkForChain, getDefaultNetworkForCoin, getNetworkDisplayName, getSourceNetworkForChain, isTestnet } from "@/lib/utils/currency"
+import { getTokenAddress } from "@/lib/contracts/token-config"
 import { Bot, X, Send, Minimize2, Maximize2, Trash2, Loader2, GripVertical, ExternalLink } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -106,9 +107,21 @@ export function AIChatbox({ className }: AIChatboxProps) {
     setIsCreatingPoll(true)
 
     try {
-      // Default funding token to ETH (address(0)) and type to NONE
-      const fundingToken = '0x0000000000000000000000000000000000000000' as Address
-      const fundingType = FundingType.NONE
+      // Determine funding token from request, default to ETH if not specified
+      let fundingToken: Address = '0x0000000000000000000000000000000000000000' as Address
+      let fundingType = FundingType.NONE
+
+      if (request.fundingToken) {
+        // Map token symbol to address using token-config
+        const tokenAddress = getTokenAddress(chainId, request.fundingToken.toUpperCase())
+        if (tokenAddress) {
+          fundingToken = tokenAddress
+          // If funding token is specified, use COMMUNITY funding type (others can fund)
+          fundingType = FundingType.COMMUNITY
+        } else {
+          console.warn(`Unknown funding token: ${request.fundingToken}, falling back to ETH`)
+        }
+      }
 
       await createPoll(
         request.question,
@@ -122,7 +135,7 @@ export function AIChatbox({ className }: AIChatboxProps) {
       toast.error("Failed to create poll")
       setIsCreatingPoll(false)
     }
-  }, [contractAddress, createPoll])
+  }, [contractAddress, chainId, createPoll])
 
   // Store callback ref to break circular dependency
   const onShiftCreatedRef = useRef<((data: ShiftState) => void) | null>(null)
