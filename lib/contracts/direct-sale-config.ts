@@ -10,7 +10,7 @@
  */
 
 // Hardcoded fallback addresses (update these when deploying to production)
-const BASE_MAINNET_DIRECT_SALE = '0x0000000000000000000000000000000000000000' as const // TODO: Update after mainnet deployment
+const BASE_MAINNET_DIRECT_SALE = '0xba6Ae648738969A66e7Fc014fc871E41827e7734' as const
 const BASE_SEPOLIA_DIRECT_SALE = '0xde45219792494a130c707B426508Af4DAb4B93C8' as const // Upgradeable proxy
 
 export const DIRECT_SALE_ADDRESSES = {
@@ -47,7 +47,7 @@ export const PULSE_TOKEN_ADDRESSES = {
   // Base Sepolia (testnet)
   84532: "0x19821658D5798976152146d1c1882047670B898c",
   // Base Mainnet
-  8453: "0x0000000000000000000000000000000000000000",
+  8453: "0x1b684A60309b0916C77834d62d117d306171FDFE",
 } as const;
 
 export function getPulseTokenAddress(chainId: number): string {

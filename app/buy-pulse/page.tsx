@@ -240,6 +240,28 @@ export default function BuyPulsePage() {
   const currentTokenAmount = tokenAmount ? parseFloat(tokenAmount) : 0
   const isBelowMinimum = currentTokenAmount > 0 && currentTokenAmount < minPurchaseAmount
 
+  // Check if user has sufficient balance for the payment
+  const hasInsufficientBalance = (() => {
+    if (!paymentAmount || parseFloat(paymentAmount) <= 0) return false
+    if (paymentMethod === "eth") {
+      if (!ethBalance) return true
+      try {
+        const paymentWei = parseUnits(paymentAmount, 18)
+        return paymentWei > ethBalance.value
+      } catch {
+        return false
+      }
+    } else {
+      if (!usdcBalance) return true
+      try {
+        const paymentWei = parseUnits(paymentAmount, 6)
+        return paymentWei > usdcBalance
+      } catch {
+        return false
+      }
+    }
+  })()
+
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
       {/* Header */}
@@ -375,7 +397,6 @@ export default function BuyPulsePage() {
                         placeholder="0.0"
                         value={paymentAmount}
                         onChange={(e) => handlePaymentAmountChange(e.target.value)}
-                        disabled={!isConnected || !isSaleActive}
                         className="flex-1"
                       />
                       {isConnected && ethBalance && ethBalance.value > BigInt(0) && (
@@ -418,7 +439,6 @@ export default function BuyPulsePage() {
                         placeholder="0.0"
                         value={paymentAmount}
                         onChange={(e) => handlePaymentAmountChange(e.target.value)}
-                        disabled={!isConnected || !isSaleActive}
                         className="flex-1"
                       />
                       {isConnected && usdcBalance && usdcBalance > BigInt(0) && (
@@ -458,7 +478,6 @@ export default function BuyPulsePage() {
                   placeholder="0.0"
                   value={tokenAmount}
                   onChange={(e) => handleTokenAmountChange(e.target.value)}
-                  disabled={!isConnected || !isSaleActive}
                 />
                 <p className="text-sm text-muted-foreground">
                   Min: {DIRECT_SALE_CONFIG.minPurchase} PULSE | Max: {userRemaining || DIRECT_SALE_CONFIG.maxPurchasePerWallet} PULSE remaining
@@ -495,12 +514,32 @@ export default function BuyPulsePage() {
                 </Alert>
               )}
 
+              {/* Insufficient Balance Warning */}
+              {hasInsufficientBalance && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Insufficient {paymentMethod === "eth" ? "ETH" : "USDC"} balance. You need {paymentAmount} {paymentMethod.toUpperCase()} but only have {paymentMethod === "eth" ? (ethBalance ? parseFloat(formatEther(ethBalance.value)).toFixed(4) : "0") : (usdcBalance ? parseFloat(formatUnits(usdcBalance, 6)).toFixed(2) : "0")} {paymentMethod.toUpperCase()}.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Sale Inactive Warning */}
+              {!isSaleActive && tokenAmount && parseFloat(tokenAmount) > 0 && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    The token sale is currently inactive. Please check back later.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {/* Buy Button */}
               <Button
                 className="w-full"
                 size="lg"
                 onClick={handleBuy}
-                disabled={!isConnected || !tokenAmount || !paymentAmount || isProcessing || !isSaleActive || isBelowMinimum}
+                disabled={!isConnected || !tokenAmount || !paymentAmount || isProcessing || !isSaleActive || isBelowMinimum || hasInsufficientBalance}
               >
                 {isProcessing ? (
                   <>
@@ -509,6 +548,10 @@ export default function BuyPulsePage() {
                   </>
                 ) : !isConnected ? (
                   "Connect Wallet to Buy"
+                ) : !isSaleActive ? (
+                  "Sale Inactive"
+                ) : hasInsufficientBalance ? (
+                  "Insufficient Balance"
                 ) : needsApproval ? (
                   "Approve USDC"
                 ) : (
