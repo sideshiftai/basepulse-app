@@ -83,27 +83,54 @@ export function useSubgraphPolls(options: UseSubgraphPollsOptions = {}) {
   }, [hasMore, loading, isLoadingMore, fetchMore, pollsState.length])
 
   // Refetch a single poll by ID and update it in the polls state
+  // Includes retry logic to handle subgraph indexing delay
   const refetchPoll = useCallback(async (pollId: number) => {
-    try {
-      // Convert pollId to the hex format used by subgraph (Bytes)
-      const hexPollId = '0x' + pollId.toString(16).padStart(2, '0')
+    // Convert pollId to the hex format used by subgraph (Bytes)
+    const hexPollId = '0x' + pollId.toString(16).padStart(2, '0')
 
-      const { data: pollData } = await apolloClient.query<{ poll: SubgraphPoll | null }>({
-        query: GET_POLL,
-        variables: { id: hexPollId },
-        fetchPolicy: 'network-only', // Always fetch fresh data
-      })
+    // Get current poll data for comparison
+    const currentPoll = pollsState.find(p => p.id === pollId.toString())
+    const currentFunding = currentPoll?.totalReward || 0
 
-      if (pollData?.poll) {
-        const updatedPoll = mapSubgraphPollToFormattedPoll(pollData.poll)
-        setPollsState(prev =>
-          prev.map(poll => poll.id === pollId.toString() ? updatedPoll : poll)
-        )
+    // Retry configuration: attempt to fetch until funding updates or max retries reached
+    const maxRetries = 5
+    const retryDelay = 3000 // 3 seconds between retries
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        // Wait before retrying (skip delay on first attempt)
+        if (attempt > 0) {
+          await new Promise(resolve => setTimeout(resolve, retryDelay))
+        }
+
+        const { data: pollData } = await apolloClient.query<{ poll: SubgraphPoll | null }>({
+          query: GET_POLL,
+          variables: { id: hexPollId },
+          fetchPolicy: 'network-only', // Always fetch fresh data
+        })
+
+        if (pollData?.poll) {
+          const updatedPoll = mapSubgraphPollToFormattedPoll(pollData.poll)
+
+          // Check if funding has actually changed
+          if (updatedPoll.totalReward !== currentFunding || attempt === maxRetries - 1) {
+            setPollsState(prev =>
+              prev.map(poll => poll.id === pollId.toString() ? updatedPoll : poll)
+            )
+
+            if (updatedPoll.totalReward !== currentFunding) {
+              console.log(`Poll ${pollId} funding updated after ${attempt + 1} attempt(s)`)
+              return // Success - funding updated
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`Failed to refetch poll from subgraph (attempt ${attempt + 1}):`, error)
       }
-    } catch (error) {
-      console.error('Failed to refetch poll from subgraph:', error)
     }
-  }, [])
+
+    console.log(`Poll ${pollId} funding may not have updated yet - subgraph indexing may be delayed`)
+  }, [pollsState])
 
   return {
     polls: pollsState,

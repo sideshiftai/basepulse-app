@@ -45,6 +45,7 @@ export function usePollsData(options: UsePollsDataOptions = {}): UsePollsDataRet
 
   // Return based on data source selection
   if (isSubgraph) {
+    console.log('[usePollsData] Using SUBGRAPH data source')
     return {
       polls: subgraphResult.polls,
       loading: subgraphResult.loading,
@@ -60,6 +61,7 @@ export function usePollsData(options: UsePollsDataOptions = {}): UsePollsDataRet
   }
 
   // Default to contract
+  console.log('[usePollsData] Using CONTRACT data source')
   return {
     polls: contractResult.polls,
     loading: contractResult.loading,

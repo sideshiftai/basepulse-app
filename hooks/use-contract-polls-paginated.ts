@@ -14,7 +14,7 @@ import {
   usePollsContractAddress,
 } from '@/lib/contracts/polls-contract-utils'
 import { POLLS_CONTRACT_ABI, FundingType } from '@/lib/contracts/polls-contract'
-import { getTokenSymbol } from '@/lib/contracts/token-config'
+import { getTokenSymbol, TOKEN_INFO } from '@/lib/contracts/token-config'
 import type { FormattedPoll } from '@/hooks/use-polls'
 
 interface UseContractPollsPaginatedOptions {
@@ -161,6 +161,9 @@ export function useContractPollsPaginated(
     // Get token symbol
     const tokenSymbol = getTokenSymbol(chainId, fundingToken as Address) || 'ETH'
 
+    // Get correct decimals for the funding token (USDC=6, ETH/PULSE=18)
+    const tokenDecimals = TOKEN_INFO[tokenSymbol]?.decimals || 18
+
     // Check voting status
     const hasVoted = votedResult?.status === 'success'
       ? (votedResult.result as boolean)
@@ -171,6 +174,9 @@ export function useContractPollsPaginated(
     const isEnded = Date.now() >= endTimeMs
     const status: 'active' | 'ended' = isActive && !isEnded ? 'active' : 'ended'
 
+    // Debug logging
+    console.log(`[Contract Poll ${pollId}] Token: ${tokenSymbol}, Decimals: ${tokenDecimals}, Raw totalFunding: ${totalFunding}, Converted: ${Number(totalFunding) / Math.pow(10, tokenDecimals)}`)
+
     return {
       id: pollId.toString(),
       title: question,
@@ -179,7 +185,7 @@ export function useContractPollsPaginated(
       createdAt: new Date().toISOString(),
       endsAt: new Date(endTimeMs).toISOString(),
       totalVotes,
-      totalReward: Number(totalFunding) / 1e18,
+      totalReward: Number(totalFunding) / Math.pow(10, tokenDecimals),
       status,
       category: 'General',
       fundingType: fundingTypeString,
@@ -305,10 +311,16 @@ export function useContractPollsPaginated(
       // Get token symbol
       const tokenSymbol = getTokenSymbol(chainId, fundingToken as Address) || 'ETH'
 
+      // Get correct decimals for the funding token (USDC=6, ETH/PULSE=18)
+      const tokenDecimals = TOKEN_INFO[tokenSymbol]?.decimals || 18
+
       // Determine status
       const endTimeMs = Number(endTime) * 1000
       const isEnded = Date.now() >= endTimeMs
       const status: 'active' | 'ended' = isActive && !isEnded ? 'active' : 'ended'
+
+      // Debug logging for refetch
+      console.log(`[Contract RefetchPoll ${pollId}] Token: ${tokenSymbol}, Decimals: ${tokenDecimals}, Raw totalFunding: ${totalFunding}, Converted: ${Number(totalFunding) / Math.pow(10, tokenDecimals)}`)
 
       const updatedPoll: FormattedPoll = {
         id: pollId.toString(),
@@ -318,7 +330,7 @@ export function useContractPollsPaginated(
         createdAt: new Date().toISOString(),
         endsAt: new Date(endTimeMs).toISOString(),
         totalVotes,
-        totalReward: Number(totalFunding) / 1e18,
+        totalReward: Number(totalFunding) / Math.pow(10, tokenDecimals),
         status,
         category: 'General',
         fundingType: fundingTypeString,
