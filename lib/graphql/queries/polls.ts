@@ -17,7 +17,7 @@ const POLL_FIELDS = gql`
     isActive
     creator
     createdAt
-    totalFunding
+    totalFundingAmount
   }
 `
 

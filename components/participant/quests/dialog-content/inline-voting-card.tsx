@@ -5,7 +5,7 @@
  * Displays a poll with voting options inline for quick voting within dialogs
  */
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -32,6 +32,7 @@ export function InlineVotingCard({ poll, questId, onVoteSuccess, showResults = t
   const { address, isConnected } = useAccount()
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
   const [hasVotedLocally, setHasVotedLocally] = useState(false)
+  const [questProgressUpdated, setQuestProgressUpdated] = useState(false)
 
   const { vote, isPending, isConfirming, isSuccess, error } = useVote()
   const { data: hasVoted, isLoading: checkingVote } = useHasUserVoted(
@@ -39,9 +40,38 @@ export function InlineVotingCard({ poll, questId, onVoteSuccess, showResults = t
     address
   )
 
+  // Track if we've processed the success callback to avoid duplicate calls
+  const successHandledRef = useRef(false)
+
   const isActive = poll.status === 'active'
   const userHasVoted = hasVoted || hasVotedLocally
   const isVoting = isPending || isConfirming
+
+  // Handle successful vote confirmation - only after transaction is confirmed on-chain
+  useEffect(() => {
+    const handleVoteConfirmed = async () => {
+      if (isSuccess && !successHandledRef.current && address) {
+        successHandledRef.current = true
+        setHasVotedLocally(true)
+
+        // Update quest progress if this is part of a quest
+        if (questId && !questProgressUpdated) {
+          try {
+            await updateQuestProgress(questId, address, { increment: true })
+            setQuestProgressUpdated(true)
+          } catch (err) {
+            console.error('Failed to update quest progress:', err)
+            // Don't block the vote success - quest progress can be retried
+          }
+        }
+
+        // Only call onVoteSuccess after transaction is confirmed
+        onVoteSuccess?.()
+      }
+    }
+
+    handleVoteConfirmed()
+  }, [isSuccess, questId, address, questProgressUpdated, onVoteSuccess])
 
   const handleVote = async () => {
     if (!selectedOption || !isConnected || !address) return
@@ -49,21 +79,12 @@ export function InlineVotingCard({ poll, questId, onVoteSuccess, showResults = t
     const optionIndex = poll.options.findIndex(opt => opt.id === selectedOption)
     if (optionIndex === -1) return
 
+    // Reset the success handler for new vote attempt
+    successHandledRef.current = false
+
     try {
+      // This initiates the transaction - the useEffect above will handle the success
       await vote(parseInt(poll.id), optionIndex)
-      setHasVotedLocally(true)
-
-      // Update quest progress if this is part of a quest
-      if (questId) {
-        try {
-          await updateQuestProgress(questId, address, { increment: true })
-        } catch (err) {
-          console.error('Failed to update quest progress:', err)
-          // Don't block the vote success - quest progress can be retried
-        }
-      }
-
-      onVoteSuccess?.()
     } catch (err) {
       console.error('Vote failed:', err)
     }

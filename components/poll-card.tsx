@@ -15,6 +15,7 @@ import {
 import { Clock, Users, Coins, Vote, ChevronDown, Wallet, RefreshCw } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getNetworkName, getNetworkColor } from "@/lib/utils/network"
+import { formatRewardDisplay } from "@/lib/utils/format-reward"
 import { VoteDialog } from "./vote-dialog"
 import { FundWithTokenDialog } from "./fund-with-token-dialog"
 import { FundPollDialog } from "./sideshift/fund-poll-dialog"
@@ -147,7 +148,7 @@ export function PollCard({ poll, onVote, onViewDetails, onFundSuccess }: PollCar
           <div className="space-y-1">
             <div className="flex items-center justify-center gap-1">
               <Coins className="h-3 w-3 text-muted-foreground" />
-              <span className="text-sm font-medium">{poll.totalReward} {poll.fundingToken || "ETH"}</span>
+              <span className="text-sm font-medium">{formatRewardDisplay(poll.totalReward, poll.fundingToken)}</span>
             </div>
             <p className="text-xs text-muted-foreground">Reward</p>
           </div>

@@ -6,12 +6,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Vote, Clock, Users, Coins, Loader2 } from "lucide-react"
+import { formatRewardDisplay } from "@/lib/utils/format-reward"
 
 interface VoteDialogProps {
   poll: {
     id: string
     title: string
     description?: string
+    creator?: string
     options: Array<{
       id: string
       text: string
@@ -20,6 +22,7 @@ interface VoteDialogProps {
     }>
     totalVotes: number
     totalReward: number
+    fundingToken?: string
     endsAt: string
   }
   open: boolean
@@ -76,7 +79,7 @@ export function VoteDialog({ poll, open, onOpenChange, onVote, isVoting }: VoteD
         <DialogHeader>
           <DialogTitle className="text-left">{poll.title}</DialogTitle>
           <DialogDescription className="text-left">
-            {poll.description}
+            {poll.creator ? `Poll created by ${poll.creator}` : poll.description}
           </DialogDescription>
         </DialogHeader>
 
@@ -92,7 +95,7 @@ export function VoteDialog({ poll, open, onOpenChange, onVote, isVoting }: VoteD
             <div className="space-y-1">
               <div className="flex items-center justify-center gap-1">
                 <Coins className="h-3 w-3 text-muted-foreground" />
-                <span className="font-medium">{poll.totalReward} ETH</span>
+                <span className="font-medium">{formatRewardDisplay(poll.totalReward, poll.fundingToken)}</span>
               </div>
               <p className="text-xs text-muted-foreground">Reward</p>
             </div>

@@ -84,10 +84,10 @@ export default function BuyPulsePage() {
   const usdcAllowance = usdcAllowanceData as bigint | undefined
 
   // Contract read hooks
-  const { data: saleStats } = useSaleStats()
+  const { data: saleStats, refetch: refetchSaleStats } = useSaleStats()
   const { data: isSaleActive } = useIsSaleActive()
-  const { data: remainingAllowance } = useRemainingAllowance(address)
-  const { data: purchasedAmount } = usePurchasedAmount(address)
+  const { data: remainingAllowance, refetch: refetchRemainingAllowance } = useRemainingAllowance(address)
+  const { data: purchasedAmount, refetch: refetchPurchasedAmount } = usePurchasedAmount(address)
 
   // Write hooks
   const { buyWithETH, isPending: isBuyingETH, isConfirming: isConfirmingETH, isSuccess: isSuccessETH, error: errorETH } = useBuyWithETH()
@@ -149,6 +149,17 @@ export default function BuyPulsePage() {
       refetchAllowance()
     }
   }, [isSuccessApproval, refetchAllowance])
+
+  // Refetch data after successful purchase
+  useEffect(() => {
+    if (isSuccessETH || isSuccessUSDC) {
+      // Refetch all relevant data after successful purchase
+      refetchPurchasedAmount()
+      refetchRemainingAllowance()
+      refetchSaleStats()
+      refetchAllowance() // USDC allowance may have changed
+    }
+  }, [isSuccessETH, isSuccessUSDC, refetchPurchasedAmount, refetchRemainingAllowance, refetchSaleStats, refetchAllowance])
 
   // Parse sale stats
   const stats = saleStats as readonly [bigint, bigint, bigint, bigint, bigint] | undefined
@@ -223,6 +234,11 @@ export default function BuyPulsePage() {
   const error = errorETH || errorUSDC
 
   const hasContractOnNetwork = contractAddress && contractAddress !== "0x0000000000000000000000000000000000000000"
+
+  // Check if token amount meets minimum requirement
+  const minPurchaseAmount = parseFloat(DIRECT_SALE_CONFIG.minPurchase.replace(/,/g, ''))
+  const currentTokenAmount = tokenAmount ? parseFloat(tokenAmount) : 0
+  const isBelowMinimum = currentTokenAmount > 0 && currentTokenAmount < minPurchaseAmount
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
@@ -469,12 +485,22 @@ export default function BuyPulsePage() {
                 </Alert>
               )}
 
+              {/* Minimum Amount Warning */}
+              {isBelowMinimum && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Minimum purchase is {DIRECT_SALE_CONFIG.minPurchase} PULSE. You entered {currentTokenAmount} PULSE.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {/* Buy Button */}
               <Button
                 className="w-full"
                 size="lg"
                 onClick={handleBuy}
-                disabled={!isConnected || !tokenAmount || !paymentAmount || isProcessing || !isSaleActive}
+                disabled={!isConnected || !tokenAmount || !paymentAmount || isProcessing || !isSaleActive || isBelowMinimum}
               >
                 {isProcessing ? (
                   <>

@@ -14,7 +14,7 @@ export interface SubgraphPoll {
   isActive: boolean
   creator: string
   createdAt: string
-  totalFunding: string
+  totalFundingAmount: string
 }
 
 /**

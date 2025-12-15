@@ -11,6 +11,18 @@ import type {
 } from '@/types/subgraph'
 
 /**
+ * Get decimals for a token symbol
+ * ETH and PULSE have 18 decimals, USDC has 6 decimals
+ */
+function getTokenDecimals(tokenSymbol?: string): number {
+  if (!tokenSymbol) return 18 // Default to ETH decimals
+  const symbol = tokenSymbol.toUpperCase()
+  if (symbol === 'USDC') return 6
+  // ETH, PULSE, and other tokens default to 18 decimals
+  return 18
+}
+
+/**
  * Parse token metadata from poll question
  * Format: "TITLE|TOKEN:SYMBOL"
  */
@@ -54,9 +66,13 @@ export function mapSubgraphPollToFormattedPoll(poll: SubgraphPoll): FormattedPol
   const status: 'active' | 'ended' = poll.isActive && !isEnded ? 'active' : 'ended'
 
   // Determine funding type
-  const totalFundingNum = Number(poll.totalFunding)
+  const totalFundingNum = Number(poll.totalFundingAmount)
   const fundingType: 'community' | 'self' | 'none' =
     totalFundingNum > 0 ? 'self' : 'none'
+
+  // Get proper decimals for the funding token
+  const decimals = getTokenDecimals(metadata.token)
+  const divisor = Math.pow(10, decimals)
 
   return {
     id: poll.id,
@@ -66,7 +82,7 @@ export function mapSubgraphPollToFormattedPoll(poll: SubgraphPoll): FormattedPol
     createdAt: new Date(Number(poll.createdAt) * 1000).toISOString(),
     endsAt: new Date(endTimeMs).toISOString(),
     totalVotes,
-    totalReward: totalFundingNum / 1e18, // Convert from wei to ETH
+    totalReward: totalFundingNum / divisor, // Convert using proper decimals
     status,
     category: 'General', // Default category, could be enhanced
     fundingType,
