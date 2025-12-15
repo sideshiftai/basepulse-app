@@ -190,18 +190,21 @@ export default function CreatorPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-dashed opacity-60">
+          <Card
+            className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all"
+            onClick={() => router.push('/creator/projects/create')}
+          >
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-muted">
-                  <FolderKanban className="h-5 w-5 text-muted-foreground" />
+                <div className="p-2 rounded-lg bg-purple-500/10">
+                  <FolderKanban className="h-5 w-5 text-purple-500" />
                 </div>
                 <CardTitle className="text-lg">Create Project</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
               <CardDescription>
-                Group polls into projects to organize and generate insights (Coming Soon)
+                Group polls into projects to organize and generate insights
               </CardDescription>
             </CardContent>
           </Card>

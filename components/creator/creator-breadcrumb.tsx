@@ -28,6 +28,16 @@ export function CreatorBreadcrumb() {
       return "Manage Polls"
     } else if (pathname === "/creator/distributions") {
       return "Distribution History"
+    } else if (pathname === "/creator/quests") {
+      return "Quests"
+    } else if (pathname === "/creator/quests/create") {
+      return "Create Quest"
+    } else if (pathname === "/creator/projects") {
+      return "Projects"
+    } else if (pathname === "/creator/projects/create") {
+      return "Create Project"
+    } else if (pathname.startsWith("/creator/projects/")) {
+      return "Project Details"
     }
     return "Creator"
   }

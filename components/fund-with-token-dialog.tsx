@@ -167,10 +167,11 @@ export function FundWithTokenDialog({
   // Reset when funding succeeds
   useEffect(() => {
     if (isFundSuccess && step === "fund") {
-      toast.success("Poll funded successfully!")
+      toast.success("Poll funded successfully! Refreshing data...")
       setAmount("")
       setStep("input")
       onOpenChange(false)
+      // Call onSuccess to trigger refetch - the hook will retry until subgraph updates
       onSuccess?.(pollId)
     }
   }, [isFundSuccess, step, onOpenChange, onSuccess, pollId])
