@@ -1,11 +1,12 @@
 /**
  * Poll Card Component
- * Card-based display for individual polls in manage view
+ * Compact card-based display for individual polls in manage view
  */
 
 "use client"
 
-import { Clock, MoreVertical } from "lucide-react"
+import { useState } from "react"
+import { Clock, MoreVertical, HelpCircle } from "lucide-react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { TOKEN_INFO } from "@/lib/contracts/token-config"
@@ -16,16 +17,24 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { DistributionModeSelector } from "@/components/creator/distribution-mode-selector"
 import { PendingDistributionBadge } from "@/components/creator/pending-distribution-badge"
 import { usePendingDistributions } from "@/lib/hooks/use-pending-distributions"
+import { toast } from "sonner"
 
 interface PollCardProps {
   poll: {
@@ -45,67 +54,62 @@ interface PollCardProps {
 }
 
 export function PollCard({ poll, onClosePoll, onSetDistributionMode }: PollCardProps) {
+  const [isUpdating, setIsUpdating] = useState(false)
   const endDate = new Date(Number(poll.endTime) * 1000)
   const now = new Date()
   const isExpired = endDate < now
   const daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
 
-  // Count unique participants (approximation - actual count would need voter data)
-  const participantsCount = Number(poll.totalVotes)
-
   // Check for pending distributions
   const pendingStatus = usePendingDistributions(poll)
 
-  // Get status text
+  // Get status
   const getStatus = () => {
     if (!poll.isActive) return "Closed"
     if (isExpired) return "Expired"
     return "Active"
   }
 
-  // Get funding type badge
-  const getFundingType = () => {
-    const decimals = TOKEN_INFO[poll.fundingTokenSymbol || "ETH"]?.decimals || 18
-    const fundingAmount = Number(poll.totalFunding) / Math.pow(10, decimals)
-    if (fundingAmount === 0) return "No Funding"
-    return "Self-Funded" // Could be enhanced to detect different funding sources
-  }
+  // Calculate reward fund
+  const decimals = TOKEN_INFO[poll.fundingTokenSymbol || "ETH"]?.decimals || 18
+  const fundingAmount = Number(poll.totalFunding) / Math.pow(10, decimals)
 
-  // Get distribution mode text
-  const getDistributionMode = () => {
-    switch (poll.distributionMode) {
-      case 0:
-        return "MANUAL_PULL"
-      case 1:
-        return "MANUAL_PUSH"
-      case 2:
-        return "AUTOMATED"
-      default:
-        return "UNKNOWN"
+  const handleModeChange = async (newMode: string) => {
+    if (newMode === poll.distributionMode.toString()) return
+    setIsUpdating(true)
+    try {
+      await onSetDistributionMode(poll.id, parseInt(newMode))
+      toast.success("Distribution mode updated")
+    } catch (error) {
+      toast.error("Failed to update mode")
+    } finally {
+      setIsUpdating(false)
     }
   }
 
   return (
     <Card className="relative">
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <CardTitle className="text-lg mb-3">
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-base leading-tight">
               <Link
                 href={`/dapp/poll/${poll.id}`}
-                className="hover:text-primary transition-colors"
+                className="hover:text-primary transition-colors line-clamp-2"
               >
                 {poll.question}
               </Link>
             </CardTitle>
-            <div className="flex flex-wrap gap-2">
-              <Badge variant={poll.isActive && !isExpired ? "default" : "secondary"}>
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              <Badge
+                variant={poll.isActive && !isExpired ? "default" : "secondary"}
+                className="text-xs"
+              >
                 {getStatus()}
               </Badge>
-              <Badge variant="outline">{getFundingType()}</Badge>
-              {poll.distributionMode !== undefined && (
-                <Badge variant="outline">{getDistributionMode()}</Badge>
-              )}
+              <Badge variant="outline" className="text-xs">
+                {fundingAmount > 0 ? "Funded" : "No Funds"}
+              </Badge>
               <PendingDistributionBadge
                 hasPending={pendingStatus.hasPending}
                 mode={poll.distributionMode}
@@ -114,97 +118,126 @@ export function PollCard({ poll, onClosePoll, onSetDistributionMode }: PollCardP
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
                 <MoreVertical className="h-4 w-4" />
-                <span className="sr-only">More options</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
                 <Link href={`/dapp/poll/${poll.id}`}>View Details</Link>
               </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={`/dapp/poll/${poll.id}`}>View Results</Link>
+              </DropdownMenuItem>
+              {poll.isActive && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => onClosePoll(poll.id)}
+                    className="text-destructive"
+                  >
+                    Close Poll
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div>
-            <div className="text-2xl font-bold">{poll.options.length}</div>
-            <div className="text-sm text-muted-foreground">Options</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold">{Number(poll.totalVotes)}</div>
-            <div className="text-sm text-muted-foreground">Votes</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold">{participantsCount}</div>
-            <div className="text-sm text-muted-foreground">Participants</div>
-          </div>
-        </div>
-
-        {/* Time Indicator */}
-        {poll.isActive && !isExpired && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Clock className="h-4 w-4" />
-            <span>{daysLeft} days left</span>
-          </div>
-        )}
-
-        {/* Dates */}
-        <div className="space-y-1 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Created</span>
-            <span>Poll #{Number(poll.id)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Expires</span>
-            <span>{endDate.toLocaleDateString()}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Reward Fund</span>
-            <span className="font-medium">
-              {(Number(poll.totalFunding) / Math.pow(10, TOKEN_INFO[poll.fundingTokenSymbol || "ETH"]?.decimals || 18)).toFixed(4)} {poll.fundingTokenSymbol || "PULSE"}
+      <CardContent className="pt-2 space-y-3">
+        {/* Compact Stats Row */}
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center gap-4">
+            <span>
+              <span className="font-semibold">{Number(poll.totalVotes)}</span>
+              <span className="text-muted-foreground ml-1">votes</span>
+            </span>
+            <span>
+              <span className="font-semibold">{poll.options.length}</span>
+              <span className="text-muted-foreground ml-1">options</span>
             </span>
           </div>
+          {poll.isActive && !isExpired && (
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Clock className="h-3.5 w-3.5" />
+              <span>{daysLeft}d left</span>
+            </div>
+          )}
         </div>
 
-        {/* Distribution Settings */}
-        {poll.isActive && (
-          <div className="space-y-3 pt-4 border-t">
-            <h4 className="text-sm font-medium">Distribution Settings</h4>
-            <DistributionModeSelector
-              pollId={poll.id}
-              currentMode={poll.distributionMode.toString() as "0" | "1" | "2"}
-              onModeChange={onSetDistributionMode}
-            />
+        {/* Info Row */}
+        <div className="flex items-center justify-between text-sm border-t pt-2">
+          <div className="text-muted-foreground">
+            Poll #{Number(poll.id)} · Expires {endDate.toLocaleDateString()}
+          </div>
+          <div className="font-medium">
+            {fundingAmount.toFixed(4)} {poll.fundingTokenSymbol || "PULSE"}
+          </div>
+        </div>
 
-            <div className="flex gap-2 pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onClosePoll(poll.id)}
-                className="flex-1"
-              >
-                Close Poll
-              </Button>
+        {/* Distribution Mode (compact) */}
+        {poll.isActive && (
+          <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center gap-1">
+              <span className="text-sm text-muted-foreground">Distribution</span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button className="text-muted-foreground hover:text-foreground transition-colors">
+                      <HelpCircle className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[280px] p-3 bg-popover text-popover-foreground border">
+                    <div className="space-y-2 text-xs">
+                      <div>
+                        <p className="font-semibold text-foreground">Manual Pull</p>
+                        <p className="text-muted-foreground">
+                          Responders claim their own rewards when ready. Best for giving users control over when they receive rewards.
+                        </p>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-foreground">Manual Push</p>
+                        <p className="text-muted-foreground">
+                          You manually distribute rewards to responders. Best for custom distribution logic or curated reward allocation.
+                        </p>
+                      </div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
-            <p className="text-xs text-muted-foreground italic">
-              Closing the poll is permanent and cannot be undone
-            </p>
+            <Select
+              value={poll.distributionMode.toString()}
+              onValueChange={handleModeChange}
+              disabled={isUpdating}
+            >
+              <SelectTrigger className="w-[130px] h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">Manual Pull</SelectItem>
+                <SelectItem value="1">Manual Push</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         )}
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-2 gap-2 pt-2">
-          <Button variant="outline" size="sm" disabled>
-            Edit
-          </Button>
-          <Button variant="outline" size="sm" asChild>
+        <div className="flex gap-2 pt-1">
+          <Button variant="outline" size="sm" className="flex-1 h-8" asChild>
             <Link href={`/dapp/poll/${poll.id}`}>Results</Link>
           </Button>
+          {poll.isActive && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 h-8 text-destructive hover:text-destructive"
+              onClick={() => onClosePoll(poll.id)}
+            >
+              Close Poll
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
