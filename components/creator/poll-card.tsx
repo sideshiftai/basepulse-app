@@ -7,8 +7,8 @@
 
 import { Clock, MoreVertical } from "lucide-react"
 import Link from "next/link"
-import { formatEther } from "viem"
 import { Badge } from "@/components/ui/badge"
+import { TOKEN_INFO } from "@/lib/contracts/token-config"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -65,7 +65,8 @@ export function PollCard({ poll, onClosePoll, onSetDistributionMode }: PollCardP
 
   // Get funding type badge
   const getFundingType = () => {
-    const fundingAmount = Number(formatEther(poll.totalFunding))
+    const decimals = TOKEN_INFO[poll.fundingTokenSymbol || "ETH"]?.decimals || 18
+    const fundingAmount = Number(poll.totalFunding) / Math.pow(10, decimals)
     if (fundingAmount === 0) return "No Funding"
     return "Self-Funded" // Could be enhanced to detect different funding sources
   }
@@ -164,7 +165,9 @@ export function PollCard({ poll, onClosePoll, onSetDistributionMode }: PollCardP
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Reward Fund</span>
-            <span className="font-medium">{Number(formatEther(poll.totalFunding)).toFixed(4)} {poll.fundingTokenSymbol || "PULSE"}</span>
+            <span className="font-medium">
+              {(Number(poll.totalFunding) / Math.pow(10, TOKEN_INFO[poll.fundingTokenSymbol || "ETH"]?.decimals || 18)).toFixed(4)} {poll.fundingTokenSymbol || "PULSE"}
+            </span>
           </div>
         </div>
 

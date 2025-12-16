@@ -155,9 +155,11 @@ export const GET_USER_VOTES = gql`
   query GetUserVotes(
     $user: String!
     $first: Int = 100
+    $skip: Int = 0
   ) {
     votes(
       first: $first
+      skip: $skip
       where: { voter: $user }
       orderBy: timestamp
       orderDirection: desc
