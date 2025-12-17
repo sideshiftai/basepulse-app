@@ -1,6 +1,6 @@
 /**
  * Premium Shift Dialog
- * Modal for converting any cryptocurrency to PULSE for premium subscription
+ * Modal for converting any cryptocurrency to USDC on Base for purchasing PULSE
  */
 
 'use client';
@@ -88,7 +88,7 @@ export function PremiumShiftDialog({
     if (status === 'settled' && shiftData) {
       toast({
         title: 'Conversion Complete!',
-        description: 'PULSE tokens have been sent to your wallet.',
+        description: 'USDC has been sent to your Base wallet. You can now buy PULSE!',
       });
       if (onSuccess) {
         onSuccess();
@@ -103,11 +103,11 @@ export function PremiumShiftDialog({
 
       setLoadingPairInfo(true);
       try {
-        // Destination is always PULSE on Base
-        const destNetwork = chainId === 84532 ? 'basesepolia' : 'base';
+        // Destination is always USDC on Base (mainnet only)
+        const destNetwork = 'base';
         const info = await sideshiftAPI.getPairInfo(
           currency,
-          'PULSE',
+          'USDC',
           sourceNetwork || undefined,
           destNetwork
         );
@@ -121,7 +121,7 @@ export function PremiumShiftDialog({
     };
 
     fetchPairInfo();
-  }, [currency, sourceNetwork, chainId]);
+  }, [currency, sourceNetwork]);
 
   const handleReset = () => {
     setShiftId(null);
@@ -165,13 +165,13 @@ export function PremiumShiftDialog({
       return;
     }
 
-    const destNetwork = chainId === 84532 ? 'basesepolia' : 'base';
+    const destNetwork = 'base';
 
     const result = await createShift({
       userAddress: address,
-      purpose: 'bridge', // Bridge crypto to PULSE for premium subscription
+      purpose: 'bridge', // Bridge crypto to USDC on Base for buying PULSE
       sourceCoin: currency,
-      destCoin: 'PULSE',
+      destCoin: 'USDC',
       sourceNetwork: sourceNetwork || undefined,
       destNetwork: destNetwork,
       sourceAmount: amount,
@@ -222,9 +222,9 @@ export function PremiumShiftDialog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Convert to PULSE</DialogTitle>
+          <DialogTitle>Shift Crypto to Base</DialogTitle>
           <DialogDescription>
-            Convert any cryptocurrency to PULSE tokens for your premium subscription.
+            Shift any cryptocurrency to Base USDC, then buy PULSE tokens.
           </DialogDescription>
         </DialogHeader>
 
@@ -316,7 +316,7 @@ export function PremiumShiftDialog({
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription>
-                Your {currency} will be automatically converted to PULSE and sent to your connected wallet on Base.
+                Your {currency} will be converted to USDC on Base. You can then buy PULSE below.
               </AlertDescription>
             </Alert>
 
@@ -364,8 +364,8 @@ export function PremiumShiftDialog({
 
             <div className="space-y-2 text-xs text-muted-foreground">
               <p>• Send from {formatNetworkName(depositNetwork)} network</p>
-              <p>• Your crypto will be converted to PULSE</p>
-              <p>• PULSE will arrive in your wallet on Base</p>
+              <p>• Your crypto will be converted to USDC</p>
+              <p>• USDC will arrive in your wallet on Base</p>
               <p>• This may take a few minutes</p>
             </div>
 
@@ -373,8 +373,8 @@ export function PremiumShiftDialog({
               <Alert className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
                 <AlertDescription className="text-green-800 dark:text-green-200">
-                  Conversion complete! PULSE tokens have been sent to your wallet.
-                  You can now close this dialog and subscribe to Premium.
+                  Conversion complete! USDC has been sent to your Base wallet.
+                  You can now buy PULSE tokens below.
                 </AlertDescription>
               </Alert>
             )}
@@ -384,7 +384,7 @@ export function PremiumShiftDialog({
                 Convert More
               </Button>
               <Button onClick={handleClose} className="flex-1">
-                {status === 'settled' ? 'Continue to Subscribe' : 'Close'}
+                Close
               </Button>
             </div>
           </div>
