@@ -19,6 +19,8 @@ import { formatRewardDisplay } from "@/lib/utils/format-reward"
 import { VoteDialog } from "./vote-dialog"
 import { FundWithTokenDialog } from "./fund-with-token-dialog"
 import { FundPollDialog } from "./sideshift/fund-poll-dialog"
+import { useHasVotedOnPoll } from "@/hooks/use-has-voted-on-poll"
+import { useVotedPollsCache } from "@/contexts/voted-polls-cache-context"
 
 // Feature flag: Set to false to revert to old two-button layout
 const USE_COMBINED_FUND_BUTTON = true;
@@ -53,13 +55,18 @@ interface PollCardProps {
   onVote?: (pollId: string, optionId: string) => Promise<void> | void
   onViewDetails?: (pollId: string) => void
   onFundSuccess?: (pollId: number) => void
+  onVoteSuccess?: (pollId: number) => void
 }
 
-export function PollCard({ poll, onVote, onViewDetails, onFundSuccess }: PollCardProps) {
+export function PollCard({ poll, onVote, onViewDetails, onFundSuccess, onVoteSuccess }: PollCardProps) {
   const [isVoteDialogOpen, setIsVoteDialogOpen] = useState(false)
   const [isFundDialogOpen, setIsFundDialogOpen] = useState(false)
   const [isCryptoFundDialogOpen, setIsCryptoFundDialogOpen] = useState(false)
-  
+
+  // Check if current user has voted on this poll (from cache + contract fallback)
+  const { hasVoted, refetch: refetchHasVoted } = useHasVotedOnPoll(poll.id)
+  const { addVotedPoll } = useVotedPollsCache()
+
   const timeRemaining = new Date(poll.endsAt).getTime() - new Date().getTime()
   const daysRemaining = Math.max(0, Math.ceil(timeRemaining / (1000 * 60 * 60 * 24)))
 
@@ -168,7 +175,7 @@ export function PollCard({ poll, onVote, onViewDetails, onFundSuccess }: PollCar
         </Button>
         {poll.status === "active" && (
           <>
-            {poll.hasVoted ? (
+            {hasVoted ? (
               <Button variant="outline" size="sm" className="flex-1 hover:bg-accent/50 hover:text-foreground" onClick={() => onViewDetails?.(poll.id)}>
                 View Results
               </Button>
@@ -179,69 +186,71 @@ export function PollCard({ poll, onVote, onViewDetails, onFundSuccess }: PollCar
               </Button>
             )}
 
-            {USE_COMBINED_FUND_BUTTON ? (
-              // New combined dropdown button
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+            {poll.fundingType !== "none" && (
+              USE_COMBINED_FUND_BUTTON ? (
+                // New combined dropdown button
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 bg-transparent hover:bg-accent/50 hover:text-foreground"
+                    >
+                      <Coins className="h-4 w-4 mr-2" />
+                      Fund Poll
+                      <ChevronDown className="h-3 w-3 ml-2" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem
+                      onClick={() => setIsFundDialogOpen(true)}
+                      className="cursor-pointer focus:bg-accent"
+                    >
+                      <div className="flex items-start gap-3 py-1">
+                        <Wallet className="h-4 w-4 mt-0.5" />
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-medium text-sm">Fund with Base Tokens</span>
+                          <span className="text-xs opacity-70">Use ETH/USDC on Base network</span>
+                        </div>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setIsCryptoFundDialogOpen(true)}
+                      className="cursor-pointer focus:bg-accent"
+                    >
+                      <div className="flex items-start gap-3 py-1">
+                        <RefreshCw className="h-4 w-4 mt-0.5" />
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-medium text-sm">Convert & Fund</span>
+                          <span className="text-xs opacity-70">From any crypto/network via SideShift</span>
+                        </div>
+                      </div>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                // Old two-button layout (for easy revert)
+                <>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex-1 bg-transparent hover:bg-accent/50 hover:text-foreground"
-                  >
-                    <Coins className="h-4 w-4 mr-2" />
-                    Fund Poll
-                    <ChevronDown className="h-3 w-3 ml-2" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem
+                    className="flex-[0.7] bg-transparent hover:bg-accent/50 hover:text-foreground"
                     onClick={() => setIsFundDialogOpen(true)}
-                    className="cursor-pointer focus:bg-accent"
                   >
-                    <div className="flex items-start gap-3 py-1">
-                      <Wallet className="h-4 w-4 mt-0.5" />
-                      <div className="flex flex-col gap-0.5">
-                        <span className="font-medium text-sm">Fund with Base Tokens</span>
-                        <span className="text-xs opacity-70">Use ETH/USDC on Base network</span>
-                      </div>
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
+                    <Coins className="h-4 w-4 mr-1" />
+                    Fund
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-[0.3] bg-transparent hover:bg-accent/50 hover:text-foreground"
                     onClick={() => setIsCryptoFundDialogOpen(true)}
-                    className="cursor-pointer focus:bg-accent"
+                    title="Fund with any cryptocurrency via SideShift.ai"
                   >
-                    <div className="flex items-start gap-3 py-1">
-                      <RefreshCw className="h-4 w-4 mt-0.5" />
-                      <div className="flex flex-col gap-0.5">
-                        <span className="font-medium text-sm">Convert & Fund</span>
-                        <span className="text-xs opacity-70">From any crypto/network via SideShift</span>
-                      </div>
-                    </div>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              // Old two-button layout (for easy revert)
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-[0.7] bg-transparent hover:bg-accent/50 hover:text-foreground"
-                  onClick={() => setIsFundDialogOpen(true)}
-                >
-                  <Coins className="h-4 w-4 mr-1" />
-                  Fund
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-[0.3] bg-transparent hover:bg-accent/50 hover:text-foreground"
-                  onClick={() => setIsCryptoFundDialogOpen(true)}
-                  title="Fund with any cryptocurrency via SideShift.ai"
-                >
-                  💱
-                </Button>
-              </>
+                    💱
+                  </Button>
+                </>
+              )
             )}
           </>
         )}
@@ -252,6 +261,14 @@ export function PollCard({ poll, onVote, onViewDetails, onFundSuccess }: PollCar
         open={isVoteDialogOpen}
         onOpenChange={setIsVoteDialogOpen}
         onVote={onVote || (async () => {})}
+        onSuccess={() => {
+          // Add to voted polls cache immediately
+          addVotedPoll(poll.id)
+          // Refetch hasVoted status from contract for confirmation
+          refetchHasVoted()
+          // Notify parent to refetch poll data (for vote counts)
+          onVoteSuccess?.(parseInt(poll.id))
+        }}
       />
 
       <FundWithTokenDialog

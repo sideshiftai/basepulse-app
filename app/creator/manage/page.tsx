@@ -9,7 +9,7 @@ import { useState, useMemo, useEffect } from "react"
 import { useAccount, useChainId } from "wagmi"
 import { AlertCircle, Plus, LayoutGrid, Table } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { formatEther } from "viem"
+import { TOKEN_INFO } from "@/lib/contracts/token-config"
 import {
   useActivePolls,
   usePoll,
@@ -104,16 +104,27 @@ export default function ManagePollsPage() {
       (sum, poll) => sum + Number(poll.totalVotes),
       0
     )
-    const totalFunded = myPolls.reduce(
-      (sum, poll) => sum + Number(formatEther(poll.totalFunding)),
-      0
-    )
+
+    // Group funding by token symbol with correct decimals
+    const fundingByToken: Record<string, number> = {}
+    myPolls.forEach((poll) => {
+      const symbol = poll.fundingTokenSymbol || "ETH"
+      const decimals = TOKEN_INFO[symbol]?.decimals || 18
+      const amount = Number(poll.totalFunding) / Math.pow(10, decimals)
+      fundingByToken[symbol] = (fundingByToken[symbol] || 0) + amount
+    })
+
+    // Format as "0.5 ETH, 100 USDC" or just the single token
+    const fundedDisplay = Object.entries(fundingByToken)
+      .filter(([_, amount]) => amount > 0)
+      .map(([symbol, amount]) => `${amount.toFixed(4)} ${symbol}`)
+      .join(", ") || "0 ETH"
 
     return {
       totalPolls,
       activePolls,
       totalResponses,
-      totalFunded: `${totalFunded.toFixed(4)} ETH`,
+      totalFunded: fundedDisplay,
     }
   }, [myPolls])
 

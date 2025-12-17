@@ -38,6 +38,12 @@ interface UseAIChatOptions {
   onCreateShiftRequest?: (request: ShiftCreationRequest) => Promise<void>;
 }
 
+interface CreatedPollInfo {
+  pollId: string;
+  fundingToken?: string;
+  fundingAmount?: string;
+}
+
 interface UseAIChatReturn {
   messages: Message[];
   isLoading: boolean;
@@ -47,6 +53,7 @@ interface UseAIChatReturn {
   pendingPollCreation: PollCreationRequest | null;
   pendingShiftCreation: ShiftCreationRequest | null;
   createdPollId: string | null;
+  createdPollInfo: CreatedPollInfo | null;
   sendMessage: (message: string) => Promise<void>;
   clearChat: () => void;
   confirmPoll: () => void;
@@ -69,6 +76,7 @@ export function useAIChat({ userAddress, userNetwork, onCreatePollRequest, onCre
   const [shiftStatus, setShiftStatus] = useState<ShiftStatusData | null>(null);
   const [shiftState, setShiftState] = useState<ShiftState | null>(null);
   const [createdPollId, setCreatedPollId] = useState<string | null>(null);
+  const [createdPollInfo, setCreatedPollInfo] = useState<CreatedPollInfo | null>(null);
   const [pendingPollCreation, setPendingPollCreation] = useState<PollCreationRequest | null>(null);
   const [pendingShiftCreation, setPendingShiftCreation] = useState<ShiftCreationRequest | null>(null);
 
@@ -254,6 +262,7 @@ export function useAIChat({ userAddress, userNetwork, onCreatePollRequest, onCre
     setPendingPollCreation(null);
     setPendingShiftCreation(null);
     setCreatedPollId(null);
+    setCreatedPollInfo(null);
   }, []);
 
   /**
@@ -294,22 +303,35 @@ export function useAIChat({ userAddress, userNetwork, onCreatePollRequest, onCre
    * Called when poll creation completes (success or failure)
    */
   const onPollCreated = useCallback((success: boolean, pollId?: string) => {
+    // Store funding info before clearing pendingPollCreation
+    const fundingToken = pendingPollCreation?.fundingToken;
+    const fundingAmount = pendingPollCreation?.fundingAmount;
+
     setPendingPollCreation(null);
     setShiftState(null);
     setPendingShiftCreation(null);
 
     if (success) {
-      // Store the created poll ID for the View Poll button
+      // Store the created poll ID and funding info for the View Poll / Fund Poll buttons
       if (pollId) {
         setCreatedPollId(pollId);
+        setCreatedPollInfo({
+          pollId,
+          fundingToken,
+          fundingAmount,
+        });
       }
+
+      const hasFunding = fundingToken && fundingAmount;
       setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
           content: pollId
-            ? `Your poll has been created successfully! Poll ID: ${pollId}. You can now fund it or share it with others.`
-            : 'Your poll has been created successfully! You can now fund it or share it with others.',
+            ? hasFunding
+              ? `Your poll has been created successfully! Poll ID: ${pollId}. Click "Fund Poll" to add ${fundingAmount} ${fundingToken} as rewards.`
+              : `Your poll has been created successfully! Poll ID: ${pollId}. You can now share it with others.`
+            : 'Your poll has been created successfully! You can now share it with others.',
         },
       ]);
     } else {
@@ -321,7 +343,7 @@ export function useAIChat({ userAddress, userNetwork, onCreatePollRequest, onCre
         },
       ]);
     }
-  }, []);
+  }, [pendingPollCreation]);
 
   /**
    * Confirm and trigger shift creation
@@ -410,6 +432,7 @@ export function useAIChat({ userAddress, userNetwork, onCreatePollRequest, onCre
     pendingPollCreation,
     pendingShiftCreation,
     createdPollId,
+    createdPollInfo,
     sendMessage,
     clearChat,
     confirmPoll,

@@ -28,10 +28,11 @@ interface VoteDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onVote: (pollId: string, optionId: string) => Promise<void> | void
+  onSuccess?: () => void
   isVoting?: boolean
 }
 
-export function VoteDialog({ poll, open, onOpenChange, onVote, isVoting }: VoteDialogProps) {
+export function VoteDialog({ poll, open, onOpenChange, onVote, onSuccess, isVoting }: VoteDialogProps) {
   const [selectedOption, setSelectedOption] = useState<string>("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -47,6 +48,8 @@ export function VoteDialog({ poll, open, onOpenChange, onVote, isVoting }: VoteD
       // Only close dialog and reset after successful vote
       onOpenChange(false)
       setSelectedOption("")
+      // Trigger success callback to refetch data
+      onSuccess?.()
     } catch (err) {
       // Show error but keep dialog open
       setError(err instanceof Error ? err.message : "Failed to submit vote")

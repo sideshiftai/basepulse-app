@@ -324,7 +324,7 @@ export function PollPreviewCard({
               ) : (
                 <>
                   <Check className="h-3 w-3 mr-1" />
-                  {hasFunding ? "Create & Fund Poll" : "Create Poll"}
+                  Create Poll
                 </>
               )}
             </Button>

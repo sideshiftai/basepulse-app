@@ -293,6 +293,7 @@ export default function DappPage() {
                       router.push(`/dapp/poll/${pollId}`)
                     }}
                     onFundSuccess={refetchPoll}
+                    onVoteSuccess={refetchPoll}
                   />
                 ))}
               </div>

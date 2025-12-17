@@ -15,20 +15,24 @@ const BASE_SEPOLIA_CONTRACT = '0xa3713739c39419aA1c6daf349dB4342Be59b9142' as co
 // Staking and Premium Subscription contracts (to be deployed)
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const
 
+// PULSE token addresses (matching direct-sale-config)
+const BASE_MAINNET_PULSE_TOKEN = '0x1b684A60309b0916C77834d62d117d306171FDFE' as const
+const BASE_SEPOLIA_PULSE_TOKEN = '0x19821658D5798976152146d1c1882047670B898c' as const
+
 export const CONTRACT_ADDRESSES = {
   // Base Mainnet (chainId: 8453)
   8453: {
     POLLS_CONTRACT: (process.env.NEXT_PUBLIC_POLLS_CONTRACT_BASE || BASE_MAINNET_CONTRACT) as `0x${string}`,
     STAKING_CONTRACT: (process.env.NEXT_PUBLIC_STAKING_CONTRACT_BASE || ZERO_ADDRESS) as `0x${string}`,
     PREMIUM_CONTRACT: (process.env.NEXT_PUBLIC_PREMIUM_CONTRACT_BASE || ZERO_ADDRESS) as `0x${string}`,
-    PULSE_TOKEN: (process.env.NEXT_PUBLIC_PULSE_TOKEN_BASE || ZERO_ADDRESS) as `0x${string}`,
+    PULSE_TOKEN: (process.env.NEXT_PUBLIC_PULSE_TOKEN_BASE || BASE_MAINNET_PULSE_TOKEN) as `0x${string}`,
   },
   // Base Sepolia Testnet (chainId: 84532)
   84532: {
     POLLS_CONTRACT: (process.env.NEXT_PUBLIC_POLLS_CONTRACT_BASE_SEPOLIA || BASE_SEPOLIA_CONTRACT) as `0x${string}`,
     STAKING_CONTRACT: (process.env.NEXT_PUBLIC_STAKING_CONTRACT_BASE_SEPOLIA || ZERO_ADDRESS) as `0x${string}`,
     PREMIUM_CONTRACT: (process.env.NEXT_PUBLIC_PREMIUM_CONTRACT_BASE_SEPOLIA || ZERO_ADDRESS) as `0x${string}`,
-    PULSE_TOKEN: (process.env.NEXT_PUBLIC_PULSE_TOKEN_BASE_SEPOLIA || ZERO_ADDRESS) as `0x${string}`,
+    PULSE_TOKEN: (process.env.NEXT_PUBLIC_PULSE_TOKEN_BASE_SEPOLIA || BASE_SEPOLIA_PULSE_TOKEN) as `0x${string}`,
   },
 } as const
 

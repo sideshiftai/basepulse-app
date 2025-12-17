@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAccount, useChainId, useBalance } from "wagmi"
 import { formatEther, formatUnits } from "viem"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { ConnectWalletButton } from "@/components/connect-wallet-button"
 import { SubscriptionTiers } from "@/components/premium/subscription-tiers"
 import { PremiumBadge } from "@/components/premium/premium-badge"
@@ -16,6 +17,8 @@ import {
   usePulseBalance,
   useAllTierPrices,
 } from "@/lib/contracts/premium-contract-utils"
+import { useBuyWithUSDC, useApproveUSDC } from "@/lib/contracts/direct-sale-utils"
+import { DIRECT_SALE_CONFIG, getUSDCAddress } from "@/lib/contracts/direct-sale-config"
 import { SubscriptionTier } from "@/lib/contracts/premium-contract"
 import {
   Crown,
@@ -27,17 +30,31 @@ import {
   Loader2,
 } from "lucide-react"
 import Link from "next/link"
+import { toast } from "sonner"
 
 export default function UpgradePage() {
   const [showShiftDialog, setShowShiftDialog] = useState(false)
+  const [purchaseAmount, setPurchaseAmount] = useState("")
+  const [needsApproval, setNeedsApproval] = useState(true)
 
   const { address, isConnected } = useAccount()
   const chainId = useChainId()
-  const { data: isPremiumData, isLoading: isPremiumLoading } = useIsPremiumOrStaked(address)
+  const { data: isPremiumData, isLoading: isPremiumLoading, refetch: refetchPremium } = useIsPremiumOrStaked(address)
   const isPremium = isPremiumData as boolean | undefined
-  const { data: pulseBalance, isLoading: pulseLoading } = usePulseBalance(address)
-  const { data: ethBalance, isLoading: ethLoading } = useBalance({ address })
+  const { data: pulseBalance, isLoading: pulseLoading, refetch: refetchPulseBalance } = usePulseBalance(address)
+
+  // Get USDC balance instead of ETH
+  const usdcAddress = chainId ? getUSDCAddress(chainId) : undefined
+  const { data: usdcBalance, isLoading: usdcLoading, refetch: refetchUsdcBalance } = useBalance({
+    address,
+    token: usdcAddress as `0x${string}` | undefined,
+  })
+
   const tierPrices = useAllTierPrices()
+
+  // DirectTokenSale hooks for buying PULSE
+  const { buyWithUSDC, isPending: isBuying, isConfirming: isBuyConfirming, isSuccess: isBuySuccess } = useBuyWithUSDC()
+  const { approveUSDC, isPending: isApproving, isConfirming: isApproveConfirming, isSuccess: isApproveSuccess } = useApproveUSDC()
 
   // Check if on testnet (Base Sepolia)
   const isTestnet = chainId === 84532
@@ -50,11 +67,56 @@ export default function UpgradePage() {
   const formattedPulseBalance = pulseBalance
     ? Number(formatEther(pulseBalance)).toLocaleString(undefined, { maximumFractionDigits: 2 })
     : "0"
-  const formattedEthBalance = ethBalance
-    ? Number(formatEther(ethBalance.value)).toLocaleString(undefined, { maximumFractionDigits: 4 })
+  const formattedUsdcBalance = usdcBalance
+    ? Number(formatUnits(usdcBalance.value, 6)).toLocaleString(undefined, { maximumFractionDigits: 2 })
     : "0"
 
-  const isLoadingBalances = pulseLoading || ethLoading
+  const isLoadingBalances = pulseLoading || usdcLoading
+
+  // Show success toast only after approval is confirmed
+  useEffect(() => {
+    if (isApproveSuccess) {
+      toast.success("USDC approved! Click Buy PULSE again to purchase.")
+      setNeedsApproval(false)
+    }
+  }, [isApproveSuccess])
+
+  // Show success toast and refresh only after purchase is confirmed
+  useEffect(() => {
+    if (isBuySuccess) {
+      toast.success("PULSE purchased successfully!")
+      // Refetch balances instead of reloading
+      refetchPulseBalance()
+      refetchUsdcBalance()
+      refetchPremium()
+      // Reset approval state for next purchase
+      setNeedsApproval(true)
+      setPurchaseAmount("")
+    }
+  }, [isBuySuccess, refetchPulseBalance, refetchUsdcBalance, refetchPremium])
+
+  // Handle buying PULSE with USDC
+  const handleBuyPulse = async () => {
+    if (!purchaseAmount || parseFloat(purchaseAmount) <= 0) {
+      toast.error("Please enter a valid amount")
+      return
+    }
+
+    try {
+      if (needsApproval) {
+        // First approve USDC spending
+        await approveUSDC(purchaseAmount)
+      } else {
+        // Then buy PULSE
+        await buyWithUSDC(purchaseAmount)
+      }
+    } catch (error) {
+      // Only show error if user rejects or transaction fails
+      if (error instanceof Error && !error.message.includes("User rejected")) {
+        toast.error("Transaction failed")
+      }
+    }
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -160,21 +222,19 @@ export default function UpgradePage() {
                   )}
                 </div>
 
-                {/* ETH Balance */}
+                {/* USDC Balance */}
                 <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-blue-500/10 rounded-full">
-                      <svg className="h-5 w-5 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M11.944 17.97L4.58 13.62 11.943 24l7.37-10.38-7.372 4.35h.003zM12.056 0L4.69 12.223l7.365 4.354 7.365-4.35L12.056 0z" />
-                      </svg>
+                      <Coins className="h-5 w-5 text-blue-500" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">ETH</p>
+                      <p className="text-sm text-muted-foreground">USDC</p>
                       <p className="text-lg font-semibold">
                         {isLoadingBalances ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                          formattedEthBalance
+                          formattedUsdcBalance
                         )}
                       </p>
                     </div>
@@ -182,22 +242,78 @@ export default function UpgradePage() {
                 </div>
               </div>
 
-              {/* Need PULSE? Section - Only show on mainnet */}
+              {/* Buy PULSE Section - Show on both mainnet and testnet */}
+              {!hasSufficientPulse && (
+                <Card className="mt-6">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Coins className="h-5 w-5" />
+                      Buy PULSE
+                    </CardTitle>
+                    <CardDescription>
+                      Purchase PULSE tokens with your USDC at a fixed price of {DIRECT_SALE_CONFIG.tokenPrice} USDC per PULSE
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex gap-2">
+                        <Input
+                          type="number"
+                          placeholder="Amount in USDC"
+                          value={purchaseAmount}
+                          onChange={(e) => setPurchaseAmount(e.target.value)}
+                          disabled={isApproving || isApproveConfirming || isBuying || isBuyConfirming}
+                          className="flex-1"
+                        />
+                        <Button
+                          onClick={handleBuyPulse}
+                          disabled={isApproving || isApproveConfirming || isBuying || isBuyConfirming || !purchaseAmount}
+                          className="min-w-[140px]"
+                        >
+                          {(isApproving || isApproveConfirming || isBuying || isBuyConfirming) && (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          )}
+                          {needsApproval ? "Approve USDC" : "Buy PULSE"}
+                        </Button>
+                      </div>
+
+                      {/* Transaction status */}
+                      {(isApproving || isBuying) && (
+                        <p className="text-xs text-blue-600 dark:text-blue-400">
+                          Please confirm the transaction in your wallet...
+                        </p>
+                      )}
+                      {(isApproveConfirming || isBuyConfirming) && (
+                        <p className="text-xs text-blue-600 dark:text-blue-400">
+                          <Loader2 className="h-3 w-3 inline mr-1 animate-spin" />
+                          Transaction confirming on-chain...
+                        </p>
+                      )}
+
+                      <p className="text-xs text-muted-foreground">
+                        You will receive approximately {purchaseAmount ? (parseFloat(purchaseAmount) / parseFloat(DIRECT_SALE_CONFIG.tokenPrice)).toFixed(2) : "0"} PULSE tokens
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Shift Crypto to USDC Section - Only show on mainnet */}
               {!isTestnet && !hasSufficientPulse && (
                 <div className="mt-6 p-4 rounded-lg bg-muted/50 border border-dashed">
                   <div className="flex items-start gap-3">
                     <ArrowRightLeft className="h-5 w-5 text-primary mt-0.5" />
                     <div className="flex-1">
-                      <p className="font-medium">Need PULSE tokens?</p>
+                      <p className="font-medium">Don't have USDC?</p>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Convert any cryptocurrency to PULSE using SideShift. Supports BTC, ETH, USDC, and 100+ other coins.
+                        Shift any cryptocurrency from any network to Base USDC using SideShift.
                       </p>
                       <Button
                         className="mt-3"
                         onClick={() => setShowShiftDialog(true)}
                       >
                         <ArrowRightLeft className="h-4 w-4 mr-2" />
-                        Bridge Crypto to PULSE
+                        Shift Crypto to Base
                       </Button>
                     </div>
                   </div>
@@ -231,8 +347,8 @@ export default function UpgradePage() {
         open={showShiftDialog}
         onOpenChange={setShowShiftDialog}
         onSuccess={() => {
-          // Refresh the page to update balances
-          window.location.reload()
+          // Refetch USDC balance after successful shift
+          refetchUsdcBalance()
         }}
       />
     </div>

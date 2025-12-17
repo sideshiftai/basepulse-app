@@ -15,7 +15,7 @@ import { FundingType } from "@/lib/contracts/polls-contract"
 import { useSideshift, useShiftMonitor } from "@/hooks/use-sideshift"
 import { getDefaultDestinationCoin, getNetworkForChain, getDefaultNetworkForCoin, getNetworkDisplayName, getSourceNetworkForChain, isTestnet } from "@/lib/utils/currency"
 import { getTokenAddress } from "@/lib/contracts/token-config"
-import { Bot, X, Send, Minimize2, Maximize2, Trash2, Loader2, GripVertical, ExternalLink } from "lucide-react"
+import { Bot, X, Send, Minimize2, Maximize2, Trash2, Loader2, GripVertical, ExternalLink, Coins } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -216,6 +216,7 @@ export function AIChatbox({ className }: AIChatboxProps) {
     pendingPollCreation,
     pendingShiftCreation,
     createdPollId,
+    createdPollInfo,
     sendMessage,
     clearChat,
     confirmPoll,
@@ -583,22 +584,38 @@ export function AIChatbox({ className }: AIChatboxProps) {
             {/* View Poll Button - shown after successful poll creation */}
             {createdPollId && !pollPreview && !isPollCreationInProgress && (
               <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-sm">
-                    <p className="font-medium text-green-600">Poll Created!</p>
-                    <p className="text-xs text-muted-foreground">Poll ID: {createdPollId}</p>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm">
+                      <p className="font-medium text-green-600">Poll Created!</p>
+                      <p className="text-xs text-muted-foreground">Poll ID: {createdPollId}</p>
+                    </div>
                   </div>
-                  <Button
-                    asChild
-                    size="sm"
-                    variant="outline"
-                    className="border-green-500/30 hover:bg-green-500/10"
-                  >
-                    <Link href={`/dapp/poll/${createdPollId}`}>
-                      <ExternalLink className="h-3 w-3 mr-1" />
-                      View Poll
-                    </Link>
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 border-green-500/30 hover:bg-green-500/10"
+                    >
+                      <Link href={`/dapp/poll/${createdPollId}`}>
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        View Poll
+                      </Link>
+                    </Button>
+                    {createdPollInfo?.fundingToken && createdPollInfo?.fundingAmount && (
+                      <Button
+                        asChild
+                        size="sm"
+                        className="flex-1"
+                      >
+                        <Link href={`/dapp/poll/${createdPollId}/fund`}>
+                          <Coins className="h-3 w-3 mr-1" />
+                          Fund Poll
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
