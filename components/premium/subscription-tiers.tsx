@@ -115,41 +115,57 @@ function TierCard({
           </div>
         )}
 
-        {needsApproval && hasSufficientBalance ? (
-          <Button
-            onClick={onApprove}
-            disabled={isApproving}
-            className="w-full"
-            variant="outline"
-          >
-            {isApproving ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Approving...
-              </>
-            ) : (
-              "Approve PULSE"
-            )}
-          </Button>
-        ) : (
-          <Button
-            onClick={() => onSubscribe(tier)}
-            disabled={isProcessing || isActive || !hasSufficientBalance}
-            className="w-full"
-            variant={isPopular ? "default" : "outline"}
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Processing...
-              </>
-            ) : isActive ? (
-              "Current Plan"
-            ) : (
-              `Subscribe to ${name}`
-            )}
-          </Button>
-        )}
+        <div className="space-y-2">
+          {needsApproval && hasSufficientBalance ? (
+            <>
+              <Button
+                onClick={onApprove}
+                disabled={isApproving}
+                className="w-full"
+                variant="outline"
+              >
+                {isApproving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Approving...
+                  </>
+                ) : (
+                  "Approve PULSE"
+                )}
+              </Button>
+              {isApproving && (
+                <p className="text-xs text-center text-muted-foreground">
+                  Please confirm the transaction in your wallet...
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              <Button
+                onClick={() => onSubscribe(tier)}
+                disabled={isProcessing || isActive || !hasSufficientBalance}
+                className="w-full"
+                variant={isPopular ? "default" : "outline"}
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : isActive ? (
+                  "Current Plan"
+                ) : (
+                  `Subscribe to ${name}`
+                )}
+              </Button>
+              {isProcessing && (
+                <p className="text-xs text-center text-muted-foreground">
+                  Transaction confirming on-chain...
+                </p>
+              )}
+            </>
+          )}
+        </div>
       </CardContent>
     </Card>
   )
@@ -219,8 +235,12 @@ export function SubscriptionTiers() {
 
   useEffect(() => {
     if (isApproveSuccess) {
-      toast.success("PULSE approved!")
+      toast.success("PULSE approved! You can now subscribe.")
       refetchAllowance()
+      // Reset selected tier after short delay to let allowance update
+      setTimeout(() => {
+        setSelectedTier(null)
+      }, 1000)
     }
   }, [isApproveSuccess, refetchAllowance])
 
