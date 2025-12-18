@@ -48,6 +48,7 @@ export function FixedHeader() {
     { label: "Dapp", href: "/dapp" },
     { label: "Creator", href: "/creator", requiresAuth: true },
     { label: "Participant", href: "/participant", requiresAuth: true },
+    { label: "Donor", href: "/donor", requiresAuth: true },
     { label: "Bridge", href: bridgeUrl, external: true },
     { label: "Buy PULSE", href: "/buy-pulse" },
     { label: "Wallet", href: "/wallet", requiresAuth: true },
