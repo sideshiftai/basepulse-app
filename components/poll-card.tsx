@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -56,9 +56,23 @@ interface PollCardProps {
   onViewDetails?: (pollId: string) => void
   onFundSuccess?: (pollId: number) => void
   onVoteSuccess?: (pollId: number) => void
+  isVoting?: boolean
+  isVoteConfirming?: boolean
+  isVoteSuccess?: boolean
+  votingPollId?: string | null
 }
 
-export function PollCard({ poll, onVote, onViewDetails, onFundSuccess, onVoteSuccess }: PollCardProps) {
+export function PollCard({
+  poll,
+  onVote,
+  onViewDetails,
+  onFundSuccess,
+  onVoteSuccess,
+  isVoting,
+  isVoteConfirming,
+  isVoteSuccess,
+  votingPollId
+}: PollCardProps) {
   const [isVoteDialogOpen, setIsVoteDialogOpen] = useState(false)
   const [isFundDialogOpen, setIsFundDialogOpen] = useState(false)
   const [isCryptoFundDialogOpen, setIsCryptoFundDialogOpen] = useState(false)
@@ -66,6 +80,18 @@ export function PollCard({ poll, onVote, onViewDetails, onFundSuccess, onVoteSuc
   // Check if current user has voted on this poll (from cache + contract fallback)
   const { hasVoted, refetch: refetchHasVoted } = useHasVotedOnPoll(poll.id)
   const { addVotedPoll } = useVotedPollsCache()
+
+  // Add to local storage only after successful vote confirmation
+  useEffect(() => {
+    if (isVoteSuccess && votingPollId === poll.id) {
+      // Add to voted polls cache after successful confirmation
+      addVotedPoll(poll.id)
+      // Refetch hasVoted status from contract for confirmation
+      refetchHasVoted()
+      // Notify parent to refetch poll data (for vote counts)
+      onVoteSuccess?.(parseInt(poll.id))
+    }
+  }, [isVoteSuccess, votingPollId, poll.id, addVotedPoll, refetchHasVoted, onVoteSuccess])
 
   const timeRemaining = new Date(poll.endsAt).getTime() - new Date().getTime()
   const daysRemaining = Math.max(0, Math.ceil(timeRemaining / (1000 * 60 * 60 * 24)))
@@ -261,14 +287,8 @@ export function PollCard({ poll, onVote, onViewDetails, onFundSuccess, onVoteSuc
         open={isVoteDialogOpen}
         onOpenChange={setIsVoteDialogOpen}
         onVote={onVote || (async () => {})}
-        onSuccess={() => {
-          // Add to voted polls cache immediately
-          addVotedPoll(poll.id)
-          // Refetch hasVoted status from contract for confirmation
-          refetchHasVoted()
-          // Notify parent to refetch poll data (for vote counts)
-          onVoteSuccess?.(parseInt(poll.id))
-        }}
+        isVoting={isVoting && votingPollId === poll.id}
+        isVoteConfirming={isVoteConfirming && votingPollId === poll.id}
       />
 
       <FundWithTokenDialog
