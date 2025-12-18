@@ -15,6 +15,8 @@ export interface SubgraphPoll {
   creator: string
   createdAt: string
   totalFundingAmount: string
+  votingType: 'LINEAR' | 'QUADRATIC'
+  totalVotesBought: string
 }
 
 /**
@@ -182,6 +184,8 @@ export interface SubgraphCreatorPoll {
   fundingType: 'NONE' | 'SELF' | 'COMMUNITY'
   status: 'ACTIVE' | 'CLOSED' | 'FOR_CLAIMING' | 'PAUSED'
   createdAt: string
+  votingType: 'LINEAR' | 'QUADRATIC'
+  totalVotesBought: string
 }
 
 /**

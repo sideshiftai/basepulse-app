@@ -12,13 +12,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Clock, Users, Coins, Vote, ChevronDown, Wallet, RefreshCw } from "lucide-react"
+import { Clock, Users, Coins, Vote, ChevronDown, Wallet, RefreshCw, Zap, TrendingUp, Eye } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getNetworkName, getNetworkColor } from "@/lib/utils/network"
 import { formatRewardDisplay } from "@/lib/utils/format-reward"
 import { VoteDialog } from "./vote-dialog"
 import { FundWithTokenDialog } from "./fund-with-token-dialog"
 import { FundPollDialog } from "./sideshift/fund-poll-dialog"
+import { QuickVoteDialog } from "./poll/quick-vote-dialog"
+import { QuadraticVoteDialog } from "./poll/quadratic-vote-dialog"
 import { useHasVotedOnPoll } from "@/hooks/use-has-voted-on-poll"
 import { useVotedPollsCache } from "@/contexts/voted-polls-cache-context"
 
@@ -48,6 +50,7 @@ interface Poll {
   fundingToken?: string // Token symbol (ETH, USDC, PULSE)
   chainId?: number // Network where poll was created
   hasVoted?: boolean
+  votingType?: "standard" | "quadratic" // Type of voting mechanism
 }
 
 interface PollCardProps {
@@ -76,6 +79,8 @@ export function PollCard({
   const [isVoteDialogOpen, setIsVoteDialogOpen] = useState(false)
   const [isFundDialogOpen, setIsFundDialogOpen] = useState(false)
   const [isCryptoFundDialogOpen, setIsCryptoFundDialogOpen] = useState(false)
+  const [isQuickVoteDialogOpen, setIsQuickVoteDialogOpen] = useState(false)
+  const [isQuadraticVoteDialogOpen, setIsQuadraticVoteDialogOpen] = useState(false)
 
   // Check if current user has voted on this poll (from cache + contract fallback)
   const { hasVoted, refetch: refetchHasVoted } = useHasVotedOnPoll(poll.id)
@@ -205,7 +210,57 @@ export function PollCard({
               <Button variant="outline" size="sm" className="flex-1 hover:bg-accent/50 hover:text-foreground" onClick={() => onViewDetails?.(poll.id)}>
                 View Results
               </Button>
+            ) : poll.votingType === "quadratic" ? (
+              // Quadratic voting - show dropdown menu with options
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" className="flex-1 hover:opacity-90">
+                    <Vote className="h-4 w-4 mr-2" />
+                    Vote
+                    <ChevronDown className="h-3 w-3 ml-2" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem
+                    onClick={() => setIsQuickVoteDialogOpen(true)}
+                    className="cursor-pointer focus:bg-accent"
+                  >
+                    <div className="flex items-start gap-3 py-1">
+                      <Zap className="h-4 w-4 mt-0.5" />
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-medium text-sm">Quick Vote (1 vote)</span>
+                        <span className="text-xs opacity-70">Fastest way to vote</span>
+                      </div>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setIsQuadraticVoteDialogOpen(true)}
+                    className="cursor-pointer focus:bg-accent"
+                  >
+                    <div className="flex items-start gap-3 py-1">
+                      <TrendingUp className="h-4 w-4 mt-0.5" />
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-medium text-sm">Buy Multiple Votes</span>
+                        <span className="text-xs opacity-70">See cost breakdown & buy more</span>
+                      </div>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => onViewDetails?.(poll.id)}
+                    className="cursor-pointer focus:bg-accent"
+                  >
+                    <div className="flex items-start gap-3 py-1">
+                      <Eye className="h-4 w-4 mt-0.5" />
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-medium text-sm">View Full Details</span>
+                        <span className="text-xs opacity-70">Complete poll information</span>
+                      </div>
+                    </div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
+              // Standard voting - simple Vote button
               <Button size="sm" className="flex-1 hover:opacity-90" onClick={() => setIsVoteDialogOpen(true)}>
                 <Vote className="h-4 w-4 mr-2" />
                 Vote
@@ -306,6 +361,36 @@ export function PollCard({
         pollId={poll.id}
         pollFundingToken={poll.fundingToken}
       />
+
+      {/* Quadratic Voting Dialogs */}
+      {poll.votingType === "quadratic" && (
+        <>
+          <QuickVoteDialog
+            pollId={parseInt(poll.id)}
+            options={poll.options.map(opt => ({
+              id: opt.id,
+              text: opt.text,
+              votes: opt.votes
+            }))}
+            open={isQuickVoteDialogOpen}
+            onOpenChange={setIsQuickVoteDialogOpen}
+            onSuccess={() => {
+              onVoteSuccess?.(parseInt(poll.id))
+            }}
+          />
+
+          <QuadraticVoteDialog
+            pollId={parseInt(poll.id)}
+            options={poll.options.map(opt => opt.text)}
+            votes={poll.options.map(opt => BigInt(opt.votes))}
+            open={isQuadraticVoteDialogOpen}
+            onOpenChange={setIsQuadraticVoteDialogOpen}
+            onSuccess={() => {
+              onVoteSuccess?.(parseInt(poll.id))
+            }}
+          />
+        </>
+      )}
     </Card>
   )
 }

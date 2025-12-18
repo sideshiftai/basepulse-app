@@ -35,11 +35,13 @@ interface VoteDialogProps {
 export function VoteDialog({ poll, open, onOpenChange, onVote, isVoting, isVoteConfirming }: VoteDialogProps) {
   const [selectedOption, setSelectedOption] = useState<string>("")
   const [error, setError] = useState<string | null>(null)
+  const [hasStartedVoting, setHasStartedVoting] = useState(false)
 
   const handleVote = async () => {
     if (!selectedOption) return
 
     setError(null)
+    setHasStartedVoting(true)
 
     try {
       await onVote(poll.id, selectedOption)
@@ -47,17 +49,19 @@ export function VoteDialog({ poll, open, onOpenChange, onVote, isVoting, isVoteC
     } catch (err) {
       // Show error but keep dialog open
       setError(err instanceof Error ? err.message : "Failed to submit vote")
+      setHasStartedVoting(false)
     }
   }
 
-  // Close dialog after successful confirmation (handled by parent via isVoteConfirming -> false)
+  // Close dialog after successful confirmation
   useEffect(() => {
-    if (!isVoting && !isVoteConfirming && !error && selectedOption) {
+    if (hasStartedVoting && !isVoting && !isVoteConfirming && !error) {
       // Transaction completed successfully, close dialog
       onOpenChange(false)
       setSelectedOption("")
+      setHasStartedVoting(false)
     }
-  }, [isVoting, isVoteConfirming, error, selectedOption, onOpenChange])
+  }, [hasStartedVoting, isVoting, isVoteConfirming, error, onOpenChange])
 
   // Determine if we're in a voting state
   const voting = isVoting || isVoteConfirming
@@ -71,9 +75,11 @@ export function VoteDialog({ poll, open, onOpenChange, onVote, isVoting, isVoteC
       return
     }
     onOpenChange(newOpen)
-    // Reset error when dialog is closed
+    // Reset state when dialog is closed
     if (!newOpen) {
       setError(null)
+      setSelectedOption("")
+      setHasStartedVoting(false)
     }
   }
 
