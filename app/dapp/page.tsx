@@ -9,6 +9,7 @@ import { Plus, TrendingUp, Clock, Users, AlertCircle, Loader2 } from "lucide-rea
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useVote, usePollsContractAddress, useNextPollId } from "@/lib/contracts/polls-contract-utils"
+import { toast } from "sonner"
 import { useAccount, useChainId, useSwitchChain } from "wagmi"
 import { baseSepolia } from "wagmi/chains"
 import { usePollsData } from "@/hooks/use-polls-data"
@@ -35,7 +36,8 @@ export default function DappPage() {
   const chainId = useChainId()
   const contractAddress = usePollsContractAddress()
   const { switchChain } = useSwitchChain()
-  const { vote, isPending: isVoting } = useVote()
+  const { vote, isPending: isVoting, isConfirming: isVoteConfirming, isSuccess: isVoteSuccess } = useVote()
+  const [votedPollId, setVotedPollId] = useState<string | null>(null)
   const { data: nextPollId } = useNextPollId()
   const { dataSource } = useDataSource()
 
@@ -56,6 +58,17 @@ export default function DappPage() {
   const networkName = chainId === 8453 ? "Base Mainnet" : chainId === 84532 ? "Base Sepolia" : "Unknown Network"
   const hasContractOnNetwork = contractAddress && contractAddress !== "0x0000000000000000000000000000000000000000"
 
+  // Handle successful vote confirmation
+  useEffect(() => {
+    if (isVoteSuccess && votedPollId) {
+      toast.success("Vote submitted successfully!")
+      // Refetch the poll data to update vote counts
+      refetchPoll(parseInt(votedPollId))
+      // Reset voted poll ID
+      setVotedPollId(null)
+    }
+  }, [isVoteSuccess, votedPollId, refetchPoll])
+
   const handleVote = async (pollId: string, optionId: string) => {
     if (!isConnected) {
       throw new Error("Please connect your wallet to vote")
@@ -69,9 +82,13 @@ export default function DappPage() {
     }
 
     try {
+      // Store the poll ID to track which poll was voted on
+      setVotedPollId(pollId)
       await vote(parseInt(pollId), optionIndex)
     } catch (error) {
       console.error("Vote failed:", error)
+      // Clear voted poll ID on error
+      setVotedPollId(null)
 
       // Transform error messages to user-friendly versions
       if (error instanceof Error) {
@@ -294,6 +311,10 @@ export default function DappPage() {
                     }}
                     onFundSuccess={refetchPoll}
                     onVoteSuccess={refetchPoll}
+                    isVoting={isVoting}
+                    isVoteConfirming={isVoteConfirming}
+                    isVoteSuccess={isVoteSuccess}
+                    votingPollId={votedPollId}
                   />
                 ))}
               </div>

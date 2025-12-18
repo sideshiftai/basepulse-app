@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -28,38 +28,39 @@ interface VoteDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onVote: (pollId: string, optionId: string) => Promise<void> | void
-  onSuccess?: () => void
   isVoting?: boolean
+  isVoteConfirming?: boolean
 }
 
-export function VoteDialog({ poll, open, onOpenChange, onVote, onSuccess, isVoting }: VoteDialogProps) {
+export function VoteDialog({ poll, open, onOpenChange, onVote, isVoting, isVoteConfirming }: VoteDialogProps) {
   const [selectedOption, setSelectedOption] = useState<string>("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleVote = async () => {
     if (!selectedOption) return
 
-    setIsSubmitting(true)
     setError(null)
 
     try {
       await onVote(poll.id, selectedOption)
-      // Only close dialog and reset after successful vote
-      onOpenChange(false)
-      setSelectedOption("")
-      // Trigger success callback to refetch data
-      onSuccess?.()
+      // Dialog will close after transaction is confirmed (handled by parent)
     } catch (err) {
       // Show error but keep dialog open
       setError(err instanceof Error ? err.message : "Failed to submit vote")
-    } finally {
-      setIsSubmitting(false)
     }
   }
 
-  // Determine if we're in a voting state (either from prop or local state)
-  const voting = isVoting || isSubmitting
+  // Close dialog after successful confirmation (handled by parent via isVoteConfirming -> false)
+  useEffect(() => {
+    if (!isVoting && !isVoteConfirming && !error && selectedOption) {
+      // Transaction completed successfully, close dialog
+      onOpenChange(false)
+      setSelectedOption("")
+    }
+  }, [isVoting, isVoteConfirming, error, selectedOption, onOpenChange])
+
+  // Determine if we're in a voting state
+  const voting = isVoting || isVoteConfirming
 
   const daysRemaining = Math.ceil((new Date(poll.endsAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
 
@@ -119,10 +120,16 @@ export function VoteDialog({ poll, open, onOpenChange, onVote, onSuccess, isVoti
           )}
 
           {/* Voting status message */}
-          {voting && (
+          {isVoting && (
             <div className="p-3 text-sm text-blue-600 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
               <span>Please confirm the transaction in your wallet...</span>
+            </div>
+          )}
+          {isVoteConfirming && (
+            <div className="p-3 text-sm text-blue-600 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Transaction confirming on-chain...</span>
             </div>
           )}
 
