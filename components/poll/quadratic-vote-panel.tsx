@@ -28,6 +28,7 @@ import {
   calculateQuadraticCostLocal,
 } from "@/lib/contracts/polls-contract-utils"
 import { usePulseBalance, usePulseTokenAddress } from "@/lib/contracts/premium-contract-utils"
+import { useQuadraticVotingDiagnostics } from "@/lib/contracts/quadratic-voting-diagnostics"
 
 interface QuadraticVotePanelProps {
   pollId: number
@@ -49,6 +50,9 @@ export function QuadraticVotePanel({
   const { address } = useAccount()
   const contractAddress = usePollsContractAddress()
   const pulseToken = usePulseTokenAddress()
+
+  // Diagnostic check for quadratic voting setup
+  const { isReady: qvReady, issues: qvIssues } = useQuadraticVotingDiagnostics()
 
   // Get user's current votes in this poll
   const { data: currentVotes, refetch: refetchVotes } = useUserVotesInPoll(pollId, address)
@@ -125,12 +129,19 @@ export function QuadraticVotePanel({
   }, [buyError, approveError])
 
   const handleApprove = async () => {
-    if (!pulseToken || !contractAddress) return
+    if (!pulseToken || !contractAddress) {
+      toast.error("PULSE token or contract address not found")
+      return
+    }
     setIsApproving(true)
     try {
       // Approve a large amount to avoid repeated approvals
-      const approvalAmount = (estimatedCost * BigInt(10)).toString()
-      await approve(pulseToken, contractAddress, formatEther(BigInt(approvalAmount)), 18)
+      const approvalAmount = estimatedCost * BigInt(10)
+      console.log('[QV Approve] Estimated cost:', formatEther(estimatedCost), 'PULSE')
+      console.log('[QV Approve] Approval amount:', formatEther(approvalAmount), 'PULSE')
+      console.log('[QV Approve] Pulse token:', pulseToken)
+      console.log('[QV Approve] Spender (contract):', contractAddress)
+      await approve(pulseToken, contractAddress, formatEther(approvalAmount), 18)
     } catch (error) {
       console.error("Approval error:", error)
       setIsApproving(false)
@@ -147,6 +158,15 @@ export function QuadraticVotePanel({
       toast.error("Insufficient PULSE balance")
       return
     }
+
+    console.log('[QV Buy] Poll ID:', pollId)
+    console.log('[QV Buy] Option Index:', selectedOption)
+    console.log('[QV Buy] Number of Votes:', numVotes)
+    console.log('[QV Buy] Current Votes:', currentVotesNum)
+    console.log('[QV Buy] Estimated Cost:', formatEther(estimatedCost), 'PULSE')
+    console.log('[QV Buy] Balance:', pulseBalance ? formatEther(pulseBalance) : '0', 'PULSE')
+    console.log('[QV Buy] Allowance:', allowance ? formatEther(allowance) : '0', 'PULSE')
+    console.log('[QV Buy] Needs Approval:', needsApproval)
 
     try {
       await buyVotes(pollId, selectedOption, numVotes)
@@ -300,6 +320,23 @@ export function QuadraticVotePanel({
         </div>
 
         {/* Warnings */}
+        {qvIssues.length > 0 && (
+          <div className="flex items-start gap-2 p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
+            <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium text-amber-600 dark:text-amber-500">Configuration Issues</p>
+              <ul className="text-muted-foreground mt-1 list-disc list-inside">
+                {qvIssues.map((issue, index) => (
+                  <li key={index}>{issue}</li>
+                ))}
+              </ul>
+              <p className="text-muted-foreground mt-2">
+                Please contact the contract owner to configure quadratic voting settings.
+              </p>
+            </div>
+          </div>
+        )}
+
         {!hasSufficientBalance && (
           <div className="flex items-start gap-2 p-3 bg-destructive/10 rounded-lg">
             <AlertCircle className="h-4 w-4 text-destructive mt-0.5" />
@@ -330,7 +367,7 @@ export function QuadraticVotePanel({
           {needsApproval ? (
             <Button
               onClick={handleApprove}
-              disabled={isProcessing || !hasSufficientBalance}
+              disabled={isProcessing || !hasSufficientBalance || !qvReady}
               className="flex-1"
             >
               {isApproving || isApprovePending || isApproveConfirming ? (
@@ -348,7 +385,7 @@ export function QuadraticVotePanel({
           ) : (
             <Button
               onClick={handleBuyVotes}
-              disabled={isProcessing || selectedOption === null || !hasSufficientBalance}
+              disabled={isProcessing || selectedOption === null || !hasSufficientBalance || !qvReady}
               className="flex-1"
             >
               {isBuying || isConfirming ? (

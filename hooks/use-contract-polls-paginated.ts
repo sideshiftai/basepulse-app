@@ -139,6 +139,10 @@ export function useContractPollsPaginated(
       distributionMode,
       fundingToken,
       fundingType,
+      contractStatus,
+      previousStatus,
+      votingType,
+      totalVotesBought,
     ] = pollData
 
     // Calculate total votes
@@ -174,8 +178,13 @@ export function useContractPollsPaginated(
     const isEnded = Date.now() >= endTimeMs
     const status: 'active' | 'ended' = isActive && !isEnded ? 'active' : 'ended'
 
+    // Map voting type from contract enum to frontend format
+    // VotingType: LINEAR = 0, QUADRATIC = 1
+    const votingTypeString: 'standard' | 'quadratic' =
+      Number(votingType) === 1 ? 'quadratic' : 'standard'
+
     // Debug logging
-    console.log(`[Contract Poll ${pollId}] Token: ${tokenSymbol}, Decimals: ${tokenDecimals}, Raw totalFunding: ${totalFunding}, Converted: ${Number(totalFunding) / Math.pow(10, tokenDecimals)}`)
+    console.log(`[Contract Poll ${pollId}] Token: ${tokenSymbol}, Decimals: ${tokenDecimals}, Raw totalFunding: ${totalFunding}, Converted: ${Number(totalFunding) / Math.pow(10, tokenDecimals)}, VotingType: ${votingTypeString}`)
 
     return {
       id: pollId.toString(),
@@ -192,6 +201,7 @@ export function useContractPollsPaginated(
       fundingToken: tokenSymbol,
       chainId,
       hasVoted,
+      votingType: votingTypeString,
       options: (options as string[]).map((option: string, optIndex: number) => ({
         id: `${pollId}-${optIndex}`,
         text: option,
@@ -289,6 +299,10 @@ export function useContractPollsPaginated(
         distributionMode,
         fundingToken,
         fundingType,
+        contractStatus,
+        previousStatus,
+        votingType,
+        totalVotesBought,
       ] = pollData
 
       // Calculate total votes
@@ -319,8 +333,13 @@ export function useContractPollsPaginated(
       const isEnded = Date.now() >= endTimeMs
       const status: 'active' | 'ended' = isActive && !isEnded ? 'active' : 'ended'
 
+      // Map voting type from contract enum to frontend format
+      // VotingType: LINEAR = 0, QUADRATIC = 1
+      const votingTypeString: 'standard' | 'quadratic' =
+        Number(votingType) === 1 ? 'quadratic' : 'standard'
+
       // Debug logging for refetch
-      console.log(`[Contract RefetchPoll ${pollId}] Token: ${tokenSymbol}, Decimals: ${tokenDecimals}, Raw totalFunding: ${totalFunding}, Converted: ${Number(totalFunding) / Math.pow(10, tokenDecimals)}`)
+      console.log(`[Contract RefetchPoll ${pollId}] Token: ${tokenSymbol}, Decimals: ${tokenDecimals}, Raw totalFunding: ${totalFunding}, Converted: ${Number(totalFunding) / Math.pow(10, tokenDecimals)}, VotingType: ${votingTypeString}`)
 
       const updatedPoll: FormattedPoll = {
         id: pollId.toString(),
@@ -337,6 +356,7 @@ export function useContractPollsPaginated(
         fundingToken: tokenSymbol,
         chainId,
         hasVoted,
+        votingType: votingTypeString,
         options: (options as string[]).map((option: string, optIndex: number) => ({
           id: `${pollId}-${optIndex}`,
           text: option,

@@ -115,11 +115,18 @@ export function QuickVoteDialog({
   }, [buyError])
 
   const handleApprove = async () => {
-    if (!pulseToken || !contractAddress) return
+    if (!pulseToken || !contractAddress) {
+      toast.error("PULSE token or contract address not found")
+      return
+    }
     try {
       // Approve a large amount to avoid repeated approvals
-      const approvalAmount = (voteCost * BigInt(10)).toString()
-      await approve(pulseToken, contractAddress, formatEther(BigInt(approvalAmount)), 18)
+      const approvalAmount = voteCost * BigInt(10)
+      console.log('[Quick Vote Approve] Vote cost:', formatEther(voteCost), 'PULSE')
+      console.log('[Quick Vote Approve] Approval amount:', formatEther(approvalAmount), 'PULSE')
+      console.log('[Quick Vote Approve] Pulse token:', pulseToken)
+      console.log('[Quick Vote Approve] Spender (contract):', contractAddress)
+      await approve(pulseToken, contractAddress, formatEther(approvalAmount), 18)
     } catch (error) {
       console.error("Approval error:", error)
     }
@@ -135,6 +142,14 @@ export function QuickVoteDialog({
       toast.error("Insufficient PULSE balance")
       return
     }
+
+    console.log('[Quick Vote Buy] Poll ID:', pollId)
+    console.log('[Quick Vote Buy] Option Index:', selectedOption)
+    console.log('[Quick Vote Buy] Current Votes:', currentVotesNum)
+    console.log('[Quick Vote Buy] Vote Cost:', formatEther(voteCost), 'PULSE')
+    console.log('[Quick Vote Buy] Balance:', pulseBalance ? formatEther(pulseBalance) : '0', 'PULSE')
+    console.log('[Quick Vote Buy] Allowance:', allowance ? formatEther(allowance) : '0', 'PULSE')
+    console.log('[Quick Vote Buy] Needs Approval:', needsApproval)
 
     try {
       setHasStartedVoting(true)
