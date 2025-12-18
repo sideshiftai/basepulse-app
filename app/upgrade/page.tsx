@@ -12,6 +12,7 @@ import { ConnectWalletButton } from "@/components/connect-wallet-button"
 import { SubscriptionTiers } from "@/components/premium/subscription-tiers"
 import { PremiumBadge } from "@/components/premium/premium-badge"
 import { PremiumShiftDialog } from "@/components/sideshift/premium-shift-dialog"
+import { Play } from "lucide-react"
 import {
   useIsPremiumOrStaked,
   usePulseBalance,
@@ -137,6 +138,30 @@ export default function UpgradePage() {
           </p>
         </div>
       </div>
+
+      {/* Demo Video Section */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Play className="h-5 w-5 text-primary" />
+            How to Upgrade to Premium
+          </CardTitle>
+          <CardDescription>
+            Watch this quick tutorial to learn how to upgrade your account
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="relative aspect-video w-full rounded-lg overflow-hidden bg-muted">
+            <iframe
+              className="absolute inset-0 w-full h-full"
+              src="https://www.youtube.com/embed/rZhJC19YwYg"
+              title="How to Upgrade to Premium"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Connect Wallet Prompt */}
       {!isConnected && (
