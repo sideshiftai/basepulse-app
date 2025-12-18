@@ -161,7 +161,7 @@ export function PollCard({
 
       <CardContent className="space-y-4">
         <div className="space-y-3">
-          {poll.options.slice(0, 2).map((option) => (
+          {poll.options.map((option) => (
             <div key={option.id} className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="line-clamp-1">{option.text}</span>
@@ -170,9 +170,6 @@ export function PollCard({
               <Progress value={option.percentage} className="h-2" />
             </div>
           ))}
-          {poll.options.length > 2 && (
-            <p className="text-xs text-muted-foreground">+{poll.options.length - 2} more options</p>
-          )}
         </div>
 
         <div className="grid grid-cols-3 gap-4 text-center">
