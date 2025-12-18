@@ -18,6 +18,8 @@ const POLL_FIELDS = gql`
     creator
     createdAt
     totalFundingAmount
+    votingType
+    totalVotesBought
   }
 `
 
@@ -280,6 +282,8 @@ export const GET_POLLS_BY_CREATOR = gql`
       fundingType
       status
       createdAt
+      votingType
+      totalVotesBought
     }
   }
 `

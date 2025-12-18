@@ -74,6 +74,10 @@ export function mapSubgraphPollToFormattedPoll(poll: SubgraphPoll): FormattedPol
   const decimals = getTokenDecimals(metadata.token)
   const divisor = Math.pow(10, decimals)
 
+  // Map voting type from subgraph enum to frontend format
+  const votingType: 'standard' | 'quadratic' =
+    poll.votingType === 'QUADRATIC' ? 'quadratic' : 'standard'
+
   return {
     id: poll.id,
     title: metadata.title,
@@ -88,6 +92,7 @@ export function mapSubgraphPollToFormattedPoll(poll: SubgraphPoll): FormattedPol
     fundingType,
     fundingToken: metadata.token,
     options,
+    votingType,
   }
 }
 
