@@ -30,10 +30,10 @@ export default function PollDetailPage({ params }: PageProps) {
   const [claimDialogOpen, setClaimDialogOpen] = useState(false)
 
   const contractAddress = usePollsContractAddress()
-  const { data: pollData, isLoading, error } = usePoll(pollId)
-  const { data: hasVoted } = useHasUserVoted(pollId, address)
+  const { data: pollData, isLoading, error, refetch: refetchPoll } = usePoll(pollId)
+  const { data: hasVoted, refetch: refetchHasVoted } = useHasUserVoted(pollId, address)
   // Must call all hooks unconditionally before any early returns
-  const { data: userVotesInPoll } = useUserVotesInPoll(pollId, address)
+  const { data: userVotesInPoll, refetch: refetchUserVotes } = useUserVotesInPoll(pollId, address)
 
   if (isLoading) {
     return (
@@ -181,7 +181,10 @@ export default function PollDetailPage({ params }: PageProps) {
               options={options as string[]}
               votes={votes as bigint[]}
               onVoteSuccess={() => {
-                // Optionally refresh poll data
+                // Refresh poll data after successful vote
+                refetchPoll()
+                refetchHasVoted()
+                refetchUserVotes()
               }}
             />
           )}
@@ -339,7 +342,10 @@ export default function PollDetailPage({ params }: PageProps) {
         open={claimDialogOpen}
         onOpenChange={setClaimDialogOpen}
         onSuccess={() => {
-          // Optionally refresh poll data or show success message
+          // Refresh poll data after claiming rewards
+          refetchPoll()
+          refetchHasVoted()
+          refetchUserVotes()
         }}
       />
     </div>

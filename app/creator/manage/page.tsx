@@ -24,8 +24,14 @@ import { CreatorBreadcrumb } from "@/components/creator/creator-breadcrumb"
 import { CreatorHeaderBanner } from "@/components/creator/creator-header-banner"
 import { DashboardStats } from "@/components/creator/dashboard-stats"
 import { PollCard } from "@/components/creator/poll-card"
+import { DraggablePollCard } from "@/components/creator/projects/draggable-poll-card"
+import { ProjectSidebar } from "@/components/creator/projects/project-sidebar"
+import { DnDContextProvider } from "@/lib/dnd/dnd-context"
+import { useAddPollToProject } from "@/hooks/use-projects"
+import { parsePollDragId } from "@/lib/dnd/dnd-utils"
 import { Button } from "@/components/ui/button"
 import { getTokenSymbol } from "@/lib/contracts/token-config"
+import type { DragEndEvent } from '@dnd-kit/core'
 
 export default function ManagePollsPage() {
   const { address, isConnected } = useAccount()
@@ -36,6 +42,7 @@ export default function ManagePollsPage() {
   const { setDistributionMode } = useSetDistributionMode()
   const { withdrawFunds } = useWithdrawFunds()
   const { distributeRewards } = useDistributeRewards()
+  const addPollToProject = useAddPollToProject()
 
   // View toggle state with localStorage persistence
   const [viewMode, setViewMode] = useState<"table" | "cards">("cards")
@@ -179,6 +186,30 @@ export default function ManagePollsPage() {
     }
   }
 
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (!over) return
+
+    // Parse poll data from drag ID
+    const pollData = parsePollDragId(active.id.toString())
+    if (!pollData) return
+
+    // Extract project ID from drop zone ID
+    const projectId = over.id.toString().replace('project-', '')
+
+    try {
+      await addPollToProject.mutateAsync({
+        projectId,
+        chainId: pollData.chainId,
+        pollId: pollData.pollId,
+      })
+      toast.success('Poll added to project')
+    } catch (error) {
+      toast.error('Failed to add poll to project')
+    }
+  }
+
   if (!isConnected) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -198,25 +229,34 @@ export default function ManagePollsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Breadcrumb */}
-        <CreatorBreadcrumb />
-
-        {/* Header Banner */}
-        <CreatorHeaderBanner
-          title="Manage Polls"
-          description="Manage your polls and track their performance"
+    <DnDContextProvider onDragEnd={handleDragEnd}>
+      <div className="flex h-screen">
+        {/* Project Sidebar */}
+        <ProjectSidebar
+          onCreateProject={() => router.push('/creator/projects/create')}
         />
 
-        {/* Stats */}
-        <DashboardStats
-          totalPolls={dashboardStats.totalPolls}
-          totalResponses={dashboardStats.totalResponses}
-          activePolls={dashboardStats.activePolls}
-          totalFunded={dashboardStats.totalFunded}
-          isLoading={pollsLoading}
-        />
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-auto">
+          <div className="container mx-auto px-4 py-8">
+            <div className="max-w-7xl mx-auto space-y-6">
+              {/* Breadcrumb */}
+              <CreatorBreadcrumb />
+
+              {/* Header Banner */}
+              <CreatorHeaderBanner
+                title="Manage Polls"
+                description="Manage your polls and track their performance"
+              />
+
+              {/* Stats */}
+              <DashboardStats
+                totalPolls={dashboardStats.totalPolls}
+                totalResponses={dashboardStats.totalResponses}
+                activePolls={dashboardStats.activePolls}
+                totalFunded={dashboardStats.totalFunded}
+                isLoading={pollsLoading}
+              />
 
         {/* My Polls Section with View Toggle and New Poll Button */}
         <div className="space-y-4">
@@ -267,11 +307,27 @@ export default function ManagePollsPage() {
                 </div>
               ) : (
                 myPolls.map((poll) => (
-                  <PollCard
+                  <DraggablePollCard
                     key={Number(poll.id)}
-                    poll={poll}
-                    onClosePoll={handleClosePoll}
-                    onSetDistributionMode={handleSetDistributionMode}
+                    poll={{
+                      id: String(poll.id),
+                      pollId: Number(poll.id),
+                      question: poll.question,
+                      options: poll.options.map((opt: { text: string }) => opt.text),
+                      votes: poll.options.map((opt: { votes: bigint }) => opt.votes),
+                      totalVotes: Number(poll.totalVotes),
+                      endTime: Number(poll.endTime),
+                      isActive: poll.isActive,
+                      totalFunding: poll.totalFunding,
+                      totalFundingAmount: poll.totalFunding,
+                      voteCount: poll.options.reduce((sum: number, opt: { votes: bigint }) => sum + Number(opt.votes), 0),
+                      voterCount: 0, // TODO: Get actual voter count
+                      distributionMode: poll.distributionMode,
+                      fundingType: 'community', // Default
+                      status: poll.isActive ? 'active' : 'closed',
+                      createdAt: new Date(),
+                    }}
+                    chainId={chainId}
                   />
                 ))
               )}
@@ -287,7 +343,10 @@ export default function ManagePollsPage() {
             />
           )}
         </div>
+            </div>
+          </div>
+        </main>
       </div>
-    </div>
+    </DnDContextProvider>
   )
 }
