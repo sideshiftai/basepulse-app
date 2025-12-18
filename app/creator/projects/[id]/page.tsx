@@ -71,6 +71,7 @@ import {
 import { formatDistanceToNow } from 'date-fns'
 import { toast } from 'sonner'
 import { useChainId } from 'wagmi'
+import { usePoll } from '@/lib/contracts/polls-contract-utils'
 
 function ProjectPollCard({
   poll,
@@ -82,13 +83,21 @@ function ProjectPollCard({
   onRemove: () => void
 }) {
   const [isRemoving, setIsRemoving] = useState(false)
+  const router = useRouter()
+
+  // Fetch poll data to get the actual question
+  const { data: pollData } = usePoll(Number(poll.pollId))
+  const pollQuestion = pollData?.[1] || `Poll #${poll.pollId}` // [1] is the question field
 
   return (
-    <div className="flex items-center justify-between p-4 border rounded-lg">
-      <div className="flex-1">
+    <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors">
+      <div
+        className="flex-1 cursor-pointer"
+        onClick={() => router.push(`/dapp/poll/${poll.pollId}`)}
+      >
         <div className="flex items-center gap-2">
           <Vote className="w-4 h-4 text-muted-foreground" />
-          <span className="font-medium">Poll #{poll.pollId}</span>
+          <span className="font-medium">{pollQuestion}</span>
           <Badge variant="outline" className="text-xs">
             Chain {poll.chainId}
           </Badge>
@@ -98,15 +107,11 @@ function ProjectPollCard({
         </p>
       </div>
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href={`/dapp/poll/${poll.pollId}`} target="_blank">
-            <ExternalLink className="w-4 h-4" />
-          </Link>
-        </Button>
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation()
             setIsRemoving(true)
             onRemove()
           }}
