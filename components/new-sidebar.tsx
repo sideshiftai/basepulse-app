@@ -37,6 +37,9 @@ import {
   History,
   Home,
   Users,
+  Wallet,
+  Search,
+  Target,
 } from "lucide-react"
 import { useSidebar } from "@/contexts/sidebar-context"
 
@@ -142,7 +145,8 @@ export function NewSidebar() {
   // Determine current context based on route
   const isCreatorContext = pathname.startsWith("/creator")
   const isParticipantContext = pathname.startsWith("/participant")
-  const isDefaultContext = !isCreatorContext && !isParticipantContext
+  const isDonorContext = pathname.startsWith("/donor")
+  const isDefaultContext = !isCreatorContext && !isParticipantContext && !isDonorContext
 
   // TODO: Replace with real data
   const projectsCount = 1
@@ -224,6 +228,35 @@ export function NewSidebar() {
     },
   ]
 
+  // Donor-specific navigation
+  const donorNavItems = [
+    {
+      icon: LayoutDashboard,
+      label: "Dashboard",
+      href: "/donor",
+    },
+    {
+      icon: Search,
+      label: "Explore Polls",
+      href: "/donor/explore",
+    },
+    {
+      icon: Wallet,
+      label: "Funded Polls",
+      href: "/donor/funded",
+    },
+    {
+      icon: History,
+      label: "Funding History",
+      href: "/donor/history",
+    },
+    {
+      icon: Target,
+      label: "Trending",
+      href: "/donor/trending",
+    },
+  ]
+
   // Quick links to switch context
   const contextSwitchItems = [
     {
@@ -289,6 +322,7 @@ export function NewSidebar() {
                 items={[
                   { icon: Home, label: "Home", href: "/" },
                   { icon: Sparkles, label: "Participant View", href: "/participant/quests" },
+                  { icon: Wallet, label: "Donor Dashboard", href: "/donor" },
                 ]}
                 isCollapsed={isCollapsed}
                 pathname={pathname}
@@ -312,6 +346,31 @@ export function NewSidebar() {
                 items={[
                   { icon: Home, label: "Home", href: "/" },
                   { icon: LayoutDashboard, label: "Creator Dashboard", href: "/creator" },
+                  { icon: Wallet, label: "Donor Dashboard", href: "/donor" },
+                ]}
+                isCollapsed={isCollapsed}
+                pathname={pathname}
+              />
+            </>
+          )}
+
+          {/* Donor Context Navigation */}
+          {isDonorContext && (
+            <>
+              <SidebarSection
+                title="Donor"
+                items={donorNavItems}
+                isCollapsed={isCollapsed}
+                pathname={pathname}
+              />
+
+              {/* Switch to other contexts */}
+              <SidebarSection
+                title="Switch To"
+                items={[
+                  { icon: Home, label: "Home", href: "/" },
+                  { icon: LayoutDashboard, label: "Creator Dashboard", href: "/creator" },
+                  { icon: Sparkles, label: "Participant View", href: "/participant/quests" },
                 ]}
                 isCollapsed={isCollapsed}
                 pathname={pathname}
@@ -348,6 +407,16 @@ export function NewSidebar() {
               <SidebarSection
                 title="Creator"
                 items={creatorNavItems}
+                isCollapsed={isCollapsed}
+                pathname={pathname}
+              />
+
+              {/* Donor Section */}
+              <SidebarSection
+                title="Donor"
+                items={[
+                  { icon: Wallet, label: "Donor Dashboard", href: "/donor" },
+                ]}
                 isCollapsed={isCollapsed}
                 pathname={pathname}
               />
