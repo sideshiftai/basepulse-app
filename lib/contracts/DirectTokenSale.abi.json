@@ -83,6 +83,11 @@
   },
   {
     "inputs": [],
+    "name": "InvalidPriceFeed",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "NoFundsToWithdraw",
     "type": "error"
   },
@@ -132,6 +137,11 @@
   {
     "inputs": [],
     "name": "SaleEnded",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "StalePrice",
     "type": "error"
   },
   {
@@ -242,6 +252,25 @@
       }
     ],
     "name": "Paused",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "oldFeed",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newFeed",
+        "type": "address"
+      }
+    ],
+    "name": "PriceFeedUpdated",
     "type": "event"
   },
   {
@@ -600,6 +629,19 @@
   },
   {
     "inputs": [],
+    "name": "ethUsdPriceFeed",
+    "outputs": [
+      {
+        "internalType": "contract AggregatorV3Interface",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "getBuyPrice",
     "outputs": [
       {
@@ -610,6 +652,37 @@
       {
         "internalType": "uint256",
         "name": "ethPrice",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getETHToPulseRate",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "pulsePerETH",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "ethPriceUSD",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getLatestETHPrice",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
     ],
@@ -677,6 +750,11 @@
       {
         "internalType": "address",
         "name": "_usdcToken",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_ethUsdPriceFeed",
         "type": "address"
       }
     ],
@@ -863,6 +941,19 @@
       }
     ],
     "name": "sellForUSDC",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_newPriceFeed",
+        "type": "address"
+      }
+    ],
+    "name": "setPriceFeed",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

@@ -13,12 +13,13 @@ import {
   Coins,
   TrendingUp,
   Target,
-  ChevronRight,
+  ChevronDown,
   Clock,
   Users,
   Wallet,
   Search,
   ArrowRight,
+  RefreshCw,
 } from "lucide-react"
 import { DonorBreadcrumb } from "@/components/donor/donor-breadcrumb"
 import { CreatorHeaderBanner } from "@/components/creator/creator-header-banner"
@@ -28,6 +29,14 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Progress } from "@/components/ui/progress"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { FundWithTokenDialog } from "@/components/fund-with-token-dialog"
+import { FundPollDialog } from "@/components/sideshift/fund-poll-dialog"
 import { usePollsData } from "@/hooks/use-polls-data"
 import { formatRewardDisplay } from "@/lib/utils/format-reward"
 
@@ -43,6 +52,10 @@ export default function DonorPage() {
     impactScore: 0,
   })
   const [isLoading, setIsLoading] = useState(true)
+
+  // Fund dialog states
+  const [fundDialogPollId, setFundDialogPollId] = useState<number | null>(null)
+  const [cryptoFundDialogPollId, setCryptoFundDialogPollId] = useState<string | null>(null)
 
   // Fetch polls that need funding (active polls with funding enabled)
   const { polls: availablePolls, loading: pollsLoading } = usePollsData({ pageSize: 6 })
@@ -229,8 +242,7 @@ export default function DonorPage() {
                 return (
                   <Card
                     key={poll.id}
-                    className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all"
-                    onClick={() => router.push(`/dapp/poll/${poll.id}`)}
+                    className="hover:border-primary/50 hover:shadow-md transition-all"
                   >
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between">
@@ -265,9 +277,54 @@ export default function DonorPage() {
                             <span>{new Date(poll.endsAt).toLocaleDateString()}</span>
                           </div>
                         </div>
-                        <div className="flex items-center justify-between pt-2 border-t">
-                          <span className="text-xs text-muted-foreground">Click to fund</span>
-                          <ChevronRight className="w-4 w-4 text-muted-foreground" />
+                        {/* Action Buttons */}
+                        <div className="flex gap-2 pt-2 border-t">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => router.push(`/dapp/poll/${poll.id}`)}
+                          >
+                            View Details
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                size="sm"
+                                className="flex-1"
+                              >
+                                <Coins className="h-4 w-4 mr-2" />
+                                Fund Poll
+                                <ChevronDown className="h-3 w-3 ml-2" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56">
+                              <DropdownMenuItem
+                                onClick={() => setFundDialogPollId(parseInt(poll.id))}
+                                className="cursor-pointer focus:bg-accent"
+                              >
+                                <div className="flex items-start gap-3 py-1">
+                                  <Wallet className="h-4 w-4 mt-0.5" />
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="font-medium text-sm">Fund with Base Tokens</span>
+                                    <span className="text-xs opacity-70">Use ETH/USDC on Base network</span>
+                                  </div>
+                                </div>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => setCryptoFundDialogPollId(poll.id)}
+                                className="cursor-pointer focus:bg-accent"
+                              >
+                                <div className="flex items-start gap-3 py-1">
+                                  <RefreshCw className="h-4 w-4 mt-0.5" />
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="font-medium text-sm">Convert & Fund</span>
+                                    <span className="text-xs opacity-70">From any crypto/network via SideShift</span>
+                                  </div>
+                                </div>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
                     </CardContent>
@@ -309,6 +366,27 @@ export default function DonorPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Fund with Token Dialog */}
+      {fundDialogPollId !== null && (
+        <FundWithTokenDialog
+          open={fundDialogPollId !== null}
+          onOpenChange={(open) => !open && setFundDialogPollId(null)}
+          pollId={fundDialogPollId}
+          pollTitle={pollsNeedingFunding.find(p => parseInt(p.id) === fundDialogPollId)?.title || ""}
+          pollFundingToken={pollsNeedingFunding.find(p => parseInt(p.id) === fundDialogPollId)?.fundingToken}
+        />
+      )}
+
+      {/* Fund with Crypto Dialog (SideShift) */}
+      {cryptoFundDialogPollId !== null && (
+        <FundPollDialog
+          open={cryptoFundDialogPollId !== null}
+          onOpenChange={(open) => !open && setCryptoFundDialogPollId(null)}
+          pollId={cryptoFundDialogPollId}
+          pollFundingToken={pollsNeedingFunding.find(p => p.id === cryptoFundDialogPollId)?.fundingToken}
+        />
+      )}
     </div>
   )
 }
