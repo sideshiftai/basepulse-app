@@ -14,6 +14,7 @@ import {
   Coins,
   Users,
   Loader2,
+  Edit,
 } from "lucide-react"
 import { useAccount, useChainId } from "wagmi"
 import { format } from "date-fns"
@@ -137,6 +138,15 @@ export default function QuestionnaireDetailPage({ params }: PageProps) {
               {isCreator && <Badge variant="outline">Creator</Badge>}
             </div>
           </div>
+          {isCreator && (
+            <Button
+              variant="outline"
+              onClick={() => router.push(`/dapp/questionnaires/${id}/edit`)}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          )}
         </div>
       </div>
 

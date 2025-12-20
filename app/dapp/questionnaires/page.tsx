@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ConnectWalletButton } from "@/components/connect-wallet-button"
@@ -21,6 +22,7 @@ import { toast } from "sonner"
 export default function QuestionnairesPage() {
   const [mounted, setMounted] = useState(false)
   const [activeTab, setActiveTab] = useState("browse")
+  const router = useRouter()
 
   useEffect(() => {
     setMounted(true)
@@ -61,6 +63,10 @@ export default function QuestionnairesPage() {
     } catch (error) {
       toast.error("Failed to update questionnaire status")
     }
+  }
+
+  const handleEdit = (id: string) => {
+    router.push(`/dapp/questionnaires/${id}/edit`)
   }
 
   // Filter for my questionnaires
@@ -191,6 +197,7 @@ export default function QuestionnairesPage() {
                       key={questionnaire.id}
                       questionnaire={questionnaire}
                       showCreatorActions
+                      onEdit={handleEdit}
                       onArchive={handleArchive}
                       onToggleStatus={handleToggleStatus}
                       isTogglingStatus={isUpdating}
