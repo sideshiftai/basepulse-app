@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Clock, ListChecks, Users, Coins, ArrowRight, CheckCircle2 } from "lucide-react"
+import { Clock, ListChecks, Users, Coins, ArrowRight, CheckCircle2, Eye, EyeOff } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getNetworkName, getNetworkColor } from "@/lib/utils/network"
 import { formatRewardDisplay } from "@/lib/utils/format-reward"
@@ -18,6 +18,8 @@ interface QuestionnaireCardProps {
   showCreatorActions?: boolean
   onEdit?: (id: string) => void
   onArchive?: (id: string) => void
+  onToggleStatus?: (id: string, newStatus: 'active' | 'draft') => void
+  isTogglingStatus?: boolean
 }
 
 export function QuestionnaireCard({
@@ -26,6 +28,8 @@ export function QuestionnaireCard({
   showCreatorActions = false,
   onEdit,
   onArchive,
+  onToggleStatus,
+  isTogglingStatus = false,
 }: QuestionnaireCardProps) {
   const timeRemaining = questionnaire.endTime
     ? new Date(questionnaire.endTime).getTime() - new Date().getTime()
@@ -160,6 +164,30 @@ export function QuestionnaireCard({
       <CardFooter className="flex gap-2">
         {showCreatorActions ? (
           <>
+            {/* Publish/Unpublish Toggle */}
+            {questionnaire.status !== "archived" && onToggleStatus && (
+              <Button
+                variant={questionnaire.status === "active" ? "outline" : "default"}
+                size="sm"
+                onClick={() => onToggleStatus(
+                  questionnaire.id,
+                  questionnaire.status === "active" ? "draft" : "active"
+                )}
+                disabled={isTogglingStatus}
+              >
+                {questionnaire.status === "active" ? (
+                  <>
+                    <EyeOff className="h-4 w-4 mr-1" />
+                    Unpublish
+                  </>
+                ) : (
+                  <>
+                    <Eye className="h-4 w-4 mr-1" />
+                    Publish
+                  </>
+                )}
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"

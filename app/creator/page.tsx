@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { AlertCircle, Plus, Vote, Sparkles, FolderKanban } from "lucide-react"
+import { AlertCircle, Plus, Vote, Sparkles, FolderKanban, ListChecks } from "lucide-react"
 import { useAccount, useChainId } from "wagmi"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -143,6 +143,10 @@ export default function CreatorPage() {
               <Plus className="h-4 w-4 mr-2" />
               Create Poll
             </Button>
+            <Button variant="outline" onClick={() => router.push('/dapp/questionnaires/create')}>
+              <ListChecks className="h-4 w-4 mr-2" />
+              Create Questionnaire
+            </Button>
             <Button variant="outline" onClick={() => router.push('/creator/quests/create')}>
               <Sparkles className="h-4 w-4 mr-2" />
               Create Quest
@@ -151,7 +155,7 @@ export default function CreatorPage() {
         </div>
 
         {/* Quick Actions Cards */}
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card
             className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all"
             onClick={() => router.push('/dapp/create')}
@@ -167,6 +171,25 @@ export default function CreatorPage() {
             <CardContent>
               <CardDescription>
                 Create a new poll to gather feedback and insights from your community
+              </CardDescription>
+            </CardContent>
+          </Card>
+
+          <Card
+            className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all"
+            onClick={() => router.push('/dapp/questionnaires/create')}
+          >
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-green-500/10">
+                  <ListChecks className="h-5 w-5 text-green-500" />
+                </div>
+                <CardTitle className="text-lg">Create Questionnaire</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>
+                Group multiple polls for participants to answer together in sequence
               </CardDescription>
             </CardContent>
           </Card>

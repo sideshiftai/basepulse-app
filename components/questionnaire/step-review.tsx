@@ -25,13 +25,15 @@ export function StepReview({ form }: StepReviewProps) {
   const values = form.watch()
   const chainId = useChainId()
 
-  const getTokenSymbolForAddress = (address: string) => {
-    if (!address) return "Unknown"
-    // If address is a token symbol, return it directly
-    if (TOKEN_INFO[address]) return address
+  const getTokenSymbolDisplay = (token: string) => {
+    if (!token) return ""
+    // If it's a token symbol (like "PULSE", "ETH", "USDC"), return it directly
+    const upperToken = token.toUpperCase()
+    if (TOKEN_INFO[upperToken]) return upperToken
+    if (TOKEN_INFO[token]) return token
     // Otherwise try to look up by address
-    const symbol = getTokenSymbol(chainId, address as `0x${string}`)
-    return symbol || "Unknown"
+    const symbol = getTokenSymbol(chainId, token as `0x${string}`)
+    return symbol || token
   }
 
   const totalPercentage = (values.rewardDistribution || []).reduce(
@@ -158,7 +160,7 @@ export function StepReview({ form }: StepReviewProps) {
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Total Reward</span>
                 <span className="font-medium">
-                  {values.totalRewardAmount} {getTokenSymbolForAddress(values.fundingToken || "")}
+                  {values.totalRewardAmount} {getTokenSymbolDisplay(values.fundingToken || "")}
                 </span>
               </div>
 

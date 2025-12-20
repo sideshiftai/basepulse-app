@@ -72,7 +72,7 @@ export function QuestionnaireCreationForm() {
       category: "",
       polls: [],
       totalRewardAmount: "0",
-      fundingToken: "",
+      fundingToken: "PULSE",
       rewardDistribution: [],
     },
   })

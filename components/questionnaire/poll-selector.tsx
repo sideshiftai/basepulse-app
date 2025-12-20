@@ -3,7 +3,6 @@
 import { useState, useMemo } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Search, Plus, Check, Clock } from "lucide-react"
@@ -82,63 +81,67 @@ export function PollSelector({ selectedPolls, onAddPoll, disabled }: PollSelecto
       </div>
 
       <ScrollArea className="h-[300px] rounded-md border">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-muted-foreground">Loading polls...</p>
-          </div>
-        ) : availablePolls.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full p-4 text-center">
-            <p className="text-muted-foreground">
-              {searchQuery
-                ? "No polls found matching your search"
-                : creatorPolls?.length === 0
-                ? "You haven't created any polls yet"
-                : "All your polls have been added"}
-            </p>
-          </div>
-        ) : (
-          <div className="p-2 space-y-2">
-            {availablePolls.map((poll) => (
-              <Card
-                key={poll.id}
-                className={`cursor-pointer transition-all hover:bg-accent/50 ${
-                  isSelected(poll.id) ? "border-primary bg-primary/5" : ""
-                }`}
-              >
-                <CardContent className="p-3 flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{poll.title}</p>
-                    <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                      <Badge variant="outline" className="text-xs">
-                        {poll.status}
-                      </Badge>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {poll.endsAt
-                          ? formatDistanceToNow(new Date(poll.endsAt), {
-                              addSuffix: true,
-                            })
-                          : "No end date"}
-                      </span>
+        <div className="p-2">
+          {isLoading ? (
+            <div className="flex items-center justify-center h-[250px]">
+              <p className="text-muted-foreground">Loading polls...</p>
+            </div>
+          ) : availablePolls.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-[250px] text-center">
+              <p className="text-muted-foreground">
+                {searchQuery
+                  ? "No polls found matching your search"
+                  : creatorPolls?.length === 0
+                  ? "You haven't created any polls yet"
+                  : "All your polls have been added"}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {availablePolls.map((poll) => (
+                <Card
+                  key={poll.id}
+                  className={`cursor-pointer transition-all hover:border-primary hover:bg-accent/50 ${
+                    isSelected(poll.id) ? "border-primary bg-primary/5" : ""
+                  }`}
+                  onClick={() => !disabled && !isSelected(poll.id) && handleAddPoll(poll)}
+                >
+                  <CardContent className="p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <p className="font-medium text-sm truncate">{poll.title}</p>
+                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                          <Badge variant="outline" className="text-xs flex-shrink-0">
+                            {poll.status}
+                          </Badge>
+                          <span className="flex items-center gap-1 truncate">
+                            <Clock className="h-3 w-3 flex-shrink-0" />
+                            {poll.endsAt
+                              ? formatDistanceToNow(new Date(poll.endsAt), {
+                                  addSuffix: true,
+                                })
+                              : "No end date"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex-shrink-0">
+                        {isSelected(poll.id) ? (
+                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground">
+                            <Check className="h-4 w-4" />
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors">
+                            <Plus className="h-4 w-4" />
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <Button
-                    variant={isSelected(poll.id) ? "secondary" : "outline"}
-                    size="sm"
-                    onClick={() => handleAddPoll(poll)}
-                    disabled={disabled || isSelected(poll.id)}
-                  >
-                    {isSelected(poll.id) ? (
-                      <Check className="h-4 w-4" />
-                    ) : (
-                      <Plus className="h-4 w-4" />
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
       </ScrollArea>
 
       <p className="text-xs text-muted-foreground">

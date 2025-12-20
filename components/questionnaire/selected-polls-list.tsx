@@ -73,10 +73,11 @@ export function SelectedPollsList({
 
   if (polls.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 border border-dashed rounded-lg text-center">
+      <div className="flex flex-col items-center justify-center p-8 border border-dashed rounded-lg text-center min-h-[200px]">
         <ListChecks className="h-10 w-10 text-muted-foreground mb-3" />
-        <p className="text-muted-foreground">
-          No polls added yet. Select polls from the list above.
+        <p className="text-muted-foreground font-medium">No polls added yet</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          Click on polls from the left to add them here
         </p>
       </div>
     )

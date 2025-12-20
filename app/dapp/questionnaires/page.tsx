@@ -13,6 +13,7 @@ import {
   useCreatorQuestionnaires,
   useQuestionnaireProgress,
   useArchiveQuestionnaire,
+  useUpdateQuestionnaire,
   type Questionnaire,
 } from "@/hooks/use-questionnaires"
 import { toast } from "sonner"
@@ -42,6 +43,7 @@ export default function QuestionnairesPage() {
   } = useCreatorQuestionnaires()
 
   const { mutateAsync: archiveQuestionnaire } = useArchiveQuestionnaire()
+  const { mutateAsync: updateQuestionnaire, isPending: isUpdating } = useUpdateQuestionnaire()
 
   const handleArchive = async (id: string) => {
     try {
@@ -49,6 +51,15 @@ export default function QuestionnairesPage() {
       toast.success("Questionnaire archived")
     } catch (error) {
       toast.error("Failed to archive questionnaire")
+    }
+  }
+
+  const handleToggleStatus = async (id: string, newStatus: 'active' | 'draft') => {
+    try {
+      await updateQuestionnaire({ id, status: newStatus })
+      toast.success(newStatus === 'active' ? "Questionnaire published" : "Questionnaire unpublished")
+    } catch (error) {
+      toast.error("Failed to update questionnaire status")
     }
   }
 
@@ -181,6 +192,8 @@ export default function QuestionnairesPage() {
                       questionnaire={questionnaire}
                       showCreatorActions
                       onArchive={handleArchive}
+                      onToggleStatus={handleToggleStatus}
+                      isTogglingStatus={isUpdating}
                     />
                   ))}
                 </div>

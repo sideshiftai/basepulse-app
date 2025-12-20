@@ -27,6 +27,7 @@ import {
   ArrowLeftRight,
   ShoppingCart,
   Repeat,
+  ListChecks,
 } from "lucide-react"
 
 interface NavItem {
@@ -101,6 +102,11 @@ export function SidebarNavigation({ isOwner = false }: SidebarNavigationProps) {
           label: "Manage Polls",
           href: "/creator?tab=manage",
           icon: FileText,
+        },
+        {
+          label: "Questionnaires",
+          href: "/dapp/questionnaires",
+          icon: ListChecks,
         },
         {
           label: "Distributions",

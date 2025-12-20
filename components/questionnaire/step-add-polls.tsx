@@ -34,7 +34,7 @@ export function StepAddPolls({ form }: StepAddPollsProps) {
       <div className="space-y-2">
         <h2 className="text-xl font-semibold">Add Polls</h2>
         <p className="text-muted-foreground">
-          Select existing polls to include in your questionnaire. Drag to reorder.
+          Click on polls from the left to add them. Drag polls on the right to reorder.
         </p>
       </div>
 
