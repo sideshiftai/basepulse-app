@@ -338,3 +338,43 @@ export const GET_POLLS_BY_CREATOR = gql`
     }
   }
 `
+
+/**
+ * Get closed polls created by a specific address
+ * Used for creator manage page - closed polls tab
+ */
+export const GET_CLOSED_POLLS_BY_CREATOR = gql`
+  query GetClosedPollsByCreator(
+    $creator: Bytes!
+    $first: Int = 100
+    $skip: Int = 0
+    $orderBy: Poll_orderBy = createdAt
+    $orderDirection: OrderDirection = desc
+  ) {
+    polls(
+      where: { creator: $creator, isActive: false }
+      first: $first
+      skip: $skip
+      orderBy: $orderBy
+      orderDirection: $orderDirection
+    ) {
+      id
+      pollId
+      question
+      options
+      votes
+      endTime
+      isActive
+      totalFunding
+      totalFundingAmount
+      fundingToken
+      voteCount
+      voterCount
+      distributionMode
+      fundingType
+      status
+      createdAt
+      votingType
+    }
+  }
+`
