@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   Form,
   FormControl,
@@ -66,6 +67,7 @@ import {
   useUpdateQuestionnairePollOrder,
   useRemovePollFromQuestionnaire,
   useAddPollToQuestionnaire,
+  usePollsInQuestionnaires,
 } from "@/hooks/use-questionnaires"
 import { usePollsByCreator, usePollsByIds } from "@/hooks/use-polls-by-creator"
 import type { QuestionnaireWithPolls, QuestionnairePoll } from "@/lib/api/questionnaires-client"
@@ -116,6 +118,9 @@ export default function QuestionnaireEditPage({ params }: PageProps) {
 
   // Fetch creator's polls for adding
   const { polls: creatorPolls, loading: creatorPollsLoading } = usePollsByCreator(address)
+
+  // Fetch polls that are already in other questionnaires (excluding current one)
+  const { data: pollsInQuestionnaires } = usePollsInQuestionnaires(id)
 
   // Get poll IDs from questionnaire to fetch their details
   const questionnairePollIds = useMemo(() => {
@@ -206,6 +211,21 @@ export default function QuestionnaireEditPage({ params }: PageProps) {
     }
     return map
   }, [creatorPolls, questionnairePollsData, chainId])
+
+  // Create a map to track which polls are in other questionnaires
+  const pollsInQuestionnairesMap = useMemo(() => {
+    const map = new Map<string, { questionnaireId: string; questionnaireTitle: string }>()
+    if (pollsInQuestionnaires) {
+      pollsInQuestionnaires.forEach((p) => {
+        const key = `${p.chainId}-${p.pollId}`
+        map.set(key, {
+          questionnaireId: p.questionnaireId,
+          questionnaireTitle: p.questionnaireTitle,
+        })
+      })
+    }
+    return map
+  }, [pollsInQuestionnaires])
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
@@ -614,20 +634,40 @@ export default function QuestionnaireEditPage({ params }: PageProps) {
                     No more polls available to add
                   </p>
                 ) : (
-                  <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                    {availablePolls.map((poll) => (
-                      <div
-                        key={poll.id}
-                        className="flex items-center justify-between p-2 bg-background rounded border hover:border-primary cursor-pointer"
-                        onClick={() => handleAddPoll(poll.id, poll.title)}
-                      >
-                        <span className="text-sm truncate flex-1">{poll.title}</span>
-                        <Button size="sm" variant="ghost" disabled={isAdding}>
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
+                  <TooltipProvider>
+                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                      {availablePolls.map((poll) => {
+                        const questionnaireInfo = pollsInQuestionnairesMap.get(`${chainId}-${poll.id}`)
+                        return (
+                          <div
+                            key={poll.id}
+                            className="flex items-center justify-between p-2 bg-background rounded border hover:border-primary cursor-pointer"
+                            onClick={() => handleAddPoll(poll.id, poll.title)}
+                          >
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <span className="text-sm truncate">{poll.title}</span>
+                              {questionnaireInfo && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5 gap-1 flex-shrink-0">
+                                      <ListChecks className="h-3 w-3" />
+                                      In questionnaire
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Already in: {questionnaireInfo.questionnaireTitle}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                            </div>
+                            <Button size="sm" variant="ghost" disabled={isAdding}>
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </TooltipProvider>
                 )}
               </div>
             )}

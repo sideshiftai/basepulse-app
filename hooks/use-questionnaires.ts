@@ -13,6 +13,7 @@ import {
   fetchQuestionnaireByOnChainId,
   fetchQuestionnaireProgress,
   fetchUserQuestionnaireResponses,
+  fetchPollsInQuestionnaires,
   createQuestionnaire,
   updateQuestionnaire,
   archiveQuestionnaire,
@@ -32,6 +33,7 @@ import {
   AddPollInput,
   PollOrderUpdate,
   RewardDistributionUpdate,
+  PollInQuestionnaire,
 } from '@/lib/api/questionnaires-client'
 
 // Re-export types for convenience
@@ -48,6 +50,7 @@ export type {
   AddPollInput,
   PollOrderUpdate,
   RewardDistributionUpdate,
+  PollInQuestionnaire,
 } from '@/lib/api/questionnaires-client'
 
 /**
@@ -305,5 +308,21 @@ export function useUpdateQuestionnaireProgress() {
       queryClient.invalidateQueries({ queryKey: ['user-questionnaire-responses'] })
       queryClient.invalidateQueries({ queryKey: ['questionnaire', variables.questionnaireId] })
     },
+  })
+}
+
+/**
+ * Hook to fetch polls that are already in questionnaires for the connected creator
+ * Can exclude a specific questionnaire (useful when editing)
+ */
+export function usePollsInQuestionnaires(excludeQuestionnaireId?: string) {
+  const { address, isConnected } = useAccount()
+  const chainId = useChainId()
+
+  return useQuery<PollInQuestionnaire[], Error>({
+    queryKey: ['polls-in-questionnaires', address, chainId, excludeQuestionnaireId],
+    queryFn: () => fetchPollsInQuestionnaires(address!, chainId, excludeQuestionnaireId),
+    enabled: isConnected && !!address,
+    staleTime: 60 * 1000, // 1 minute
   })
 }
