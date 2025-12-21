@@ -105,7 +105,7 @@ export function SidebarNavigation({ isOwner = false }: SidebarNavigationProps) {
         },
         {
           label: "Questionnaires",
-          href: "/dapp/questionnaires",
+          href: "/creator/questionnaires",
           icon: ListChecks,
         },
         {

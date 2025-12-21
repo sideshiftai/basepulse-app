@@ -191,7 +191,7 @@ export function NewSidebar() {
     {
       icon: ListChecks,
       label: "Questionnaires",
-      href: "/dapp/questionnaires",
+      href: "/creator/questionnaires",
     },
     {
       icon: ArrowLeftRight,
