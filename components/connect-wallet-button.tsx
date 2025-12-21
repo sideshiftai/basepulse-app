@@ -12,7 +12,7 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Wallet, LogOut, User, Copy, ExternalLink, Network, CheckCircle2, Crown } from "lucide-react"
+import { Wallet, LogOut, User, Copy, ExternalLink, Network, CheckCircle2, Crown, MessageSquare } from "lucide-react"
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { base, baseSepolia } from "wagmi/chains"
@@ -219,6 +219,13 @@ export function ConnectWalletButton() {
         <DropdownMenuItem onClick={openExplorer}>
           <ExternalLink className="h-4 w-4 mr-2" />
           View on Explorer
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/feedback" className="flex items-center">
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Give Feedback
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleDisconnect} className="text-destructive">

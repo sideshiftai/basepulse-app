@@ -8,6 +8,7 @@ import { useChainId } from 'wagmi';
 import { aiClient, ChatMessage, ToolCall, handleAIError } from '@/lib/api/ai-client';
 import { PollPreviewData, FundingSource, ShiftState } from '@/components/ai-chatbox/poll-preview-card';
 import { ShiftStatusData } from '@/components/ai-chatbox/shift-status-card';
+import { submitFeedback, FeedbackCategory } from '@/lib/api/feedback-client';
 import { toast } from 'sonner';
 
 export interface Message {
@@ -187,11 +188,53 @@ export function useAIChat({ userAddress, userNetwork, onCreatePollRequest, onCre
           // TODO: Handle read operations
           break;
 
+        case 'collect_feedback':
+          // Handle feedback collection from AI
+          const feedbackData = toolCall.input as {
+            category: FeedbackCategory;
+            content: string;
+            shareWallet?: boolean;
+          };
+
+          try {
+            await submitFeedback({
+              category: feedbackData.category,
+              content: feedbackData.content,
+              walletAddress: feedbackData.shareWallet && userAddress ? userAddress : undefined,
+              isAnonymous: !feedbackData.shareWallet,
+              metadata: {
+                browser: typeof window !== 'undefined' ? navigator.userAgent : undefined,
+                page: typeof window !== 'undefined' ? window.location.pathname : undefined,
+              },
+            });
+
+            toast.success('Feedback submitted successfully');
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: 'assistant',
+                content: feedbackData.shareWallet && userAddress
+                  ? 'Thank you for your feedback! Your wallet address has been associated with this feedback for potential rewards.'
+                  : 'Thank you for your feedback! It has been submitted anonymously.',
+              },
+            ]);
+          } catch (error) {
+            console.error('Failed to submit feedback:', error);
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: 'assistant',
+                content: 'I apologize, there was an error submitting your feedback. Please try again or use the dedicated feedback page at /feedback.',
+              },
+            ]);
+          }
+          break;
+
         default:
           console.warn('Unknown tool call:', toolCall.name);
       }
     }
-  }, [userNetwork]);
+  }, [userNetwork, userAddress]);
 
   /**
    * Send a message to the AI
