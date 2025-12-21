@@ -43,6 +43,8 @@ export interface CreatorPoll {
   fundingType: 'none' | 'self' | 'community'
   status: 'active' | 'closed' | 'for_claiming' | 'paused'
   createdAt: Date
+  fundingToken?: string
+  fundingTokenSymbol?: string
 }
 
 interface UseCreatorDashboardDataReturn {

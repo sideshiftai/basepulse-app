@@ -6,7 +6,7 @@
 "use client"
 
 import { useState } from "react"
-import { Clock, MoreVertical, HelpCircle } from "lucide-react"
+import { Clock, MoreVertical, HelpCircle, Pencil } from "lucide-react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { TOKEN_INFO } from "@/lib/contracts/token-config"
@@ -33,6 +33,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { PendingDistributionBadge } from "@/components/creator/pending-distribution-badge"
+import { EditPollTitleDialog } from "@/components/creator/edit-poll-title-dialog"
 import { usePendingDistributions } from "@/lib/hooks/use-pending-distributions"
 import { toast } from "sonner"
 
@@ -49,16 +50,32 @@ interface PollCardProps {
     fundingTokenSymbol?: string
     options: Array<{ text: string; votes: bigint }>
   }
+  chainId: number
+  creatorAddress: string
+  displayTitle?: string | null
   onClosePoll: (pollId: bigint) => void
   onSetDistributionMode: (pollId: bigint, mode: number) => void
+  onTitleUpdate?: (pollId: bigint, newTitle: string) => void
 }
 
-export function PollCard({ poll, onClosePoll, onSetDistributionMode }: PollCardProps) {
+export function PollCard({
+  poll,
+  chainId,
+  creatorAddress,
+  displayTitle,
+  onClosePoll,
+  onSetDistributionMode,
+  onTitleUpdate,
+}: PollCardProps) {
   const [isUpdating, setIsUpdating] = useState(false)
+  const [isEditTitleOpen, setIsEditTitleOpen] = useState(false)
   const endDate = new Date(Number(poll.endTime) * 1000)
   const now = new Date()
   const isExpired = endDate < now
   const daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+
+  // Use displayTitle if available, otherwise use on-chain question
+  const pollTitle = displayTitle || poll.question
 
   // Check for pending distributions
   const pendingStatus = usePendingDistributions(poll)
@@ -97,7 +114,7 @@ export function PollCard({ poll, onClosePoll, onSetDistributionMode }: PollCardP
                 href={`/dapp/poll/${poll.id}`}
                 className="hover:text-primary transition-colors line-clamp-2"
               >
-                {poll.question}
+                {pollTitle}
               </Link>
             </CardTitle>
             <div className="flex flex-wrap gap-1.5 mt-2">
@@ -128,6 +145,11 @@ export function PollCard({ poll, onClosePoll, onSetDistributionMode }: PollCardP
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href={`/dapp/poll/${poll.id}`}>View Results</Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setIsEditTitleOpen(true)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit Title
               </DropdownMenuItem>
               {poll.isActive && (
                 <>
@@ -240,6 +262,18 @@ export function PollCard({ poll, onClosePoll, onSetDistributionMode }: PollCardP
           )}
         </div>
       </CardContent>
+
+      {/* Edit Title Dialog */}
+      <EditPollTitleDialog
+        open={isEditTitleOpen}
+        onOpenChange={setIsEditTitleOpen}
+        pollId={poll.id}
+        chainId={chainId}
+        currentTitle={poll.question}
+        displayTitle={displayTitle}
+        creatorAddress={creatorAddress}
+        onSuccess={(newTitle) => onTitleUpdate?.(poll.id, newTitle)}
+      />
     </Card>
   )
 }

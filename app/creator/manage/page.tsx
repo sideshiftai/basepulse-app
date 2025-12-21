@@ -47,6 +47,9 @@ export default function ManagePollsPage() {
   // View toggle state with localStorage persistence
   const [viewMode, setViewMode] = useState<"table" | "cards">("cards")
 
+  // Display titles for polls (off-chain overrides)
+  const [displayTitles, setDisplayTitles] = useState<Record<string, string | null>>({})
+
   useEffect(() => {
     const stored = localStorage.getItem("manage-polls-view")
     if (stored === "table" || stored === "cards") {
@@ -102,6 +105,35 @@ export default function ManagePollsPage() {
       })
       .filter(Boolean)
   }, [activePollIds, address, chainId, pollQueries])
+
+  // Fetch display titles when polls change
+  useEffect(() => {
+    async function fetchDisplayTitles() {
+      if (!myPolls.length || !chainId) return
+
+      try {
+        const pollIds = myPolls.map(p => p.id.toString()).join(',')
+        const response = await fetch(`/api/polls/display-titles?chainId=${chainId}&pollIds=${pollIds}`)
+
+        if (response.ok) {
+          const data = await response.json()
+          setDisplayTitles(data.displayTitles || {})
+        }
+      } catch (error) {
+        console.error('Failed to fetch display titles:', error)
+      }
+    }
+
+    fetchDisplayTitles()
+  }, [myPolls, chainId])
+
+  // Handle title update
+  const handleTitleUpdate = (pollId: bigint, newTitle: string) => {
+    setDisplayTitles(prev => ({
+      ...prev,
+      [pollId.toString()]: newTitle,
+    }))
+  }
 
   // Calculate dashboard stats
   const dashboardStats = useMemo(() => {
@@ -321,13 +353,20 @@ export default function ManagePollsPage() {
                       totalFunding: poll.totalFunding,
                       totalFundingAmount: poll.totalFunding,
                       voteCount: poll.options.reduce((sum: number, opt: { votes: bigint }) => sum + Number(opt.votes), 0),
-                      voterCount: 0, // TODO: Get actual voter count
+                      voterCount: 0,
                       distributionMode: poll.distributionMode,
-                      fundingType: 'community', // Default
+                      fundingType: 'community',
                       status: poll.isActive ? 'active' : 'closed',
                       createdAt: new Date(),
+                      fundingToken: poll.fundingToken,
+                      fundingTokenSymbol: poll.fundingTokenSymbol,
                     }}
                     chainId={chainId}
+                    creatorAddress={address || ''}
+                    displayTitle={displayTitles[poll.id.toString()]}
+                    onClosePoll={handleClosePoll}
+                    onSetDistributionMode={handleSetDistributionMode}
+                    onTitleUpdate={handleTitleUpdate}
                   />
                 ))
               )}
