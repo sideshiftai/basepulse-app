@@ -179,7 +179,7 @@ export const GET_USER_VOTES = gql`
 `
 
 /**
- * Get user's fundings
+ * Get user's fundings with full poll details
  */
 export const GET_USER_FUNDINGS = gql`
   query GetUserFundings(
@@ -195,12 +195,63 @@ export const GET_USER_FUNDINGS = gql`
       id
       poll {
         id
+        pollId
         question
+        options
+        votes
+        endTime
+        isActive
+        totalFundingAmount
+        voteCount
+        voterCount
+        status
+        fundingType
       }
       funder
-      token
+      token {
+        id
+        symbol
+        decimals
+      }
       amount
       timestamp
+      transactionHash
+    }
+  }
+`
+
+/**
+ * Get user's distributions (refunds, claims, rewards)
+ */
+export const GET_USER_DISTRIBUTIONS = gql`
+  query GetUserDistributions(
+    $user: String!
+    $first: Int = 100
+  ) {
+    distributions(
+      first: $first
+      where: { recipient: $user }
+      orderBy: timestamp
+      orderDirection: desc
+    ) {
+      id
+      poll {
+        id
+        pollId
+        question
+      }
+      recipient {
+        id
+      }
+      token {
+        id
+        symbol
+        decimals
+      }
+      amount
+      eventType
+      timestamp
+      transactionHash
     }
   }
 `

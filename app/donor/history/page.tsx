@@ -5,7 +5,7 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useMemo } from "react"
 import { useAccount, useChainId } from "wagmi"
 import { useRouter } from "next/navigation"
 import {
@@ -17,10 +17,7 @@ import {
   ArrowDownRight,
   Calendar,
   Filter,
-  Download,
   CheckCircle2,
-  Clock,
-  XCircle,
 } from "lucide-react"
 import { DonorBreadcrumb } from "@/components/donor/donor-breadcrumb"
 import { CreatorHeaderBanner } from "@/components/creator/creator-header-banner"
@@ -43,6 +40,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { useUserFundings, type FormattedUserFunding } from "@/hooks/subgraph/use-user-fundings"
+import { useUserDistributions, type FormattedUserDistribution } from "@/hooks/subgraph/use-user-distributions"
 
 interface FundingTransaction {
   id: string
@@ -51,7 +50,7 @@ interface FundingTransaction {
   type: "fund" | "refund"
   amount: string
   token: string
-  status: "confirmed" | "pending" | "failed"
+  status: "confirmed"
   txHash: string
   timestamp: string
 }
@@ -64,123 +63,76 @@ export default function DonorHistoryPage() {
   const chainId = useChainId()
   const router = useRouter()
 
-  const [transactions, setTransactions] = useState<FundingTransaction[]>([])
-  const [isLoading, setIsLoading] = useState(true)
   const [filterPeriod, setFilterPeriod] = useState<FilterPeriod>("all")
   const [filterType, setFilterType] = useState<FilterType>("all")
 
-  // Mock data loading - In production, fetch from API/subgraph
-  useEffect(() => {
-    async function loadTransactions() {
-      if (!address || !chainId) {
-        setIsLoading(false)
-        return
-      }
+  // Fetch fundings and distributions from subgraph using current network
+  const { fundings, loading: fundingsLoading, totalFunded } = useUserFundings(address, chainId)
+  const { distributions, loading: distributionsLoading, totalWithdrawn } = useUserDistributions(address, chainId)
 
-      setIsLoading(true)
-      try {
-        // TODO: Replace with actual API call
-        // const txs = await fetchFundingTransactions(address, chainId)
+  const isLoading = fundingsLoading || distributionsLoading
 
-        // Mock data for now
-        setTimeout(() => {
-          setTransactions([
-            {
-              id: "tx1",
-              pollId: "1",
-              pollTitle: "Should we implement a new governance model?",
-              type: "fund",
-              amount: "0.5",
-              token: "ETH",
-              status: "confirmed",
-              txHash: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-              timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-            },
-            {
-              id: "tx2",
-              pollId: "2",
-              pollTitle: "Community treasury allocation proposal",
-              type: "fund",
-              amount: "100",
-              token: "USDC",
-              status: "confirmed",
-              txHash: "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-              timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-            },
-            {
-              id: "tx3",
-              pollId: "3",
-              pollTitle: "New feature priority voting",
-              type: "fund",
-              amount: "0.25",
-              token: "ETH",
-              status: "confirmed",
-              txHash: "0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba",
-              timestamp: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-            },
-            {
-              id: "tx4",
-              pollId: "4",
-              pollTitle: "Cancelled poll refund",
-              type: "refund",
-              amount: "0.1",
-              token: "ETH",
-              status: "confirmed",
-              txHash: "0xfedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
-              timestamp: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-            },
-            {
-              id: "tx5",
-              pollId: "5",
-              pollTitle: "Protocol upgrade vote",
-              type: "fund",
-              amount: "0.3",
-              token: "ETH",
-              status: "pending",
-              txHash: "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-              timestamp: new Date().toISOString(),
-            },
-          ])
-          setIsLoading(false)
-        }, 1000)
-      } catch (error) {
-        console.error("Error loading transactions:", error)
-        setIsLoading(false)
-      }
-    }
+  // Combine fundings and distributions into transactions
+  const transactions = useMemo<FundingTransaction[]>(() => {
+    const fundingTxs: FundingTransaction[] = fundings.map((f) => ({
+      id: f.id,
+      pollId: f.pollId,
+      pollTitle: f.pollTitle,
+      type: "fund" as const,
+      amount: f.amountFormatted.toFixed(4),
+      token: f.tokenSymbol,
+      status: "confirmed" as const,
+      txHash: f.transactionHash,
+      timestamp: f.timestamp,
+    }))
 
-    loadTransactions()
-  }, [address, chainId])
+    const distributionTxs: FundingTransaction[] = distributions
+      .filter((d) => d.eventType === "withdrawn") // Only show withdrawals as refunds
+      .map((d) => ({
+        id: d.id,
+        pollId: d.pollId,
+        pollTitle: d.pollTitle,
+        type: "refund" as const,
+        amount: d.amountFormatted.toFixed(4),
+        token: d.tokenSymbol,
+        status: "confirmed" as const,
+        txHash: d.transactionHash,
+        timestamp: d.timestamp,
+      }))
+
+    // Combine and sort by timestamp descending
+    return [...fundingTxs, ...distributionTxs].sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    )
+  }, [fundings, distributions])
 
   // Filter transactions
-  const filteredTransactions = transactions.filter((tx) => {
-    // Filter by type
-    if (filterType !== "all" && tx.type !== filterType) return false
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((tx) => {
+      // Filter by type
+      if (filterType !== "all" && tx.type !== filterType) return false
 
-    // Filter by period
-    if (filterPeriod !== "all") {
-      const txDate = new Date(tx.timestamp)
-      const now = new Date()
-      const diffDays = (now.getTime() - txDate.getTime()) / (1000 * 60 * 60 * 24)
+      // Filter by period
+      if (filterPeriod !== "all") {
+        const txDate = new Date(tx.timestamp)
+        const now = new Date()
+        const diffDays = (now.getTime() - txDate.getTime()) / (1000 * 60 * 60 * 24)
 
-      if (filterPeriod === "week" && diffDays > 7) return false
-      if (filterPeriod === "month" && diffDays > 30) return false
-      if (filterPeriod === "year" && diffDays > 365) return false
-    }
+        if (filterPeriod === "week" && diffDays > 7) return false
+        if (filterPeriod === "month" && diffDays > 30) return false
+        if (filterPeriod === "year" && diffDays > 365) return false
+      }
 
-    return true
-  })
+      return true
+    })
+  }, [transactions, filterType, filterPeriod])
 
   // Calculate totals
-  const totals = {
-    funded: transactions
-      .filter((tx) => tx.type === "fund" && tx.status === "confirmed")
-      .reduce((sum, tx) => sum + parseFloat(tx.amount), 0),
-    refunded: transactions
-      .filter((tx) => tx.type === "refund" && tx.status === "confirmed")
-      .reduce((sum, tx) => sum + parseFloat(tx.amount), 0),
+  const totals = useMemo(() => ({
+    funded: totalFunded,
+    refunded: totalWithdrawn,
     transactionCount: transactions.length,
-  }
+  }), [totalFunded, totalWithdrawn, transactions.length])
 
   // Show wallet connection warning if not connected
   if (!isConnected) {
@@ -199,32 +151,14 @@ export default function DonorHistoryPage() {
     )
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "confirmed":
-        return (
-          <Badge variant="outline" className="text-green-500 border-green-500/30">
-            <CheckCircle2 className="h-3 w-3 mr-1" />
-            Confirmed
-          </Badge>
-        )
-      case "pending":
-        return (
-          <Badge variant="outline" className="text-amber-500 border-amber-500/30">
-            <Clock className="h-3 w-3 mr-1" />
-            Pending
-          </Badge>
-        )
-      case "failed":
-        return (
-          <Badge variant="outline" className="text-destructive border-destructive/30">
-            <XCircle className="h-3 w-3 mr-1" />
-            Failed
-          </Badge>
-        )
-      default:
-        return <Badge variant="outline">{status}</Badge>
-    }
+  // All transactions from subgraph are confirmed
+  const getStatusBadge = () => {
+    return (
+      <Badge variant="outline" className="text-green-500 border-green-500/30">
+        <CheckCircle2 className="h-3 w-3 mr-1" />
+        Confirmed
+      </Badge>
+    )
   }
 
   const truncateHash = (hash: string) => {
@@ -266,7 +200,7 @@ export default function DonorHistoryPage() {
                     <Skeleton className="h-7 w-24 mt-1" />
                   ) : (
                     <p className="text-2xl font-bold text-green-500">
-                      {totals.funded.toFixed(2)} ETH
+                      {totals.funded.toFixed(4)}
                     </p>
                   )}
                 </div>
@@ -286,7 +220,7 @@ export default function DonorHistoryPage() {
                     <Skeleton className="h-7 w-24 mt-1" />
                   ) : (
                     <p className="text-2xl font-bold text-amber-500">
-                      {totals.refunded.toFixed(2)} ETH
+                      {totals.refunded.toFixed(4)}
                     </p>
                   )}
                 </div>
@@ -413,7 +347,7 @@ export default function DonorHistoryPage() {
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell>{getStatusBadge(tx.status)}</TableCell>
+                        <TableCell>{getStatusBadge()}</TableCell>
                         <TableCell className="text-muted-foreground">
                           {new Date(tx.timestamp).toLocaleDateString()}
                         </TableCell>

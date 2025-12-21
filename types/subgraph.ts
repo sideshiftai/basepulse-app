@@ -20,7 +20,7 @@ export interface SubgraphPoll {
 }
 
 /**
- * Funding entity from subgraph
+ * Funding entity from subgraph (basic)
  */
 export interface SubgraphFunding {
   id: string
@@ -31,6 +31,61 @@ export interface SubgraphFunding {
   token: string
   amount: string
   timestamp: string
+}
+
+/**
+ * Token entity from subgraph
+ */
+export interface SubgraphToken {
+  id: string
+  symbol: string
+  decimals: number
+}
+
+/**
+ * Extended funding entity with full poll details
+ */
+export interface SubgraphUserFunding {
+  id: string
+  poll: {
+    id: string
+    pollId: string
+    question: string
+    options: string[]
+    votes: string[]
+    endTime: string
+    isActive: boolean
+    totalFundingAmount: string
+    voteCount: string
+    voterCount: string
+    status: 'ACTIVE' | 'CLOSED' | 'FOR_CLAIMING' | 'PAUSED'
+    fundingType: 'NONE' | 'SELF' | 'COMMUNITY'
+  }
+  funder: string
+  token: SubgraphToken
+  amount: string
+  timestamp: string
+  transactionHash: string
+}
+
+/**
+ * Distribution entity from subgraph
+ */
+export interface SubgraphDistribution {
+  id: string
+  poll: {
+    id: string
+    pollId: string
+    question: string
+  }
+  recipient: {
+    id: string
+  }
+  token: SubgraphToken
+  amount: string
+  eventType: 'WITHDRAWN' | 'DISTRIBUTED' | 'CLAIMED'
+  timestamp: string
+  transactionHash: string
 }
 
 /**
@@ -105,6 +160,14 @@ export interface GetUserFundingsResponse {
   fundings: SubgraphFunding[]
 }
 
+export interface GetExtendedUserFundingsResponse {
+  fundings: SubgraphUserFunding[]
+}
+
+export interface GetUserDistributionsResponse {
+  distributions: SubgraphDistribution[]
+}
+
 /**
  * Query variables types
  */
@@ -131,7 +194,15 @@ export interface FundingsQueryVariables {
   orderDirection?: 'asc' | 'desc'
 }
 
+// Alias for backwards compatibility
+export type PollFundingsQueryVariables = FundingsQueryVariables
+
 export interface UserQueryVariables {
+  user: string
+  first?: number
+}
+
+export interface UserDistributionsQueryVariables {
   user: string
   first?: number
 }

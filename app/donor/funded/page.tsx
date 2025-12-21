@@ -5,7 +5,7 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useAccount, useChainId } from "wagmi"
 import { useRouter } from "next/navigation"
 import {
@@ -23,116 +23,29 @@ import {
 } from "lucide-react"
 import { DonorBreadcrumb } from "@/components/donor/donor-breadcrumb"
 import { CreatorHeaderBanner } from "@/components/creator/creator-header-banner"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { formatRewardDisplay } from "@/lib/utils/format-reward"
-
-interface FundedPoll {
-  id: string
-  title: string
-  status: "active" | "ended" | "cancelled"
-  fundedAmount: string
-  fundingToken: string
-  totalReward: string
-  fundingProgress: number
-  totalVotes: number
-  endsAt: string
-  fundedAt: string
-  txHash: string
-}
+import { useFundedPolls, type FundedPoll } from "@/hooks/subgraph/use-funded-polls"
 
 export default function DonorFundedPage() {
   const { address, isConnected } = useAccount()
   const chainId = useChainId()
   const router = useRouter()
 
-  const [fundedPolls, setFundedPolls] = useState<FundedPoll[]>([])
-  const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("all")
 
-  // Mock data loading - In production, fetch from API/subgraph
-  useEffect(() => {
-    async function loadFundedPolls() {
-      if (!address || !chainId) {
-        setIsLoading(false)
-        return
-      }
-
-      setIsLoading(true)
-      try {
-        // TODO: Replace with actual API call
-        // const polls = await fetchFundedPollsByDonor(address, chainId)
-
-        // Mock data for now
-        setTimeout(() => {
-          setFundedPolls([
-            {
-              id: "1",
-              title: "Should we implement a new governance model?",
-              status: "active",
-              fundedAmount: "0.5",
-              fundingToken: "ETH",
-              totalReward: "2.0",
-              fundingProgress: 75,
-              totalVotes: 234,
-              endsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-              fundedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-              txHash: "0x1234...5678",
-            },
-            {
-              id: "2",
-              title: "Community treasury allocation proposal",
-              status: "active",
-              fundedAmount: "100",
-              fundingToken: "USDC",
-              totalReward: "500",
-              fundingProgress: 60,
-              totalVotes: 156,
-              endsAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-              fundedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-              txHash: "0xabcd...ef01",
-            },
-            {
-              id: "3",
-              title: "New feature priority voting",
-              status: "ended",
-              fundedAmount: "0.25",
-              fundingToken: "ETH",
-              totalReward: "1.0",
-              fundingProgress: 100,
-              totalVotes: 512,
-              endsAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-              fundedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-              txHash: "0x9876...5432",
-            },
-          ])
-          setIsLoading(false)
-        }, 1000)
-      } catch (error) {
-        console.error("Error loading funded polls:", error)
-        setIsLoading(false)
-      }
-    }
-
-    loadFundedPolls()
-  }, [address, chainId])
+  // Fetch funded polls from subgraph using current network
+  const { fundedPolls, stats, loading: isLoading } = useFundedPolls(address, chainId)
 
   // Filter polls by tab
   const filteredPolls = fundedPolls.filter((poll) => {
     if (activeTab === "all") return true
     return poll.status === activeTab
   })
-
-  // Calculate stats
-  const stats = {
-    totalFunded: fundedPolls.reduce((sum, p) => sum + parseFloat(p.fundedAmount), 0),
-    activePolls: fundedPolls.filter((p) => p.status === "active").length,
-    completedPolls: fundedPolls.filter((p) => p.status === "ended").length,
-  }
 
   // Show wallet connection warning if not connected
   if (!isConnected) {
@@ -202,7 +115,7 @@ export default function DonorFundedPage() {
                   {isLoading ? (
                     <Skeleton className="h-7 w-20 mt-1" />
                   ) : (
-                    <p className="text-2xl font-bold">{stats.totalFunded.toFixed(2)} ETH</p>
+                    <p className="text-2xl font-bold">{stats.totalFunded.toFixed(4)}</p>
                   )}
                 </div>
               </div>
@@ -220,7 +133,7 @@ export default function DonorFundedPage() {
                   {isLoading ? (
                     <Skeleton className="h-7 w-12 mt-1" />
                   ) : (
-                    <p className="text-2xl font-bold">{stats.activePolls}</p>
+                    <p className="text-2xl font-bold">{fundedPolls.filter((p) => p.status === "active").length}</p>
                   )}
                 </div>
               </div>
@@ -238,7 +151,7 @@ export default function DonorFundedPage() {
                   {isLoading ? (
                     <Skeleton className="h-7 w-12 mt-1" />
                   ) : (
-                    <p className="text-2xl font-bold">{stats.completedPolls}</p>
+                    <p className="text-2xl font-bold">{fundedPolls.filter((p) => p.status === "ended").length}</p>
                   )}
                 </div>
               </div>
@@ -318,7 +231,7 @@ export default function DonorFundedPage() {
                         <div className="w-full md:w-48 space-y-2">
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">Total Funded</span>
-                            <span className="font-medium">{poll.fundingProgress}%</span>
+                            <span className="font-medium">{Math.round(poll.fundingProgress)}%</span>
                           </div>
                           <Progress value={poll.fundingProgress} className="h-2" />
                           <p className="text-xs text-muted-foreground text-center">
