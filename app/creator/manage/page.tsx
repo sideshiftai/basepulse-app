@@ -7,7 +7,7 @@
 
 import { useState, useMemo, useEffect } from "react"
 import { useAccount, useChainId } from "wagmi"
-import { AlertCircle, Plus, LayoutGrid, Table, Archive } from "lucide-react"
+import { AlertCircle, Plus, LayoutGrid, Table, Archive, RefreshCw, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { TOKEN_INFO } from "@/lib/contracts/token-config"
 import {
@@ -33,6 +33,7 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getTokenSymbol } from "@/lib/contracts/token-config"
 import { useClosedPolls } from "@/hooks/use-closed-polls"
+import { useClosedPollsContract } from "@/hooks/use-closed-polls-contract"
 import { ClosedPollCard } from "@/components/creator/closed-poll-card"
 import type { DragEndEvent } from '@dnd-kit/core'
 
@@ -47,8 +48,42 @@ export default function ManagePollsPage() {
   const { distributeRewards } = useDistributeRewards()
   const addPollToProject = useAddPollToProject()
 
-  // Fetch closed polls from subgraph
-  const { polls: closedPolls, loading: closedPollsLoading, refetch: refetchClosedPolls } = useClosedPolls(address, chainId)
+  // Fetch closed polls from subgraph (primary source)
+  const { polls: closedPollsSubgraph, loading: closedPollsSubgraphLoading, error: closedPollsSubgraphError, refetch: refetchClosedPollsSubgraph } = useClosedPolls(address, chainId)
+
+  // Fetch closed polls from contract (fallback source)
+  const { polls: closedPollsContract, loading: closedPollsContractLoading, refetch: refetchClosedPollsContract } = useClosedPollsContract(address, chainId)
+
+  // Merge both sources - use all polls from both, deduplicated by pollId
+  const closedPolls = useMemo(() => {
+    const pollMap = new Map<number, typeof closedPollsSubgraph[0]>()
+
+    // Add contract polls first (lower priority)
+    closedPollsContract.forEach(poll => {
+      pollMap.set(poll.pollId, poll)
+    })
+
+    // Add subgraph polls (higher priority, will override contract data)
+    closedPollsSubgraph.forEach(poll => {
+      pollMap.set(poll.pollId, poll)
+    })
+
+    // Convert to array and sort by endTime descending
+    return Array.from(pollMap.values()).sort((a, b) => b.endTime - a.endTime)
+  }, [closedPollsSubgraph, closedPollsContract])
+
+  const closedPollsLoading = closedPollsSubgraphLoading && closedPollsContractLoading
+
+  // Determine data source for display
+  const usingContractOnly = closedPollsSubgraph.length === 0 && closedPollsContract.length > 0 && !closedPollsSubgraphLoading
+  const hasSubgraphError = !!closedPollsSubgraphError
+
+  // Refetch both sources
+  const refetchClosedPolls = () => {
+    refetchClosedPollsSubgraph()
+    refetchClosedPollsContract()
+    return refetchClosedPollsSubgraph() // Return promise for polling
+  }
 
   // View toggle state with localStorage persistence
   const [viewMode, setViewMode] = useState<"table" | "cards">("cards")
@@ -58,6 +93,8 @@ export default function ManagePollsPage() {
 
   // Track poll being closed for refetch
   const [closingPollId, setClosingPollId] = useState<bigint | null>(null)
+  // Track if we're waiting for subgraph to sync
+  const [isWaitingForSync, setIsWaitingForSync] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem("manage-polls-view")
@@ -138,13 +175,47 @@ export default function ManagePollsPage() {
 
   // Refetch polls when close or distribution mode transaction succeeds
   useEffect(() => {
-    if (isCloseSuccess) {
-      toast.success("Poll closed successfully!")
+    if (isCloseSuccess && closingPollId) {
+      toast.success("Poll closed successfully! The closed poll will appear shortly after indexing.")
       // Refetch all poll queries to get updated data
       pollQueries.forEach(query => query.refetch())
-      // Also refetch closed polls from subgraph (with delay for indexing)
-      setTimeout(() => refetchClosedPolls(), 3000)
-      setClosingPollId(null)
+      refetchActivePolls()
+      setIsWaitingForSync(true)
+
+      // Poll the subgraph until the closed poll appears (indexing can take 10-60 seconds)
+      const pollIdToFind = closingPollId
+      let attempts = 0
+      const maxAttempts = 12 // Try for up to 60 seconds (12 * 5s)
+
+      const pollForClosedPoll = async () => {
+        attempts++
+        const result = await refetchClosedPolls()
+
+        // Check if the closed poll is now in the list
+        // The refetch function from Apollo returns ApolloQueryResult
+        const foundPoll = (result as any)?.data?.polls?.some(
+          (p: { pollId: string }) => parseInt(p.pollId, 10) === Number(pollIdToFind)
+        )
+
+        if (foundPoll) {
+          toast.success("Closed poll is now visible!")
+          setClosingPollId(null)
+          setIsWaitingForSync(false)
+          return
+        }
+
+        if (attempts < maxAttempts) {
+          // Retry in 5 seconds
+          setTimeout(pollForClosedPoll, 5000)
+        } else {
+          toast.info("Subgraph is still indexing. The closed poll may take a few more minutes to appear.")
+          setClosingPollId(null)
+          setIsWaitingForSync(false)
+        }
+      }
+
+      // Start polling after initial 5 second delay
+      setTimeout(pollForClosedPoll, 5000)
     }
   }, [isCloseSuccess])
 
@@ -448,13 +519,51 @@ export default function ManagePollsPage() {
 
             {/* Closed Polls Tab */}
             <TabsContent value="closed" className="mt-0">
-              {closedPollsLoading ? (
+              {/* Syncing indicator and refresh button */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  {isWaitingForSync ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Waiting for subgraph to index closed poll...</span>
+                    </>
+                  ) : hasSubgraphError ? (
+                    <span className="text-xs text-red-600">Subgraph error - using contract data</span>
+                  ) : usingContractOnly ? (
+                    <span className="text-xs text-amber-600">
+                      Subgraph returned 0 polls - showing {closedPollsContract.length} from contract
+                    </span>
+                  ) : closedPollsSubgraph.length > 0 ? (
+                    <span className="text-xs text-green-600">
+                      {closedPollsSubgraph.length} from subgraph
+                      {closedPollsContract.length > closedPollsSubgraph.length &&
+                        `, ${closedPollsContract.length - closedPollsSubgraph.length} additional from contract`}
+                    </span>
+                  ) : null}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => refetchClosedPolls()}
+                  disabled={closedPollsLoading}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${closedPollsLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+              </div>
+
+              {closedPollsLoading && closedPolls.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   Loading closed polls...
                 </div>
               ) : closedPolls.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
-                  No closed polls found.
+                  <p>No closed polls found.</p>
+                  {isWaitingForSync && (
+                    <p className="text-xs mt-2">
+                      If you just closed a poll, it may take up to a minute for the subgraph to index it.
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2">
