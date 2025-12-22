@@ -82,38 +82,38 @@ export default function WalletPage() {
     setMounted(true)
   }, [])
 
+  // Update tokenAmount when calculation results change (for buy mode)
+  useEffect(() => {
+    if (mode === "buy" && amount && !isNaN(Number(amount)) && Number(amount) > 0) {
+      if (paymentMethod === "eth" && tokensForETH) {
+        setTokenAmount(formatTokenAmount(tokensForETH as bigint))
+      } else if (paymentMethod === "usdc" && tokensForUSDC) {
+        setTokenAmount(formatTokenAmount(tokensForUSDC as bigint))
+      }
+    }
+  }, [tokensForETH, tokensForUSDC, mode, paymentMethod, amount])
+
+  // Update amount when selling calculations change
+  useEffect(() => {
+    if (mode === "sell" && tokenAmount && !isNaN(Number(tokenAmount)) && Number(tokenAmount) > 0) {
+      if (paymentMethod === "eth" && ethForTokens) {
+        setAmount(formatETHAmount(ethForTokens as bigint))
+      } else if (paymentMethod === "usdc" && usdcForTokens) {
+        setAmount(formatUSDCAmount(usdcForTokens as bigint))
+      }
+    }
+  }, [ethForTokens, usdcForTokens, mode, paymentMethod, tokenAmount])
+
   const userPulseBalance = formatTokenAmount(pulseBalance as bigint | undefined)
 
   const handleAmountChange = (value: string) => {
     setAmount(value)
-    if (value && !isNaN(Number(value))) {
-      if (mode === "buy") {
-        if (paymentMethod === "eth") {
-          setTokenAmount(formatTokenAmount(tokensForETH as bigint | undefined))
-        } else {
-          setTokenAmount(formatTokenAmount(tokensForUSDC as bigint | undefined))
-        }
-      }
-    }
+    // tokenAmount will be updated via useEffect when calculation results arrive
   }
 
   const handleTokenAmountChange = (value: string) => {
     setTokenAmount(value)
-    if (value && !isNaN(Number(value))) {
-      if (mode === "buy") {
-        if (paymentMethod === "eth") {
-          setAmount(formatETHAmount(ethCost as bigint | undefined))
-        } else {
-          setAmount(formatUSDCAmount(usdcCost as bigint | undefined))
-        }
-      } else {
-        if (paymentMethod === "eth") {
-          setAmount(formatETHAmount(ethForTokens as bigint | undefined))
-        } else {
-          setAmount(formatUSDCAmount(usdcForTokens as bigint | undefined))
-        }
-      }
-    }
+    // amount will be updated via useEffect when calculation results arrive (sell mode)
   }
 
   const handleSwap = async () => {

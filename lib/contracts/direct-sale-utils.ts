@@ -186,6 +186,38 @@ export function useTokenPrice() {
 }
 
 /**
+ * Get current ETH to PULSE rate from Chainlink oracle
+ * @returns {pulsePerETH: bigint, ethPriceUSD: bigint} - PULSE per 1 ETH (18 decimals) and ETH price (8 decimals)
+ */
+export function useETHToPulseRate() {
+  const contractAddress = useDirectSaleAddress();
+  const chainId = useChainId();
+
+  return useReadContract({
+    address: contractAddress as `0x${string}`,
+    abi: DirectTokenSaleABI,
+    functionName: "getETHToPulseRate",
+    chainId,
+  });
+}
+
+/**
+ * Get latest ETH/USD price from Chainlink oracle
+ * @returns ETH price in USD with 8 decimals
+ */
+export function useLatestETHPrice() {
+  const contractAddress = useDirectSaleAddress();
+  const chainId = useChainId();
+
+  return useReadContract({
+    address: contractAddress as `0x${string}`,
+    abi: DirectTokenSaleABI,
+    functionName: "getLatestETHPrice",
+    chainId,
+  });
+}
+
+/**
  * Get minimum purchase amount
  */
 export function useMinPurchase() {

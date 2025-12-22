@@ -29,6 +29,7 @@ import {
 } from "@/lib/contracts/direct-sale-utils"
 import { DIRECT_SALE_CONFIG, getUSDCAddress } from "@/lib/contracts/direct-sale-config"
 import { useReadContract } from "wagmi"
+import { useETHPrice, formatETHToPulseRate } from "@/hooks/use-eth-price"
 
 export default function BuyPulsePage() {
   const [paymentMethod, setPaymentMethod] = useState<"eth" | "usdc">("usdc")
@@ -41,6 +42,9 @@ export default function BuyPulsePage() {
   const { isConnected, address } = useAccount()
   const chainId = useChainId()
   const contractAddress = useDirectSaleAddress()
+
+  // Fetch current ETH price for dynamic rate display
+  const { price: ethPriceUSD, loading: ethPriceLoading } = useETHPrice()
 
   // Wallet balances
   const { data: ethBalance, isLoading: ethBalanceLoading } = useBalance({ address })
@@ -412,7 +416,14 @@ export default function BuyPulsePage() {
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      1 ETH = 100,000 PULSE (at ~$1000/ETH)
+                      {ethPriceLoading
+                        ? "Loading ETH price..."
+                        : ethPriceUSD
+                        ? formatETHToPulseRate(ethPriceUSD)
+                        : "1 ETH = ~300,000 PULSE (price unavailable)"}
+                    </p>
+                    <p className="text-xs text-muted-foreground/70">
+                      Rate based on live ETH price. 1 USDC = 100 PULSE.
                     </p>
                   </div>
                 </TabsContent>
