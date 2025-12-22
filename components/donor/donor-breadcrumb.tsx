@@ -30,6 +30,8 @@ export function DonorBreadcrumb() {
       return "Funded Polls"
     } else if (pathname === "/donor/history") {
       return "Funding History"
+    } else if (pathname === "/donor/trending") {
+      return "Trending Polls"
     }
     return "Donor"
   }

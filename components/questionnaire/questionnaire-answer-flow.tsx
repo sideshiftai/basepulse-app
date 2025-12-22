@@ -202,6 +202,12 @@ function InlinePollVoting({
   const [selectedOption, setSelectedOption] = useState<number | null>(null)
   const [hasVotedLocally, setHasVotedLocally] = useState(false)
 
+  // Reset local state when poll changes
+  useEffect(() => {
+    setSelectedOption(null)
+    setHasVotedLocally(false)
+  }, [pollId])
+
   // Fetch poll data from contract
   const { data: pollData, isLoading: isPollLoading, refetch: refetchPoll } = usePoll(pollId)
   const { data: hasVotedOnChain, refetch: refetchHasVoted } = useHasUserVoted(pollId, address)

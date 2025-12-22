@@ -14,9 +14,22 @@ import type { CreatorPoll } from '@/hooks/use-creator-dashboard-data'
 interface DraggablePollCardProps {
   poll: CreatorPoll
   chainId: number
+  creatorAddress: string
+  displayTitle?: string | null
+  onClosePoll?: (pollId: bigint) => void
+  onSetDistributionMode?: (pollId: bigint, mode: number) => void
+  onTitleUpdate?: (pollId: bigint, newTitle: string) => void
 }
 
-export function DraggablePollCard({ poll, chainId }: DraggablePollCardProps) {
+export function DraggablePollCard({
+  poll,
+  chainId,
+  creatorAddress,
+  displayTitle,
+  onClosePoll,
+  onSetDistributionMode,
+  onTitleUpdate,
+}: DraggablePollCardProps) {
   const { data: projects } = usePollProjects(chainId, poll.id)
   const removePollFromProject = useRemovePollFromProject()
 
@@ -66,7 +79,29 @@ export function DraggablePollCard({ poll, chainId }: DraggablePollCardProps) {
       </div>
 
       {/* Poll Card */}
-      <PollCard poll={poll} />
+      <PollCard
+        poll={{
+          id: BigInt(poll.pollId || poll.id),
+          question: poll.question,
+          isActive: poll.isActive,
+          totalVotes: BigInt(poll.totalVotes || 0),
+          totalFunding: BigInt(poll.totalFunding?.toString() || poll.totalFundingAmount?.toString() || '0'),
+          endTime: BigInt(poll.endTime),
+          distributionMode: (poll.distributionMode || 0) as 0 | 1 | 2,
+          fundingToken: poll.fundingToken,
+          fundingTokenSymbol: poll.fundingTokenSymbol,
+          options: poll.options.map((opt, idx) => ({
+            text: opt,
+            votes: BigInt(poll.votes?.[idx]?.toString() || '0'),
+          })),
+        }}
+        chainId={chainId}
+        creatorAddress={creatorAddress}
+        displayTitle={displayTitle}
+        onClosePoll={onClosePoll || (() => {})}
+        onSetDistributionMode={onSetDistributionMode || (() => {})}
+        onTitleUpdate={onTitleUpdate}
+      />
 
       {/* Project Badges */}
       {projects && projects.length > 0 && (

@@ -7,7 +7,7 @@
 
 import { useState, useMemo, useEffect } from "react"
 import { useAccount, useChainId } from "wagmi"
-import { AlertCircle, Plus, LayoutGrid, Table } from "lucide-react"
+import { AlertCircle, Plus, LayoutGrid, Table, Archive } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { TOKEN_INFO } from "@/lib/contracts/token-config"
 import {
@@ -30,22 +30,34 @@ import { DnDContextProvider } from "@/lib/dnd/dnd-context"
 import { useAddPollToProject } from "@/hooks/use-projects"
 import { parsePollDragId } from "@/lib/dnd/dnd-utils"
 import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getTokenSymbol } from "@/lib/contracts/token-config"
+import { useClosedPolls } from "@/hooks/use-closed-polls"
+import { ClosedPollCard } from "@/components/creator/closed-poll-card"
 import type { DragEndEvent } from '@dnd-kit/core'
 
 export default function ManagePollsPage() {
   const { address, isConnected } = useAccount()
   const chainId = useChainId()
   const router = useRouter()
-  const { data: activePollIds, isLoading: pollsLoading } = useActivePolls()
-  const { closePoll } = useClosePoll()
-  const { setDistributionMode } = useSetDistributionMode()
-  const { withdrawFunds } = useWithdrawFunds()
+  const { data: activePollIds, isLoading: pollsLoading, refetch: refetchActivePolls } = useActivePolls()
+  const { closePoll, isSuccess: isCloseSuccess, isConfirming: isCloseConfirming } = useClosePoll()
+  const { setDistributionMode, isSuccess: isDistributionModeSuccess } = useSetDistributionMode()
+  const { withdrawFunds, isSuccess: isWithdrawSuccess } = useWithdrawFunds()
   const { distributeRewards } = useDistributeRewards()
   const addPollToProject = useAddPollToProject()
 
+  // Fetch closed polls from subgraph
+  const { polls: closedPolls, loading: closedPollsLoading, refetch: refetchClosedPolls } = useClosedPolls(address, chainId)
+
   // View toggle state with localStorage persistence
   const [viewMode, setViewMode] = useState<"table" | "cards">("cards")
+
+  // Display titles for polls (off-chain overrides)
+  const [displayTitles, setDisplayTitles] = useState<Record<string, string | null>>({})
+
+  // Track poll being closed for refetch
+  const [closingPollId, setClosingPollId] = useState<bigint | null>(null)
 
   useEffect(() => {
     const stored = localStorage.getItem("manage-polls-view")
@@ -102,6 +114,62 @@ export default function ManagePollsPage() {
       })
       .filter(Boolean)
   }, [activePollIds, address, chainId, pollQueries])
+
+  // Fetch display titles when polls change
+  useEffect(() => {
+    async function fetchDisplayTitles() {
+      if (!myPolls.length || !chainId) return
+
+      try {
+        const pollIds = myPolls.map(p => p.id.toString()).join(',')
+        const response = await fetch(`/api/polls/display-titles?chainId=${chainId}&pollIds=${pollIds}`)
+
+        if (response.ok) {
+          const data = await response.json()
+          setDisplayTitles(data.displayTitles || {})
+        }
+      } catch (error) {
+        console.error('Failed to fetch display titles:', error)
+      }
+    }
+
+    fetchDisplayTitles()
+  }, [myPolls, chainId])
+
+  // Refetch polls when close or distribution mode transaction succeeds
+  useEffect(() => {
+    if (isCloseSuccess) {
+      toast.success("Poll closed successfully!")
+      // Refetch all poll queries to get updated data
+      pollQueries.forEach(query => query.refetch())
+      // Also refetch closed polls from subgraph (with delay for indexing)
+      setTimeout(() => refetchClosedPolls(), 3000)
+      setClosingPollId(null)
+    }
+  }, [isCloseSuccess])
+
+  useEffect(() => {
+    if (isDistributionModeSuccess) {
+      toast.success("Distribution mode updated successfully!")
+      pollQueries.forEach(query => query.refetch())
+    }
+  }, [isDistributionModeSuccess])
+
+  // Refetch when funds are withdrawn
+  useEffect(() => {
+    if (isWithdrawSuccess) {
+      toast.success("Funds withdrawn successfully!")
+      refetchClosedPolls()
+    }
+  }, [isWithdrawSuccess])
+
+  // Handle title update
+  const handleTitleUpdate = (pollId: bigint, newTitle: string) => {
+    setDisplayTitles(prev => ({
+      ...prev,
+      [pollId.toString()]: newTitle,
+    }))
+  }
 
   // Calculate dashboard stats
   const dashboardStats = useMemo(() => {
@@ -178,11 +246,13 @@ export default function ManagePollsPage() {
 
   const handleClosePoll = async (pollId: bigint) => {
     try {
+      setClosingPollId(pollId)
       await closePoll(Number(pollId))
-      toast.success("Poll close transaction submitted")
+      toast.success("Poll close transaction submitted. Waiting for confirmation...")
     } catch (error) {
       console.error("Close poll failed:", error)
       toast.error("Failed to close poll")
+      setClosingPollId(null)
     }
   }
 
@@ -258,7 +328,7 @@ export default function ManagePollsPage() {
                 isLoading={pollsLoading}
               />
 
-        {/* My Polls Section with View Toggle and New Poll Button */}
+        {/* My Polls Section with Tabs */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -268,6 +338,37 @@ export default function ManagePollsPage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              {/* New Poll Button */}
+              <Button onClick={() => router.push("/dapp/create")}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Poll
+              </Button>
+            </div>
+          </div>
+
+          <Tabs defaultValue="active" className="w-full">
+            <div className="flex items-center justify-between mb-4">
+              <TabsList>
+                <TabsTrigger value="active" className="gap-2">
+                  <LayoutGrid className="h-4 w-4" />
+                  Active Polls
+                  {myPolls.length > 0 && (
+                    <span className="ml-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
+                      {myPolls.length}
+                    </span>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="closed" className="gap-2">
+                  <Archive className="h-4 w-4" />
+                  Closed Polls
+                  {closedPolls.length > 0 && (
+                    <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs">
+                      {closedPolls.length}
+                    </span>
+                  )}
+                </TabsTrigger>
+              </TabsList>
+
               {/* View Toggle */}
               <div className="flex border rounded-md">
                 <Button
@@ -289,59 +390,86 @@ export default function ManagePollsPage() {
                   Table
                 </Button>
               </div>
-
-              {/* New Poll Button */}
-              <Button onClick={() => router.push("/dapp/create")}>
-                <Plus className="h-4 w-4 mr-2" />
-                New Poll
-              </Button>
             </div>
-          </div>
 
-          {/* Conditional Rendering: Cards or Table */}
-          {viewMode === "cards" ? (
-            <div className="grid gap-4 md:grid-cols-2">
-              {myPolls.length === 0 ? (
-                <div className="col-span-2 text-center py-12 text-muted-foreground">
-                  No polls found. Create your first poll to get started.
+            {/* Active Polls Tab */}
+            <TabsContent value="active" className="mt-0">
+              {viewMode === "cards" ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {myPolls.length === 0 ? (
+                    <div className="col-span-2 text-center py-12 text-muted-foreground">
+                      No active polls found. Create your first poll to get started.
+                    </div>
+                  ) : (
+                    myPolls.map((poll) => (
+                      <DraggablePollCard
+                        key={Number(poll.id)}
+                        poll={{
+                          id: String(poll.id),
+                          pollId: Number(poll.id),
+                          question: poll.question,
+                          options: poll.options.map((opt: { text: string }) => opt.text),
+                          votes: poll.options.map((opt: { votes: bigint }) => opt.votes),
+                          totalVotes: Number(poll.totalVotes),
+                          endTime: Number(poll.endTime),
+                          isActive: poll.isActive,
+                          totalFunding: poll.totalFunding,
+                          totalFundingAmount: poll.totalFunding,
+                          voteCount: poll.options.reduce((sum: number, opt: { votes: bigint }) => sum + Number(opt.votes), 0),
+                          voterCount: 0,
+                          distributionMode: poll.distributionMode,
+                          fundingType: 'community',
+                          status: poll.isActive ? 'active' : 'closed',
+                          createdAt: new Date(),
+                          fundingToken: poll.fundingToken,
+                          fundingTokenSymbol: poll.fundingTokenSymbol,
+                        }}
+                        chainId={chainId}
+                        creatorAddress={address || ''}
+                        displayTitle={displayTitles[poll.id.toString()]}
+                        onClosePoll={handleClosePoll}
+                        onSetDistributionMode={handleSetDistributionMode}
+                        onTitleUpdate={handleTitleUpdate}
+                      />
+                    ))
+                  )}
                 </div>
               ) : (
-                myPolls.map((poll) => (
-                  <DraggablePollCard
-                    key={Number(poll.id)}
-                    poll={{
-                      id: String(poll.id),
-                      pollId: Number(poll.id),
-                      question: poll.question,
-                      options: poll.options.map((opt: { text: string }) => opt.text),
-                      votes: poll.options.map((opt: { votes: bigint }) => opt.votes),
-                      totalVotes: Number(poll.totalVotes),
-                      endTime: Number(poll.endTime),
-                      isActive: poll.isActive,
-                      totalFunding: poll.totalFunding,
-                      totalFundingAmount: poll.totalFunding,
-                      voteCount: poll.options.reduce((sum: number, opt: { votes: bigint }) => sum + Number(opt.votes), 0),
-                      voterCount: 0, // TODO: Get actual voter count
-                      distributionMode: poll.distributionMode,
-                      fundingType: 'community', // Default
-                      status: poll.isActive ? 'active' : 'closed',
-                      createdAt: new Date(),
-                    }}
-                    chainId={chainId}
-                  />
-                ))
+                <ManagePollsTab
+                  polls={myPolls}
+                  isLoading={pollsLoading}
+                  onSetDistributionMode={handleSetDistributionMode}
+                  onWithdrawFunds={handleWithdrawFunds}
+                  onDistributeRewards={handleDistributeRewards}
+                  onClosePoll={handleClosePoll}
+                />
               )}
-            </div>
-          ) : (
-            <ManagePollsTab
-              polls={myPolls}
-              isLoading={pollsLoading}
-              onSetDistributionMode={handleSetDistributionMode}
-              onWithdrawFunds={handleWithdrawFunds}
-              onDistributeRewards={handleDistributeRewards}
-              onClosePoll={handleClosePoll}
-            />
-          )}
+            </TabsContent>
+
+            {/* Closed Polls Tab */}
+            <TabsContent value="closed" className="mt-0">
+              {closedPollsLoading ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  Loading closed polls...
+                </div>
+              ) : closedPolls.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  No closed polls found.
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {closedPolls.map((poll) => (
+                    <ClosedPollCard
+                      key={poll.id}
+                      poll={poll}
+                      chainId={chainId}
+                      onWithdrawFunds={handleWithdrawFunds}
+                    />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
             </div>
           </div>
