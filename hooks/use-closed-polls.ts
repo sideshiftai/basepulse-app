@@ -116,7 +116,23 @@ export function useClosedPolls(
     variables: { creator, first: 100 },
     skip: !isClient || !creator,
     fetchPolicy: 'cache-and-network',
+    onError: (err) => {
+      console.error('[useClosedPolls] GraphQL error:', err)
+    },
   })
+
+  // Debug logging
+  useEffect(() => {
+    if (isClient && creator) {
+      console.log('[useClosedPolls] Query state:', {
+        creator,
+        chainId,
+        loading,
+        error: error?.message,
+        dataPolls: data?.polls?.length ?? 'no data',
+      })
+    }
+  }, [isClient, creator, chainId, loading, error, data])
 
   // Transform polls data
   const polls = useMemo(() => {

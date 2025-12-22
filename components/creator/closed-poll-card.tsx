@@ -40,11 +40,14 @@ export function ClosedPollCard({
   const [isWithdrawing, setIsWithdrawing] = useState(false)
 
   const endDate = new Date(poll.endTime * 1000)
+  const now = new Date()
+  const hasEnded = now >= endDate
 
   // Calculate funding amount
   const decimals = TOKEN_INFO[poll.fundingTokenSymbol || "ETH"]?.decimals || 18
   const fundingAmount = Number(poll.totalFundingAmount) / Math.pow(10, decimals)
   const hasFunds = fundingAmount > 0
+  const canWithdraw = hasFunds && hasEnded
 
   // Get status badge
   const getStatusBadge = () => {
@@ -59,9 +62,12 @@ export function ClosedPollCard({
 
     setIsWithdrawing(true)
     try {
-      // Use the funding token address, or native ETH placeholder
-      const tokens = poll.fundingToken ? [poll.fundingToken] : []
-      await onWithdrawFunds(BigInt(poll.pollId), recipient, tokens)
+      // Use the funding token address
+      // For ETH, fundingToken is address(0) = "0x0000000000000000000000000000000000000000"
+      // We always need to pass the token in the array
+      const zeroAddress = "0x0000000000000000000000000000000000000000"
+      const tokenToWithdraw = poll.fundingToken || zeroAddress
+      await onWithdrawFunds(BigInt(poll.pollId), recipient, [tokenToWithdraw])
       setIsWithdrawDialogOpen(false)
       setRecipient("")
     } catch (error) {
@@ -140,16 +146,23 @@ export function ClosedPollCard({
             </Button>
             {hasFunds && (
               <Button
-                variant="default"
+                variant={canWithdraw ? "default" : "secondary"}
                 size="sm"
                 className="flex-1 h-8"
                 onClick={() => setIsWithdrawDialogOpen(true)}
+                disabled={!canWithdraw}
+                title={!hasEnded ? `Withdrawal available after ${endDate.toLocaleString()}` : undefined}
               >
                 <Wallet className="h-3.5 w-3.5 mr-2" />
-                Withdraw Funds
+                {canWithdraw ? "Withdraw Funds" : "Locked"}
               </Button>
             )}
           </div>
+          {hasFunds && !hasEnded && (
+            <p className="text-xs text-muted-foreground text-center">
+              Funds unlock on {endDate.toLocaleDateString()} at {endDate.toLocaleTimeString()}
+            </p>
+          )}
         </CardContent>
       </Card>
 
