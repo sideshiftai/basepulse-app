@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { PollCard } from "@/components/poll-card"
 import { PollFilters } from "@/components/poll-filters"
 import { ConnectWalletButton } from "@/components/connect-wallet-button"
-import { Plus, TrendingUp, Clock, Users, AlertCircle, Loader2 } from "lucide-react"
+import { Plus, TrendingUp, Clock, Users, AlertCircle, Loader2, ListChecks } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useVote, usePollsContractAddress, useNextPollId } from "@/lib/contracts/polls-contract-utils"
@@ -242,12 +242,26 @@ export default function DappPage() {
                 </div>
               )}
             </div>
-            <Button asChild size="lg">
-              <Link href="/dapp/create">
-                <Plus className="h-4 w-4 mr-2" />
-                Create Poll
-              </Link>
-            </Button>
+            <div className="flex gap-2">
+              <Button asChild size="lg">
+                <Link href="/dapp/create">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Poll
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="outline">
+                <Link href="/dapp/questionnaires/create">
+                  <ListChecks className="h-4 w-4 mr-2" />
+                  Create Questionnaire
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="ghost">
+                <Link href="/dapp/questionnaires">
+                  <ListChecks className="h-4 w-4 mr-2" />
+                  Browse Questionnaires
+                </Link>
+              </Button>
+            </div>
           </div>
 
           {/* Stats */}

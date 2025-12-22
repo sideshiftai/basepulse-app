@@ -8,7 +8,7 @@
 import { useState, useEffect } from "react"
 import { useAccount, useChainId } from "wagmi"
 import { useRouter } from "next/navigation"
-import { AlertCircle, Vote, Sparkles, ChevronRight, Clock, Users, Coins, Target, Trophy, ArrowRight } from "lucide-react"
+import { AlertCircle, Vote, Sparkles, ChevronRight, Clock, Users, Coins, Target, Trophy, ArrowRight, ListChecks } from "lucide-react"
 import { ParticipantBreadcrumb } from "@/components/participant/participant-breadcrumb"
 import { CreatorHeaderBanner } from "@/components/creator/creator-header-banner"
 import { ParticipantStats } from "@/components/participant/participant-stats"
@@ -29,6 +29,7 @@ import {
   fetchParticipantStats,
   fetchClaimHistory,
 } from "@/lib/api/participant"
+import { useActiveQuestionnaires, useQuestionnaireProgress, type Questionnaire } from "@/hooks/use-questionnaires"
 
 export default function ParticipantPage() {
   const { address, isConnected } = useAccount()
@@ -51,6 +52,10 @@ export default function ParticipantPage() {
   // Fetch available quests
   const { data: quests, isLoading: questsLoading, refetch: refetchQuests } = useAvailableQuests(true)
   const availableQuests = quests?.filter(q => !q.participation?.isCompleted).slice(0, 3) || []
+
+  // Fetch active questionnaires
+  const { data: questionnaires, isLoading: questionnairesLoading } = useActiveQuestionnaires(3, 0)
+  const activeQuestionnaires = questionnaires || []
 
   // Quest dialog state
   const [selectedQuest, setSelectedQuest] = useState<CreatorQuestWithParticipation | null>(null)
@@ -311,6 +316,53 @@ export default function ParticipantPage() {
           onProgressUpdate={handleQuestProgressUpdate}
         />
 
+        {/* Available Questionnaires Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <ListChecks className="h-6 w-6 text-primary" />
+                Available Questionnaires
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Answer grouped polls together and earn rewards
+              </p>
+            </div>
+            <Button variant="outline" onClick={() => router.push('/dapp/questionnaires')}>
+              View All Questionnaires
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+
+          {questionnairesLoading ? (
+            <div className="grid gap-4 md:grid-cols-3">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-48 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : activeQuestionnaires.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <ListChecks className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">No questionnaires available at the moment</p>
+                <Button variant="link" onClick={() => router.push('/dapp/questionnaires')}>
+                  Browse all questionnaires
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-3">
+              {activeQuestionnaires.map((questionnaire) => (
+                <QuestionnairePreviewCard
+                  key={questionnaire.id}
+                  questionnaire={questionnaire}
+                  onClick={() => router.push(`/dapp/questionnaires/${questionnaire.id}`)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Claimable Rewards Section */}
         <div className="space-y-4">
           <div>
@@ -330,5 +382,59 @@ export default function ParticipantPage() {
         <ClaimHistory claims={claimHistory} isLoading={isLoading} />
       </div>
     </div>
+  )
+}
+
+// Simple preview card for questionnaires on participant dashboard
+function QuestionnairePreviewCard({
+  questionnaire,
+  onClick,
+}: {
+  questionnaire: Questionnaire
+  onClick: () => void
+}) {
+  const pollCount = questionnaire.pollCount || 0
+
+  return (
+    <Card
+      className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all"
+      onClick={onClick}
+    >
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <Badge variant="default" className="text-xs">Active</Badge>
+          {questionnaire.totalRewardAmount && parseFloat(questionnaire.totalRewardAmount) > 0 && (
+            <Badge variant="secondary" className="text-xs">
+              <Coins className="w-3 h-3 mr-1" />
+              {questionnaire.totalRewardAmount} {questionnaire.fundingToken || 'PULSE'}
+            </Badge>
+          )}
+        </div>
+        <CardTitle className="text-lg line-clamp-2 mt-2">{questionnaire.title}</CardTitle>
+        {questionnaire.description && (
+          <CardDescription className="line-clamp-2">{questionnaire.description}</CardDescription>
+        )}
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <ListChecks className="w-4 h-4" />
+              <span>{pollCount} poll{pollCount !== 1 ? 's' : ''}</span>
+            </div>
+            {questionnaire.endTime && (
+              <div className="flex items-center gap-1">
+                <Clock className="w-4 h-4" />
+                <span>{new Date(questionnaire.endTime).toLocaleDateString()}</span>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center justify-between pt-2 border-t">
+            <span className="text-xs text-muted-foreground">Click to start</span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

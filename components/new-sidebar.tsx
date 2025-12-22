@@ -40,6 +40,7 @@ import {
   Wallet,
   Search,
   Target,
+  ListChecks,
 } from "lucide-react"
 import { useSidebar } from "@/contexts/sidebar-context"
 
@@ -186,6 +187,11 @@ export function NewSidebar() {
       icon: FileEdit,
       label: "Manage Polls",
       href: "/creator/manage",
+    },
+    {
+      icon: ListChecks,
+      label: "Questionnaires",
+      href: "/dapp/questionnaires",
     },
     {
       icon: ArrowLeftRight,
