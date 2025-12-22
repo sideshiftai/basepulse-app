@@ -359,3 +359,34 @@ export async function fetchUserQuestionnaireResponses(userAddress: string): Prom
     throw new Error(handleAPIError(error))
   }
 }
+
+// Poll in questionnaire info
+export interface PollInQuestionnaire {
+  chainId: number
+  pollId: number
+  questionnaireId: string
+  questionnaireTitle: string
+}
+
+/**
+ * Get all polls that are in questionnaires for a creator
+ */
+export async function fetchPollsInQuestionnaires(
+  creatorAddress: string,
+  chainId: number,
+  excludeQuestionnaireId?: string
+): Promise<PollInQuestionnaire[]> {
+  try {
+    const params: Record<string, string> = {
+      creatorAddress,
+      chainId: String(chainId),
+    }
+    if (excludeQuestionnaireId) {
+      params.excludeQuestionnaireId = excludeQuestionnaireId
+    }
+    const response = await apiClient.get('/api/questionnaires/polls-in-questionnaires', { params })
+    return response.data
+  } catch (error) {
+    throw new Error(handleAPIError(error))
+  }
+}

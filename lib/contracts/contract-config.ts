@@ -26,6 +26,7 @@ export const CONTRACT_ADDRESSES = {
     STAKING_CONTRACT: (process.env.NEXT_PUBLIC_STAKING_CONTRACT_BASE || ZERO_ADDRESS) as `0x${string}`,
     PREMIUM_CONTRACT: (process.env.NEXT_PUBLIC_PREMIUM_CONTRACT_BASE || ZERO_ADDRESS) as `0x${string}`,
     PULSE_TOKEN: (process.env.NEXT_PUBLIC_PULSE_TOKEN_BASE || BASE_MAINNET_PULSE_TOKEN) as `0x${string}`,
+    ZK_VERIFICATION_CONTRACT: (process.env.NEXT_PUBLIC_ZK_VERIFICATION_CONTRACT_BASE || ZERO_ADDRESS) as `0x${string}`,
   },
   // Base Sepolia Testnet (chainId: 84532)
   84532: {
@@ -33,6 +34,7 @@ export const CONTRACT_ADDRESSES = {
     STAKING_CONTRACT: (process.env.NEXT_PUBLIC_STAKING_CONTRACT_BASE_SEPOLIA || ZERO_ADDRESS) as `0x${string}`,
     PREMIUM_CONTRACT: (process.env.NEXT_PUBLIC_PREMIUM_CONTRACT_BASE_SEPOLIA || ZERO_ADDRESS) as `0x${string}`,
     PULSE_TOKEN: (process.env.NEXT_PUBLIC_PULSE_TOKEN_BASE_SEPOLIA || BASE_SEPOLIA_PULSE_TOKEN) as `0x${string}`,
+    ZK_VERIFICATION_CONTRACT: (process.env.NEXT_PUBLIC_ZK_VERIFICATION_CONTRACT_BASE_SEPOLIA || ZERO_ADDRESS) as `0x${string}`,
   },
 } as const
 
@@ -43,7 +45,7 @@ export type SupportedChainId = keyof typeof CONTRACT_ADDRESSES
 export const SUPPORTED_CHAINS = Object.keys(CONTRACT_ADDRESSES).map(Number) as SupportedChainId[]
 
 // Helper function to get contract address for a chain
-export const getContractAddress = (chainId: number, contract: 'POLLS_CONTRACT' | 'STAKING_CONTRACT' | 'PREMIUM_CONTRACT' | 'PULSE_TOKEN') => {
+export const getContractAddress = (chainId: number, contract: 'POLLS_CONTRACT' | 'STAKING_CONTRACT' | 'PREMIUM_CONTRACT' | 'PULSE_TOKEN' | 'ZK_VERIFICATION_CONTRACT') => {
   const addresses = CONTRACT_ADDRESSES[chainId as SupportedChainId]
   return addresses?.[contract]
 }

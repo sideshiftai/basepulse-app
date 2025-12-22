@@ -7,9 +7,10 @@ import type { QuestionnaireFormData } from "./questionnaire-creation-form"
 
 interface StepAddPollsProps {
   form: UseFormReturn<QuestionnaireFormData>
+  excludeQuestionnaireId?: string // When editing, exclude the current questionnaire from "already in questionnaire" check
 }
 
-export function StepAddPolls({ form }: StepAddPollsProps) {
+export function StepAddPolls({ form, excludeQuestionnaireId }: StepAddPollsProps) {
   const polls = form.watch("polls") || []
 
   const handleAddPoll = (poll: SelectedPoll) => {
@@ -45,6 +46,7 @@ export function StepAddPolls({ form }: StepAddPollsProps) {
           <PollSelector
             selectedPolls={polls}
             onAddPoll={handleAddPoll}
+            excludeQuestionnaireId={excludeQuestionnaireId}
           />
         </div>
 

@@ -72,6 +72,7 @@ import {
 import { usePollsByCreator, usePollsByIds } from "@/hooks/use-polls-by-creator"
 import type { QuestionnaireWithPolls, QuestionnairePoll } from "@/lib/api/questionnaires-client"
 import { TOKEN_INFO, getTokenSymbol as getTokenSymbolByAddress } from "@/lib/contracts/token-config"
+import { CreatorBreadcrumb } from "@/components/creator/creator-breadcrumb"
 
 interface PageProps {
   params: { id: string }
@@ -89,7 +90,7 @@ const editFormSchema = z.object({
 
 type EditFormData = z.infer<typeof editFormSchema>
 
-export default function QuestionnaireEditPage({ params }: PageProps) {
+export default function CreatorQuestionnaireEditPage({ params }: PageProps) {
   const router = useRouter()
   const { id } = params
   const { address, isConnected } = useAccount()
@@ -309,6 +310,7 @@ export default function QuestionnaireEditPage({ params }: PageProps) {
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
+        <CreatorBreadcrumb />
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
@@ -322,12 +324,13 @@ export default function QuestionnaireEditPage({ params }: PageProps) {
   if (error || !questionnaire) {
     return (
       <div className="container mx-auto px-4 py-8">
+        <CreatorBreadcrumb />
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold mb-2">Questionnaire Not Found</h2>
           <p className="text-muted-foreground mb-4">
             This questionnaire doesn't exist or failed to load.
           </p>
-          <Button onClick={() => router.push("/dapp/questionnaires")}>
+          <Button onClick={() => router.push("/creator/questionnaires")}>
             Back to Questionnaires
           </Button>
         </div>
@@ -338,12 +341,13 @@ export default function QuestionnaireEditPage({ params }: PageProps) {
   if (!isCreator) {
     return (
       <div className="container mx-auto px-4 py-8">
+        <CreatorBreadcrumb />
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold mb-2">Unauthorized</h2>
           <p className="text-muted-foreground mb-4">
             You don't have permission to edit this questionnaire.
           </p>
-          <Button onClick={() => router.push("/dapp/questionnaires")}>
+          <Button onClick={() => router.push("/creator/questionnaires")}>
             Back to Questionnaires
           </Button>
         </div>
@@ -355,11 +359,13 @@ export default function QuestionnaireEditPage({ params }: PageProps) {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <CreatorBreadcrumb />
+
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-6 mt-4">
         <Button
           variant="ghost"
-          onClick={() => router.push("/dapp/questionnaires")}
+          onClick={() => router.push("/creator/questionnaires")}
           className="mb-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -471,7 +477,6 @@ export default function QuestionnaireEditPage({ params }: PageProps) {
                               mode="single"
                               selected={field.value || undefined}
                               onSelect={field.onChange}
-                              initialFocus
                             />
                           </PopoverContent>
                         </Popover>
@@ -505,7 +510,6 @@ export default function QuestionnaireEditPage({ params }: PageProps) {
                               mode="single"
                               selected={field.value || undefined}
                               onSelect={field.onChange}
-                              initialFocus
                             />
                           </PopoverContent>
                         </Popover>

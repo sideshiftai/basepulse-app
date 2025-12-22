@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ConnectWalletButton } from "@/components/connect-wallet-button"
 import { Plus, Loader2, ListChecks, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { useAccount, useChainId } from "wagmi"
@@ -98,17 +97,14 @@ export default function QuestionnairesPage() {
                 Answer grouped polls and earn rewards
               </p>
             </div>
-            <div className="flex items-center gap-4">
-              {isConnected && (
-                <Link href="/dapp/questionnaires/create">
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create Questionnaire
-                  </Button>
-                </Link>
-              )}
-              <ConnectWalletButton />
-            </div>
+            {isConnected && (
+              <Link href="/dapp/questionnaires/create">
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Questionnaire
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </div>
